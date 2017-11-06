@@ -29,6 +29,12 @@ subprojects {
             }
         }
     }
+
+    jar {
+        from(configurations.compile) {
+            into "lib/"
+        }
+    }
 }
 
 task wrapper(type: Wrapper) {
