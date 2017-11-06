@@ -1,0 +1,54 @@
+package io.github.kszatan.gocd.b2.publish.handlers;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.*;
+
+public class DefaultRequestHandlerFactoryTest {
+    private RequestHandlerFactory requestHandlerFactory;
+    @Before
+    public void setUp() {
+        requestHandlerFactory = new DefaultRequestHandlerFactory();
+    }
+
+    @Test
+    public void shouldCreateRequestHandlerForScmConfigurationRequest() throws Exception {
+        RequestHandler handler = requestHandlerFactory.create(RequestHandlerFactory.CONFIGURATION);
+        // TODO: Check handler type
+        assertNotNull(handler);
+    }
+
+    @Test
+    public void shouldCreateRequestHandlerForScmViewRequest() throws Exception {
+        RequestHandler handler = requestHandlerFactory.create(RequestHandlerFactory.VIEW);
+        // TODO: Check handler type
+        assertNotNull(handler);
+    }
+
+    @Test
+    public void shouldCreateRequestHandlerForValidateScmConfigurationRequest() throws Exception {
+        RequestHandler handler = requestHandlerFactory.create(RequestHandlerFactory.VALIDATE);
+        // TODO: Check handler type
+        assertNotNull(handler);
+    }
+
+    @Test
+    public void shouldCreateRequestHandlerForCheckScmConnectionRequest() throws Exception {
+        RequestHandler handler = requestHandlerFactory.create(RequestHandlerFactory.EXECUTE);
+        // TODO: Check handler type
+        assertNotNull(handler);
+    }
+
+    @Test
+    public void shouldThrowExceptionForUnknownRequest() throws Exception {
+        String request = "unknown-request";
+        try {
+            requestHandlerFactory.create(request);
+            fail("should have failed");
+        } catch (Exception e) {
+            assertThat(e.getMessage(), is("This is an invalid request type :" + request));
+        }
+    }
+}
