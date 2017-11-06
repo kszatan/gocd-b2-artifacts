@@ -2,7 +2,7 @@
 *.jar
 *.idea
 *.swp
-/build/
+**/build/
 !gradle-wrapper.jar
 .gradle
 *.iml

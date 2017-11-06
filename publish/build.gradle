@@ -1,0 +1,13 @@
+/* Copyright (c) 2017 Krzysztof Szatan <kszatan@gmail.com>
+ * This file is subject to the license terms in the LICENSE file found in the
+ * top-level directory of this distribution. */
+
+project.ext.pluginDesc = [
+    id         : 'io.github.kszatan.gocd.b2.publish',
+    version    : project.version,
+    goCdVersion: project.goCdVersion,
+    name       : 'Backblaze B2 Publish Task Plugin',
+    description: 'Plugin adding a task to publish artifacts to Backblaze B2.',
+    vendorName : 'Krzysztof Szatan',
+    vendorUrl  : 'https://github.com/kszatan/gocd-b2-artifacts'
+]
