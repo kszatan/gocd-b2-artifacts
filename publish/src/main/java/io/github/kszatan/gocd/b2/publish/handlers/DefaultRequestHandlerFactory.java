@@ -1,6 +1,8 @@
-/* Copyright (c) 2017 Krzysztof Szatan <kszatan@gmail.com>
+/*
+ * Copyright (c) 2017. Krzysztof Szatan <kszatan@gmail.com>
  * This file is subject to the license terms in the LICENSE file found in the
- * top-level directory of this distribution. */
+ * top-level directory of this distribution.
+ */
 
 package io.github.kszatan.gocd.b2.publish.handlers;
 
@@ -12,7 +14,7 @@ public class DefaultRequestHandlerFactory implements  RequestHandlerFactory {
         RequestHandler handler;
         switch (requestType) {
             case CONFIGURATION:
-                handler = r -> DefaultGoPluginApiResponse.success("Configuration");
+                handler = new ConfigurationRequestHandler();
                 break;
             case VIEW:
                 handler = r -> DefaultGoPluginApiResponse.success("View");
