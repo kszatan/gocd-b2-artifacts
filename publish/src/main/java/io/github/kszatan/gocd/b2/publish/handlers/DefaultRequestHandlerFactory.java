@@ -17,7 +17,7 @@ public class DefaultRequestHandlerFactory implements  RequestHandlerFactory {
                 handler = new ConfigurationRequestHandler();
                 break;
             case VIEW:
-                handler = r -> DefaultGoPluginApiResponse.success("View");
+                handler = new ViewRequestHandler();
                 break;
             case VALIDATE:
                 handler = r -> DefaultGoPluginApiResponse.success("Validate");

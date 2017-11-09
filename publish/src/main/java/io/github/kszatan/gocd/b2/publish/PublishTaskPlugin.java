@@ -8,6 +8,7 @@ package io.github.kszatan.gocd.b2.publish;
 
 import com.thoughtworks.go.plugin.api.AbstractGoPlugin;
 import com.thoughtworks.go.plugin.api.GoPluginIdentifier;
+import com.thoughtworks.go.plugin.api.annotation.Extension;
 import com.thoughtworks.go.plugin.api.exceptions.UnhandledRequestTypeException;
 import com.thoughtworks.go.plugin.api.request.GoPluginApiRequest;
 import com.thoughtworks.go.plugin.api.response.DefaultGoPluginApiResponse;
@@ -19,6 +20,7 @@ import io.github.kszatan.gocd.b2.publish.handlers.RequestHandlerFactory;
 import java.util.Collections;
 import java.util.List;
 
+@Extension
 public class PublishTaskPlugin extends AbstractGoPlugin {
     private static final String EXTENSION_NAME = "task";
     private static final List<String> supportedExtensionVersions = Collections.singletonList("1.0");
