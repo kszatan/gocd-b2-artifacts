@@ -20,28 +20,25 @@ public class DefaultRequestHandlerFactoryTest {
     }
 
     @Test
-    public void shouldCreateRequestHandlerForScmConfigurationRequest() throws Exception {
+    public void shouldCreateRequestHandlerForConfigurationRequest() throws Exception {
         RequestHandler handler = requestHandlerFactory.create(RequestHandlerFactory.CONFIGURATION);
-        // TODO: Check handler type
-        assertNotNull(handler);
+        assertThat(handler instanceof ConfigurationRequestHandler, is(true));
     }
 
     @Test
-    public void shouldCreateRequestHandlerForScmViewRequest() throws Exception {
+    public void shouldCreateRequestHandlerForViewRequest() throws Exception {
         RequestHandler handler = requestHandlerFactory.create(RequestHandlerFactory.VIEW);
-        // TODO: Check handler type
-        assertNotNull(handler);
+        assertThat(handler instanceof ViewRequestHandler, is(true));
     }
 
     @Test
-    public void shouldCreateRequestHandlerForValidateScmConfigurationRequest() throws Exception {
+    public void shouldCreateRequestHandlerForValidateConfigurationRequest() throws Exception {
         RequestHandler handler = requestHandlerFactory.create(RequestHandlerFactory.VALIDATE);
-        // TODO: Check handler type
-        assertNotNull(handler);
+        assertThat(handler instanceof ValidateRequestHandler, is(true));
     }
 
     @Test
-    public void shouldCreateRequestHandlerForCheckScmConnectionRequest() throws Exception {
+    public void shouldCreateRequestHandlerForCheckConnectionRequest() throws Exception {
         RequestHandler handler = requestHandlerFactory.create(RequestHandlerFactory.EXECUTE);
         // TODO: Check handler type
         assertNotNull(handler);

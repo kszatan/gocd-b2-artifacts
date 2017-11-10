@@ -38,7 +38,7 @@ public class ConfigurationRequestHandlerText {
     }
 
     @Test
-    public void handleShouldReturnValidScmConfiguration() throws Exception {
+    public void handleShouldReturnValidConfiguration() throws Exception {
         GoPluginApiResponse response = handler.handle(mock(GoPluginApiRequest.class));
         ConfigurationDefinition definition = GsonService.fromJson(response.responseBody(), ConfigurationDefinition.class);
         assertThat(definition.destinationPrefix, notNullValue());

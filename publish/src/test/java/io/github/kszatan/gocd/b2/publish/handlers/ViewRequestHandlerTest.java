@@ -38,7 +38,7 @@ public class ViewRequestHandlerTest {
     }
 
     @Test
-    public void handleShouldReturnValidScmView() throws Exception {
+    public void handleShouldReturnValidView() throws Exception {
         GoPluginApiResponse response = handler.handle(mock(GoPluginApiRequest.class));
         TaskConfigurationView configuration = GsonService.fromJson(response.responseBody(), TaskConfigurationView.class);
         assertThat(configuration.displayValue, notNullValue());

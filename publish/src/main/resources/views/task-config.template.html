@@ -2,13 +2,13 @@
     <label>Destination Prefix</label>
     <input type="text" ng-model="destinationPrefix"/>
     <span class="form_error" ng-show="GOINPUTNAME[destinationPrefix].$error.server">
-        {{ GOINPUTNAME[url].$error.server }}
+        {{ GOINPUTNAME[destinationPrefix].$error.server }}
     </span>
 </div>
 <div class="form_item_block">
     <label>Bucket ID</label>
     <input type="text" ng-model="bucketId"/>
     <span class="form_error" ng-show="GOINPUTNAME[bucketId].$error.server">
-        {{ GOINPUTNAME[username].$error.server }}
+        {{ GOINPUTNAME[bucketId].$error.server }}
     </span>
 </div>

@@ -19,8 +19,8 @@ public class ViewRequestHandler implements RequestHandler {
         GoPluginApiResponse response;
         try {
             String template = IOUtils.toString(getClass().getResourceAsStream("/views/task-config.template.html"), "UTF-8");
-            TaskConfigurationView scmView = new TaskConfigurationView("Publish to B2", template);
-            response = DefaultGoPluginApiResponse.success(GsonService.toJson(scmView));
+            TaskConfigurationView view = new TaskConfigurationView("Publish to B2", template);
+            response = DefaultGoPluginApiResponse.success(GsonService.toJson(view));
         } catch (java.io.IOException e) {
             response = DefaultGoPluginApiResponse.error("Failed to find template: " + e.getMessage());
         }

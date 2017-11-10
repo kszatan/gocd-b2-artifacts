@@ -30,6 +30,6 @@ public class ConfigurationDefinition {
         bucketId = new Field();
         bucketId.defaultValue = "";
         bucketId.required = false;
-        bucketId.secure = true;
+        bucketId.secure = false;
     }
 }
