@@ -14,6 +14,9 @@ public class ConfigurationValidator {
 
     public TaskConfigurationValidationResponse validate(TaskConfiguration configuration) {
         TaskConfigurationValidationResponse result = new TaskConfigurationValidationResponse();
+        if (configuration.getSourceDestinations().isEmpty()) {
+            result.errors.put("sourceDestinations", "Empty source destinations");
+        }
         if (!validateBucketId(configuration.getBucketId())) {
             result.errors.put("bucketId", "Invalid Bucket ID format");
         }

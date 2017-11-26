@@ -21,7 +21,7 @@ public class TaskConfigurationRequestTest {
 
     @Test
     public void constructorShouldParseCorrectJsonString() throws Exception {
-        String json = "{\"destinationPrefix\":{\"value\":\"destination/prefix\"},\"bucketId\":{\"value\":\"kszatan-bucket\"}}";
+        String json = "{\"sourceDestinations\":{\"value\":\"[]\"},\"destinationPrefix\":{\"value\":\"destination/prefix\"},\"bucketId\":{\"value\":\"kszatan-bucket\"}}";
         TaskConfigurationRequest request = new TaskConfigurationRequest(json);
         TaskConfiguration configuration = request.getConfiguration();
         assertThat(configuration.getDestinationPrefix(), equalTo("destination/prefix"));

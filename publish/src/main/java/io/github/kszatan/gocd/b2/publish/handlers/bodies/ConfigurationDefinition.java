@@ -18,10 +18,16 @@ public class ConfigurationDefinition {
         public Boolean secure;
     }
 
+    public Field sourceDestinations;
     public Field destinationPrefix;
     public Field bucketId;
 
     public ConfigurationDefinition() {
+        sourceDestinations = new Field();
+        sourceDestinations.defaultValue = "";
+        sourceDestinations.required = true;
+        sourceDestinations.secure = false;
+
         destinationPrefix = new Field();
         destinationPrefix.defaultValue = "";
         destinationPrefix.required = false;

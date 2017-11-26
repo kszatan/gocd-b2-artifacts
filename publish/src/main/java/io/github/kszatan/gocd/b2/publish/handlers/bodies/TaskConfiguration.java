@@ -6,16 +6,18 @@
 
 package io.github.kszatan.gocd.b2.publish.handlers.bodies;
 
-import com.google.gson.annotations.SerializedName;
-
 public class TaskConfiguration {
+    private Entry sourceDestinations;
     private Entry destinationPrefix;
     private Entry bucketId;
 
     public TaskConfiguration() {
+        sourceDestinations = new Entry();
         destinationPrefix = new Entry();
         bucketId = new Entry();
     }
+
+    public String getSourceDestinations() { return sourceDestinations.value; }
 
     public String getDestinationPrefix() {
         return destinationPrefix.value;
@@ -24,6 +26,8 @@ public class TaskConfiguration {
     public String getBucketId() {
         return bucketId.value;
     }
+
+    public void setSourceDestinations(String sourceDestinations) { this.sourceDestinations.value = sourceDestinations; }
 
     public void setDestinationPrefix(String destinationPrefix) {
         this.destinationPrefix.value = destinationPrefix;

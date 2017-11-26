@@ -17,7 +17,8 @@ public class TaskConfigurationRequest {
     private final TaskConfiguration configuration;
 
     public TaskConfigurationRequest(String json) throws InvalidJson, IncompleteJson {
-        Collection<String> missing = GsonService.validate(json, Arrays.asList("destinationPrefix", "bucketId"));
+        Collection<String> missing = GsonService.validate(json,
+                Arrays.asList("sourceDestinations", "destinationPrefix", "bucketId"));
         if (!missing.isEmpty()) {
             throw new IncompleteJson("Missing fields: " + missing.toString());
         }

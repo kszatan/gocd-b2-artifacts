@@ -44,6 +44,7 @@ public class ConfigurationValidatorTest {
         ConfigurationValidator validator = new ConfigurationValidator();
         TaskConfiguration configuration = new TaskConfiguration();
         configuration.setBucketId(bucketId);
+        configuration.setSourceDestinations("[{\"source\": \"asdf\", \"destination\": \"fdsa\"}]");
         assertThat(validator.validate(configuration).errors.isEmpty(), is(valid));
     }
 }
