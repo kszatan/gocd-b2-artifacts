@@ -6,6 +6,9 @@
 
 package io.github.kszatan.gocd.b2.publish.handlers.bodies;
 
+import com.google.gson.JsonSyntaxException;
+
+import java.util.List;
 import java.util.regex.Pattern;
 
 public class ConfigurationValidator {
@@ -16,6 +19,17 @@ public class ConfigurationValidator {
         TaskConfigurationValidationResponse result = new TaskConfigurationValidationResponse();
         if (configuration.getSourceDestinations().isEmpty()) {
             result.errors.put("sourceDestinations", "Empty source destinations");
+        } else {
+            try {
+                List<SourceDestination> sourceDestinations = configuration.getSourceDestinationsAsList();
+                if (sourceDestinations == null || sourceDestinations.isEmpty()) {
+                    result.errors.put("sourceDestinations", "Empty source destinations");
+                } else if (sourceDestinations.stream().anyMatch(sd -> sd.source.isEmpty())){
+                    result.errors.put("sourceDestinations", "Source cannot be empty");
+                }
+            } catch (JsonSyntaxException ex) {
+                result.errors.put("sourceDestinations", "Unable to deserialize sourceDestination JSON: " + ex.getMessage());
+            }
         }
         if (!validateBucketId(configuration.getBucketId())) {
             result.errors.put("bucketId", "Invalid Bucket ID format");

@@ -19,23 +19,31 @@ import static org.junit.Assert.*;
 @RunWith(Parameterized.class)
 public class ConfigurationValidatorTest {
     private String bucketId;
+    private String sourceDestinations;
     private Boolean valid;
 
     @Parameterized.Parameters
     public static Collection data() {
+        final String validSD = "[{\"source\": \"asdf\", \"destination\": \"fdsa\"}]";
+        final String emptySource = "[{\"source\": \"\", \"destination\": \"fdsa\"}]";
         return Arrays.asList(new Object[][]{
-                {"short", false},
-                {"123456789012345678901234567890123456789012345678901", false},
-                {"12345678901234567890123456789012345678901234567890", true},
-                {"b2-bucket", false},
-                {"asdf-b2-asdf", true},
-                {"ADSDF2342fda-", true},
-                {"asdf_fdsa", false}
+                {"short", validSD, false},
+                {"123456789012345678901234567890123456789012345678901", validSD, false},
+                {"12345678901234567890123456789012345678901234567890", validSD, true},
+                {"b2-bucket", validSD, false},
+                {"asdf-b2-asdf", validSD, true},
+                {"ADSDF2342fda-", validSD, true},
+                {"asdf_fdsa", validSD, false},
+                {"ADSDF2342fda-", "", false},
+                {"ADSDF2342fda-", "[]", false},
+                {"ADSDF2342fda-", emptySource, false},
+                {"ADSDF2342fda-", "//", false}
         });
     }
 
-    public ConfigurationValidatorTest(String bucketId, Boolean valid) {
+    public ConfigurationValidatorTest(String bucketId, String sourceDestinations, Boolean valid) {
         this.bucketId = bucketId;
+        this.sourceDestinations = sourceDestinations;
         this.valid = valid;
     }
 
@@ -44,7 +52,7 @@ public class ConfigurationValidatorTest {
         ConfigurationValidator validator = new ConfigurationValidator();
         TaskConfiguration configuration = new TaskConfiguration();
         configuration.setBucketId(bucketId);
-        configuration.setSourceDestinations("[{\"source\": \"asdf\", \"destination\": \"fdsa\"}]");
+        configuration.setSourceDestinations(sourceDestinations);
         assertThat(validator.validate(configuration).errors.isEmpty(), is(valid));
     }
 }

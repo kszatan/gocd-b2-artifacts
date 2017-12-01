@@ -6,16 +6,20 @@
 
 package io.github.kszatan.gocd.b2.publish.json;
 
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
+import com.google.gson.*;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 
 public class GsonService {
     private static String DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+
+    public static Gson getGson() {
+        return new GsonBuilder()
+                .setDateFormat(DATE_TIME_FORMAT)
+                .create();
+    }
 
     public static Collection<String> validate(String json, Collection<String> requiredFields) throws InvalidJson {
         if (json == null) {
@@ -43,16 +47,14 @@ public class GsonService {
     }
 
     public static String toJson(Object object) {
-        return (new GsonBuilder())
-                .setDateFormat(DATE_TIME_FORMAT)
-                .create()
-                .toJson(object);
+        return getGson().toJson(object);
     }
 
     public static <T> T fromJson(String json, Class<T> type) {
-        return (new GsonBuilder())
-                .setDateFormat(DATE_TIME_FORMAT)
-                .create()
-                .fromJson(json, type);
+        return getGson().fromJson(json, type);
+    }
+
+    public static <T> T fromJson(String json, Type type) {
+        return getGson().fromJson(json, type);
     }
 }

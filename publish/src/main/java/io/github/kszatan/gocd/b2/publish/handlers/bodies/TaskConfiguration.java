@@ -6,6 +6,14 @@
 
 package io.github.kszatan.gocd.b2.publish.handlers.bodies;
 
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+import io.github.kszatan.gocd.b2.publish.json.GsonService;
+
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
+
 public class TaskConfiguration {
     private Entry sourceDestinations;
     private Entry destinationPrefix;
@@ -18,6 +26,11 @@ public class TaskConfiguration {
     }
 
     public String getSourceDestinations() { return sourceDestinations.value; }
+
+    public List<SourceDestination> getSourceDestinationsAsList() {
+        Type type = new TypeToken<ArrayList<SourceDestination>>() {}.getType();
+        return new GsonService().fromJson(sourceDestinations.value, type);
+    }
 
     public String getDestinationPrefix() {
         return destinationPrefix.value;
