@@ -23,7 +23,7 @@ public class DefaultRequestHandlerFactory implements  RequestHandlerFactory {
                 handler = new ValidateRequestHandler();
                 break;
             case EXECUTE:
-                handler = r -> DefaultGoPluginApiResponse.success("Execute");
+                handler = new ExecuteRequestHandler();
                 break;
             default:
                 throw new UnhandledRequestTypeException(requestType);
