@@ -26,15 +26,24 @@ public class ValidateRequestHandlerTest {
     @Test
     public void handleShouldReturnNonNullResponseForValidateConfigurationRequest() throws UnhandledRequestTypeException {
         DefaultGoPluginApiRequest request = new DefaultGoPluginApiRequest("task", "1.0", "validate");
-        request.setRequestBody("{\"destination-prefix\":{\"value\":\"destination-prefix\"},\"bucket-id\":{\"value\":\"kszatan-bucket\"}}");
+        request.setRequestBody("{\"sourceDestinations\":{\"value\":\"[{\\\"source\\\":\\\"asdf\\\", \\\"destination\\\":\\\"fdsa\\\"}]\"},\"destinationPrefix\":{\"value\":\"destination/prefix\"},\"bucketId\":{\"value\":\"kszatan-bucket\"}}");
         assertNotNull(handler.handle(request));
     }
 
     @Test
     public void handleShouldReturnErrorResponseForInvalidBucketId() throws UnhandledRequestTypeException {
         DefaultGoPluginApiRequest request = new DefaultGoPluginApiRequest("task", "1.0", "validate");
-        request.setRequestBody("{\"destination-prefix\":{\"value\":\"destination-prefix\"},\"bucket-id\":{\"value\":\"b2-bucket\"}}");
-        assertNotNull(handler.handle(request));
+        request.setRequestBody("{\"sourceDestinations\":{\"value\":\"[{\\\"source\\\":\\\"asdf\\\", \\\"destination\\\":\\\"fdsa\\\"}]\"},\"destination-prefix\":{\"value\":\"destination-prefix\"},\"bucket-id\":{\"value\":\"b2-bucket\"}}");
+        GoPluginApiResponse response = handler.handle(request);
+        assertThat(response.responseCode(), equalTo(DefaultGoPluginApiResponse.VALIDATION_FAILED));
+    }
+    
+    @Test
+    public void handleShouldReturnErrorResponseForEmptySourceDestinations() throws UnhandledRequestTypeException {
+        DefaultGoPluginApiRequest request = new DefaultGoPluginApiRequest("task", "1.0", "validate");
+        request.setRequestBody("{\"sourceDestinations\":{\"value\":\"[]\"},\"destination-prefix\":{\"value\":\"destination-prefix\"},\"bucket-id\":{\"value\":\"b2-bucket\"}}");
+        GoPluginApiResponse response = handler.handle(request);
+        assertThat(response.responseCode(), equalTo(DefaultGoPluginApiResponse.VALIDATION_FAILED));
     }
 
     @Test
