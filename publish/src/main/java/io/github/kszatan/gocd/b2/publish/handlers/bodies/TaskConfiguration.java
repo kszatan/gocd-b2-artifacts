@@ -6,7 +6,6 @@
 
 package io.github.kszatan.gocd.b2.publish.handlers.bodies;
 
-import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import io.github.kszatan.gocd.b2.publish.json.GsonService;
 
