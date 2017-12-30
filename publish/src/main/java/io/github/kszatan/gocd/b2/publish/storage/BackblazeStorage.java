@@ -4,33 +4,34 @@
  * top-level directory of this distribution.
  */
 
-package io.github.kszatan.gocd.b2.publish;
+package io.github.kszatan.gocd.b2.publish.storage;
+
+import com.thoughtworks.go.plugin.api.logging.Logger;
 
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Base64;
 
-public class BackblazeStorage {
+public class BackblazeStorage implements Storage {
     private static final String B2_API_URL = "https://api.backblazeb2.com/b2api/v1/";
     private static final String AUTHORIZE_ACCOUNT_CMD = "b2_authorize_account";
 
-    private String accountId;
-    private String applicationKey;
-
-    public String getLasetErrorMessage() {
-        return errorMessage;
-    }
+    private Logger logger = Logger.getLoggerFor(BackblazeStorage.class);
 
     private String errorMessage;
-    
-    public BackblazeStorage(String accountId, String applicationKey) {
-        this.accountId = accountId;
-        this.applicationKey = applicationKey;
+
+    public BackblazeStorage() {
         this.errorMessage = "";
     }
 
-    public Boolean authorize() {
+    @Override
+    public String getLastErrorMessage() {
+        return errorMessage;
+    }
+
+    @Override
+    public Boolean authorize(String accountId, String applicationKey) {
         HttpURLConnection connection = null;
         String headerForAuthorizeAccount = "Basic " +
                 Base64.getEncoder().encodeToString((accountId + ":" + applicationKey).getBytes());
@@ -41,9 +42,10 @@ public class BackblazeStorage {
             connection.setRequestProperty("Authorization", headerForAuthorizeAccount);
             InputStream in = new BufferedInputStream(connection.getInputStream());
             String jsonResponse = myInputStreamReader(in);
-            System.out.println(jsonResponse);
+            logger.debug("authorize: " + jsonResponse);
         } catch (Exception e) {
             errorMessage = e.getMessage();
+            logger.debug("authorize: " + e.getMessage());
             return false;
         } finally {
             connection.disconnect();
@@ -51,11 +53,13 @@ public class BackblazeStorage {
         return true;
     }
 
+    @Override
     public void upload(String filePath, String destination) throws StorageException {
         
         //throw new StorageException("Unable to upload file " + file.getPath());
     }
 
+    @Override
     public void download(String filename) {
         
     }
