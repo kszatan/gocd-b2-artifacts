@@ -8,7 +8,10 @@ package io.github.kszatan.gocd.b2.publish.storage;
 
 import com.thoughtworks.go.plugin.api.logging.Logger;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Base64;
@@ -20,9 +23,11 @@ public class BackblazeStorage implements Storage {
     private Logger logger = Logger.getLoggerFor(BackblazeStorage.class);
 
     private String errorMessage;
+    private String bucketId;
 
-    public BackblazeStorage() {
+    public BackblazeStorage(String bucketId) {
         this.errorMessage = "";
+        this.bucketId = bucketId;
     }
 
     @Override
@@ -63,7 +68,7 @@ public class BackblazeStorage implements Storage {
     public void download(String filename) {
         
     }
-    
+
     static public String myInputStreamReader(InputStream in) throws IOException {
         InputStreamReader reader = new InputStreamReader(in);
         StringBuilder sb = new StringBuilder();

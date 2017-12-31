@@ -9,23 +9,41 @@ package io.github.kszatan.gocd.b2.publish.handlers;
 import com.thoughtworks.go.plugin.api.request.GoPluginApiRequest;
 import com.thoughtworks.go.plugin.api.response.DefaultGoPluginApiResponse;
 import com.thoughtworks.go.plugin.api.response.GoPluginApiResponse;
-import io.github.kszatan.gocd.b2.publish.handlers.bodies.ConfigurationValidator;
-import io.github.kszatan.gocd.b2.publish.handlers.bodies.TaskConfiguration;
+import io.github.kszatan.gocd.b2.publish.executor.DefaultDirectoryScanner;
+import io.github.kszatan.gocd.b2.publish.executor.PublishTaskExecutor;
+import io.github.kszatan.gocd.b2.publish.executor.TaskExecutor;
 import io.github.kszatan.gocd.b2.publish.handlers.bodies.ExecuteRequest;
-import io.github.kszatan.gocd.b2.publish.handlers.bodies.TaskConfigurationValidationResponse;
+import io.github.kszatan.gocd.b2.publish.handlers.bodies.ExecuteResponse;
+import io.github.kszatan.gocd.b2.publish.handlers.bodies.TaskConfiguration;
+import io.github.kszatan.gocd.b2.publish.handlers.bodies.TaskContext;
 import io.github.kszatan.gocd.b2.publish.json.IncompleteJson;
 import io.github.kszatan.gocd.b2.publish.json.InvalidJson;
+import io.github.kszatan.gocd.b2.publish.storage.BackblazeStorage;
+import io.github.kszatan.gocd.b2.publish.storage.StorageException;
+
+import java.util.Optional;
+
+import static io.github.kszatan.gocd.b2.publish.Constants.GO_ARTIFACTS_B2_BUCKET;
 
 public class ExecuteRequestHandler implements RequestHandler {
+    private TaskExecutor executor;
+    
     @Override
     public GoPluginApiResponse handle(GoPluginApiRequest request) {
         GoPluginApiResponse response;
         try {
-            ExecuteRequest configurationRequest = ExecuteRequest.create(request.requestBody());
-            TaskConfiguration configuration = configurationRequest.getTaskConfiguration();
-            ConfigurationValidator validator = new ConfigurationValidator();
-            TaskConfigurationValidationResponse validationResult = validator.validate(configuration);
-            response = DefaultGoPluginApiResponse.success(validationResult.toJson());
+            ExecuteRequest executeRequest = ExecuteRequest.create(request.requestBody());
+            TaskConfiguration configuration = executeRequest.getTaskConfiguration();
+            TaskContext context = executeRequest.getTaskContext();
+            if (executor == null) { // for tests
+                String bucketId = getBucketId(configuration, context).orElseThrow(
+                        () -> new StorageException("BucketID not specified"));
+                setExecutor(new PublishTaskExecutor(new BackblazeStorage(bucketId), new DefaultDirectoryScanner()));
+            }
+            ExecuteResponse result = executor.execute(configuration, context);
+            response = DefaultGoPluginApiResponse.success(result.toJson());
+        } catch (StorageException e) {
+            response = DefaultGoPluginApiResponse.error(e.getMessage());
         } catch (InvalidJson e) {
             response = DefaultGoPluginApiResponse.error("InvalidJSON: " + e.getMessage());
         } catch (IncompleteJson e) {
@@ -33,4 +51,17 @@ public class ExecuteRequestHandler implements RequestHandler {
         }
         return response;
     }
+
+    public void setExecutor(TaskExecutor executor) {
+        this.executor = executor;
+    }
+
+    private Optional<String> getBucketId(TaskConfiguration configuration, TaskContext context) {
+        String bucketId = configuration.getBucketId();
+        if (bucketId == null || bucketId.isEmpty()) {
+            bucketId = context.environmentVariables.get(GO_ARTIFACTS_B2_BUCKET);
+        }
+        return Optional.ofNullable(bucketId);
+    }
+
 }

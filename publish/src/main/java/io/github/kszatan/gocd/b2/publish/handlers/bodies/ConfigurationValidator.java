@@ -37,7 +37,7 @@ public class ConfigurationValidator {
         return result;
     }
 
-    private Boolean validateBucketId(String bucketId) {
+    public Boolean validateBucketId(String bucketId) {
         return bucketId.isEmpty() || pattern.matcher(bucketId).matches();
     }
 }
