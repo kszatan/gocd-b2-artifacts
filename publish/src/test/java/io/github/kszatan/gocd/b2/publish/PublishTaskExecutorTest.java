@@ -22,10 +22,7 @@ import java.util.Arrays;
 import static io.github.kszatan.gocd.b2.publish.Constants.GO_ARTIFACTS_B2_BUCKET;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class PublishTaskExecutorTest {
     private Storage storage;
@@ -66,17 +63,54 @@ public class PublishTaskExecutorTest {
     @Test
     public void executeShouldUploadPrefixedFilesReturnedFromScanner() throws StorageException {
         when(scanner.getIncludedFiles()).thenReturn(Arrays.asList("a/file1", "file2", "b/c/file3"));
-        String workDir = "base/dir";
         TaskConfiguration configuration = new TaskConfiguration();
         configuration.setSourceDestinations("[{\"source\": \"**\", \"destination\": \"desti/nation\"}]");
         TaskContext context = new TaskContext();
         context.environmentVariables.put(GO_ARTIFACTS_B2_BUCKET, "bukiet");
-        context.workingDirectory = workDir;
         ExecuteResponse response = executor.execute(configuration, context);
         
-        verify(scanner).setBaseDir(workDir);
         verify(storage).upload("a/file1", "desti/nation");
         verify(storage).upload("file2", "desti/nation");
         verify(storage).upload("b/c/file3", "desti/nation");
+    }
+
+    @Test
+    public void executorShouldPassAllSourcesToSccanner() throws StorageException {
+        when(scanner.getIncludedFiles()).thenReturn(Arrays.asList("a/file1", "file2", "b/c/file3"));
+        TaskConfiguration configuration = new TaskConfiguration();
+        configuration.setSourceDestinations("[{\"source\": \"source1/*\", \"destination\": \"\"},{\"source\": \"source2/*\", \"destination\": \"\"}]");
+        TaskContext context = new TaskContext();
+        context.environmentVariables.put(GO_ARTIFACTS_B2_BUCKET, "bukiet");
+        ExecuteResponse response = executor.execute(configuration, context);
+
+        verify(scanner).scan("source1/*");
+        verify(scanner).scan("source2/*");
+    }
+
+    @Test
+    public void executorShouldUploadFilesToAppropriateDestinations() throws StorageException {
+        when(scanner.getIncludedFiles()).thenReturn(Arrays.asList("file1", "file2"));
+        TaskConfiguration configuration = new TaskConfiguration();
+        configuration.setSourceDestinations("[{\"source\": \"**\", \"destination\": \"dest1\"},{\"source\": \"**\", \"destination\": \"dest2\"}]");
+        TaskContext context = new TaskContext();
+        context.environmentVariables.put(GO_ARTIFACTS_B2_BUCKET, "bukiet");
+        ExecuteResponse response = executor.execute(configuration, context);
+
+        verify(storage).upload("file1", "dest1");
+        verify(storage).upload("file2", "dest1");
+        verify(storage).upload("file1", "dest2");
+        verify(storage).upload("file2", "dest2");
+    }
+
+    @Test
+    public void scannerShouldGetWorkDirPassedInContext() throws StorageException {
+        String workDir = "base/dir";
+        TaskConfiguration configuration = new TaskConfiguration();
+        TaskContext context = new TaskContext();
+        context.environmentVariables.put(GO_ARTIFACTS_B2_BUCKET, "bukiet");
+        context.workingDirectory = workDir;
+        ExecuteResponse response = executor.execute(configuration, context);
+
+        verify(scanner).setBaseDir(workDir);
     }
 }
