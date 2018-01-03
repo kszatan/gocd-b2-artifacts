@@ -7,6 +7,7 @@
 package io.github.kszatan.gocd.b2.publish.storage;
 
 import com.thoughtworks.go.plugin.api.logging.Logger;
+import io.github.kszatan.gocd.b2.publish.json.GsonService;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -14,6 +15,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLStreamHandler;
 import java.util.Base64;
 
 public class BackblazeStorage implements Storage {
@@ -24,6 +26,8 @@ public class BackblazeStorage implements Storage {
 
     private String errorMessage;
     private String bucketId;
+    private AuthorizeResponse authorizeResponse;
+    private URLStreamHandler urlStreamHandler;
 
     public BackblazeStorage(String bucketId) {
         this.errorMessage = "";
@@ -41,12 +45,13 @@ public class BackblazeStorage implements Storage {
         String headerForAuthorizeAccount = "Basic " +
                 Base64.getEncoder().encodeToString((accountId + ":" + applicationKey).getBytes());
         try {
-            URL url = new URL(B2_API_URL + AUTHORIZE_ACCOUNT_CMD);
+            URL url = new URL(new URL(B2_API_URL), AUTHORIZE_ACCOUNT_CMD, urlStreamHandler);
             connection = (HttpURLConnection)url.openConnection();
             connection.setRequestMethod("GET");
             connection.setRequestProperty("Authorization", headerForAuthorizeAccount);
             InputStream in = new BufferedInputStream(connection.getInputStream());
             String jsonResponse = myInputStreamReader(in);
+            authorizeResponse = GsonService.fromJson(jsonResponse, AuthorizeResponse.class);
             logger.debug("authorize: " + jsonResponse);
         } catch (Exception e) {
             errorMessage = e.getMessage();
