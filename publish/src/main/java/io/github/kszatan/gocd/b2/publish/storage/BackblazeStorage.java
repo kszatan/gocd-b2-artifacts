@@ -54,11 +54,14 @@ public class BackblazeStorage implements Storage {
             authorizeResponse = GsonService.fromJson(jsonResponse, AuthorizeResponse.class);
             logger.debug("authorize: " + jsonResponse);
         } catch (Exception e) {
+            authorizeResponse = null;
             errorMessage = e.getMessage();
-            logger.debug("authorize: " + e.getMessage());
+            logger.debug("authorize error: " + e.getMessage());
             return false;
         } finally {
-            connection.disconnect();
+            if (connection != null) {
+                connection.disconnect();
+            }
         }
         return true;
     }

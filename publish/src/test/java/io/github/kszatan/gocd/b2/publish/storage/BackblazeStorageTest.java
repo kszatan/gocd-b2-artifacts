@@ -14,14 +14,12 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLConnection;
 import java.net.URLStreamHandler;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.*;
 
 public class BackblazeStorageTest {
     private BackblazeStorage storage;
@@ -71,6 +69,66 @@ public class BackblazeStorageTest {
         assertThat(authorizeResponse.downloadUrl, equalTo("https://f001.backblazeb2.com"));
         assertThat(authorizeResponse.minimumPartSize, equalTo(100000000));
         assertThat(authorizeResponse.recommendedPartSize, equalTo(100000000));
+    }
+
+    @Test
+    public void exceptionDuringOpeningConnectionDuringAuthorizeShouldReturnFalse() throws Exception {
+        doThrow(new IOException("Bad")).when(mockUrlCon).getInputStream();
+
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                return mockUrlCon;
+            }
+        };
+
+        storage = new BackblazeStorage("defaultBucket");
+        Whitebox.setInternalState(storage, "urlStreamHandler", stubUrlHandler);
+        
+        String accountId = "account_id";
+        String applicationKey = "application_key";
+        Boolean result = storage.authorize(accountId, applicationKey);
+        assertThat(result, equalTo(false));
+    }
+
+    @Test
+    public void exceptionDuringAuthorizeShouldCloseConnectionAndReturnFalse() throws Exception {
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                throw new IOException("Bad, bad connection");
+            }
+        };
+
+        storage = new BackblazeStorage("defaultBucket");
+        Whitebox.setInternalState(storage, "urlStreamHandler", stubUrlHandler);
+
+        String accountId = "account_id";
+        String applicationKey = "application_key";
+        Boolean result = storage.authorize(accountId, applicationKey);
+        assertThat(result, equalTo(false));
+//        verify(mockUrlCon).disconnect();
+    }
+
+    @Test
+    public void exceptionDuringAuthorizeShouldResultInAuthorizeResponseSetToNull() throws Exception {
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                throw new IOException("Bad, bad connection");
+            }
+        };
+
+        storage = new BackblazeStorage("defaultBucket");
+        Whitebox.setInternalState(storage, "urlStreamHandler", stubUrlHandler);
+
+        String accountId = "account_id";
+        String applicationKey = "application_key";
+        Boolean result = storage.authorize(accountId, applicationKey);
+        assertThat(result, equalTo(false));
+        AuthorizeResponse authorizeResponse;
+        authorizeResponse = (AuthorizeResponse)Whitebox.getInternalState(storage, "authorizeResponse");
+        assertThat(authorizeResponse, nullValue());
     }
 
 }
