@@ -12,6 +12,8 @@ import org.mockito.internal.util.reflection.Whitebox;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLStreamHandler;
@@ -25,7 +27,7 @@ public class BackblazeStorageTest {
     private BackblazeStorage storage;
     private URLStreamHandler stubUrlHandler;
     private HttpURLConnection mockUrlCon;
-    private final String response = "{\n" +
+    private final String authorizeResponse = "{\n" +
             "  \"absoluteMinimumPartSize\": 5000000,\n" +
             "  \"accountId\": \"aaaabbbbcccc\",\n" +
             "  \"apiUrl\": \"https://api001.backblazeb2.com\",\n" +
@@ -34,13 +36,20 @@ public class BackblazeStorageTest {
             "  \"minimumPartSize\": 100000000,\n" +
             "  \"recommendedPartSize\": 100000000\n" +
             "}";
+    private final String getUploadUrlResponse = "{\n" +
+            "  \"bucketId\" : \"4a48fe8875c6214145260818\",\n" +
+            "  \"uploadUrl\" : \"https://pod-000-1005-03.backblaze.com/b2api/v1/b2_upload_file?cvt=c001_v0001005_t0027&bucket=4a48fe8875c6214145260818\",\n" +
+            "  \"authorizationToken\" : \"2_20151009170037_f504a0f39a0f4e657337e624_9754dde94359bd7b8f1445c8f4cc1a231a33f714_upld\"\n" +
+            "}";
 
     @Before
     public void setUp() throws Exception {
         mockUrlCon = mock(HttpURLConnection.class);
         
-        ByteArrayInputStream is = new ByteArrayInputStream(response.getBytes("UTF-8"));
-        doReturn(is).when(mockUrlCon).getInputStream();
+        ByteArrayInputStream is1 = new ByteArrayInputStream(authorizeResponse.getBytes("UTF-8"));
+        ByteArrayInputStream is2 = new ByteArrayInputStream(getUploadUrlResponse.getBytes("UTF-8"));
+        doReturn(is1).doReturn(is2).when(mockUrlCon).getInputStream();
+        doReturn(mock(OutputStream.class)).when(mockUrlCon).getOutputStream();
 
         stubUrlHandler = new URLStreamHandler() {
             @Override
@@ -54,12 +63,12 @@ public class BackblazeStorageTest {
     }
 
     @Test
-    public void successfulAuthorizeCallShouldResultInCorrectlyPopulatedResponseField() throws Exception {
+    public void successfulAuthorizeCallShouldResultInCorrectlyPopulatedResponseFields() throws Exception {
         String accountId = "account_id";
         String applicationKey = "application_key";
         Boolean result = storage.authorize(accountId, applicationKey);
         assertThat(result, equalTo(true));
-        verify(mockUrlCon).disconnect();
+        verify(mockUrlCon, times(2)).disconnect();
         AuthorizeResponse authorizeResponse;
         authorizeResponse = (AuthorizeResponse)Whitebox.getInternalState(storage, "authorizeResponse");
         assertThat(authorizeResponse.absoluteMinimumPartSize, equalTo(5000000));

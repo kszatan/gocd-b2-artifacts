@@ -9,13 +9,12 @@ package io.github.kszatan.gocd.b2.publish.storage;
 import com.thoughtworks.go.plugin.api.logging.Logger;
 import io.github.kszatan.gocd.b2.publish.json.GsonService;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLStreamHandler;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 public class BackblazeStorage implements Storage {
@@ -27,6 +26,7 @@ public class BackblazeStorage implements Storage {
     private String errorMessage;
     private String bucketId;
     private AuthorizeResponse authorizeResponse;
+    private UploadUrlResponse uploadUrlResponse;
     private URLStreamHandler urlStreamHandler;
 
     public BackblazeStorage(String bucketId) {
@@ -53,6 +53,7 @@ public class BackblazeStorage implements Storage {
             String jsonResponse = myInputStreamReader(in);
             authorizeResponse = GsonService.fromJson(jsonResponse, AuthorizeResponse.class);
             logger.debug("authorize: " + jsonResponse);
+            uploadUrlResponse = getUploadUrl(authorizeResponse);
         } catch (Exception e) {
             authorizeResponse = null;
             errorMessage = e.getMessage();
@@ -68,13 +69,41 @@ public class BackblazeStorage implements Storage {
 
     @Override
     public void upload(String filePath, String destination) throws StorageException {
-        
+
         //throw new StorageException("Unable to upload file " + file.getPath());
     }
 
     @Override
     public void download(String filename) {
         
+    }
+
+    private UploadUrlResponse getUploadUrl(AuthorizeResponse authorizeResponse) throws IOException {
+        String apiUrl = authorizeResponse.apiUrl; // Provided by b2_authorize_account
+        String accountAuthorizationToken = authorizeResponse.authorizationToken; // Provided by b2_authorize_account
+        String bucketId = this.bucketId; // The ID of the bucket you want to upload your file to
+        HttpURLConnection connection = null;
+        String postParams = "{\"bucketId\":\"" + bucketId + "\"}";
+        UploadUrlResponse urlResponse;
+        byte postData[] = postParams.getBytes(StandardCharsets.UTF_8);
+        try {
+            URL url = new URL(new URL(apiUrl), "/b2api/v1/b2_get_upload_url", urlStreamHandler);
+            connection = (HttpURLConnection)url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Authorization", accountAuthorizationToken);
+            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            connection.setRequestProperty("charset", "utf-8");
+            connection.setRequestProperty("Content-Length", Integer.toString(postData.length));
+            connection.setDoOutput(true);
+            DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
+            writer.write(postData);
+            String jsonResponse = myInputStreamReader(connection.getInputStream());
+            logger.debug("b2_get_upload_url:" + jsonResponse);
+            urlResponse = GsonService.fromJson(jsonResponse, UploadUrlResponse.class);
+        } finally {
+            connection.disconnect();
+        }
+        return urlResponse;
     }
 
     static public String myInputStreamReader(InputStream in) throws IOException {
