@@ -69,7 +69,9 @@ public class ExecuteRequestHandlerTest {
     
     @Test
     public void handleShouldReturnErrorResponseForMissingBucketId() {
-        DefaultGoPluginApiRequest request = validRequest;
+        final String bodyWithMissingBucketId = "{\"context\":{\"workingDirectory\":\"pipelines/pipeline_name\",\"environmentVariables\":{\"GO_FROM_REVISION_MATERIAL\":\"743f18f79c3ce6d765159f02f26c65d57062436c\",\"GO_SERVER_URL\":\"https://localhost:8154/go\",\"GO_PIPELINE_LABEL\":\"10\",\"GO_STAGE_NAME\":\"stage_name\",\"GO_PIPELINE_NAME\":\"pipeline_name\",\"GO_STAGE_COUNTER\":\"1\",\"GO_PIPELINE_COUNTER\":\"10\",\"GO_JOB_NAME\":\"good_job\",\"B2_ACCOUNT_ID\":\"4abcdefgaf77\",\"GO_TRIGGER_USER\":\"changes\",\"GO_REVISION_ASDF\":\"743f18f79c3ce6d765159f02f26c65d57062436c\",\"GO_TO_REVISION_MATERIAL\":\"743f18f79c3ce6d765159f02f26c65d57062436c\",\"B2_APPLICATION_KEY\":\"caca85ed4e7a3404db0b08bb8256d00d84e247e46\"}},\"config\":{\"sourceDestinations\":{\"secure\":false,\"value\":\"[{\\\"source\\\": \\\"**/file*\\\", \\\"destination\\\": \\\"desti/nation\\\"}, {\\\"source\\\": \\\"**\\\", \\\"destination\\\": \\\"\\\"}]\",\"required\":false},\"destinationPrefix\":{\"secure\":false,\"value\":\"OTHERS\",\"required\":false}}}";
+        DefaultGoPluginApiRequest request = new DefaultGoPluginApiRequest("task", "1.0", "publish");
+        request.setRequestBody(bodyWithMissingBucketId);
         handler.setExecutor(null);
         GoPluginApiResponse response = handler.handle(request);
         assertThat(response.responseCode(), equalTo(DefaultGoPluginApiResponse.INTERNAL_ERROR));

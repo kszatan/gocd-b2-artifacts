@@ -13,6 +13,7 @@ import io.github.kszatan.gocd.b2.publish.storage.StorageException;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +40,9 @@ public class PublishTaskExecutor implements TaskExecutor {
             if (!errors.isEmpty()) {
                 response = ExecuteResponse.failure("Failure: " + StringUtils.join(errors, "; "));
             } else {
-                storage.authorize(context.getAccountId(), context.getApplicationKey());
+                if (!storage.authorize(context.getAccountId(), context.getApplicationKey())) {
+                    return ExecuteResponse.failure(storage.getLastErrorMessage());
+                }
                 List<SourceDestination> expandSources =
                         expandSources(configuration.getSourceDestinationsAsList(), context.workingDirectory,
                                 configuration.getDestinationPrefix());
