@@ -13,7 +13,6 @@ import org.mockito.internal.util.reflection.Whitebox;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLStreamHandler;
@@ -23,8 +22,8 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.*;
 
-public class BackblazeStorageTest {
-    private BackblazeStorage storage;
+public class BackblazeApiWrapperTest {
+    private BackblazeApiWrapper wrapper;
     private URLStreamHandler stubUrlHandler;
     private HttpURLConnection mockUrlCon;
     private final String authorizeResponse = "{\n" +
@@ -58,19 +57,15 @@ public class BackblazeStorageTest {
             }
         };
 
-        storage = new BackblazeStorage("defaultBucket");
-        Whitebox.setInternalState(storage, "urlStreamHandler", stubUrlHandler);
+        wrapper = new BackblazeApiWrapper("defaultBucket", stubUrlHandler);
     }
 
     @Test
     public void successfulAuthorizeCallShouldResultInCorrectlyPopulatedResponseFields() throws Exception {
         String accountId = "account_id";
         String applicationKey = "application_key";
-        Boolean result = storage.authorize(accountId, applicationKey);
-        assertThat(result, equalTo(true));
-        verify(mockUrlCon, times(2)).disconnect();
-        AuthorizeResponse authorizeResponse;
-        authorizeResponse = (AuthorizeResponse)Whitebox.getInternalState(storage, "authorizeResponse");
+        AuthorizeResponse authorizeResponse = wrapper.authorize(accountId, applicationKey);
+        verify(mockUrlCon).disconnect();
         assertThat(authorizeResponse.absoluteMinimumPartSize, equalTo(5000000));
         assertThat(authorizeResponse.accountId, equalTo("aaaabbbbcccc"));
         assertThat(authorizeResponse.apiUrl, equalTo("https://api001.backblazeb2.com"));
@@ -81,7 +76,7 @@ public class BackblazeStorageTest {
     }
 
     @Test
-    public void exceptionDuringOpeningConnectionDuringAuthorizeShouldReturnFalse() throws Exception {
+    public void exceptionDuringOpeningConnectionDuringAuthorizeShouldCloseConnection() throws Exception {
         doThrow(new IOException("Bad")).when(mockUrlCon).getInputStream();
 
         stubUrlHandler = new URLStreamHandler() {
@@ -91,17 +86,19 @@ public class BackblazeStorageTest {
             }
         };
 
-        storage = new BackblazeStorage("defaultBucket");
-        Whitebox.setInternalState(storage, "urlStreamHandler", stubUrlHandler);
-        
+        wrapper = new BackblazeApiWrapper("defaultBucket", stubUrlHandler);
+
         String accountId = "account_id";
         String applicationKey = "application_key";
-        Boolean result = storage.authorize(accountId, applicationKey);
-        assertThat(result, equalTo(false));
+        try {
+            wrapper.authorize(accountId, applicationKey);
+        } catch (Exception e) {
+        }
+        verify(mockUrlCon).disconnect();
     }
 
     @Test
-    public void exceptionDuringAuthorizeShouldCloseConnectionAndReturnFalse() throws Exception {
+    public void exceptionDuringOpeningConnectionShouldNotResultInAttemptToCloseConnection() throws Exception {
         stubUrlHandler = new URLStreamHandler() {
             @Override
             protected HttpURLConnection openConnection(URL u) throws IOException {
@@ -109,35 +106,15 @@ public class BackblazeStorageTest {
             }
         };
 
-        storage = new BackblazeStorage("defaultBucket");
-        Whitebox.setInternalState(storage, "urlStreamHandler", stubUrlHandler);
+        wrapper = new BackblazeApiWrapper("defaultBucket", stubUrlHandler);
 
         String accountId = "account_id";
         String applicationKey = "application_key";
-        Boolean result = storage.authorize(accountId, applicationKey);
-        assertThat(result, equalTo(false));
-//        verify(mockUrlCon).disconnect();
-    }
-
-    @Test
-    public void exceptionDuringAuthorizeShouldResultInAuthorizeResponseSetToNull() throws Exception {
-        stubUrlHandler = new URLStreamHandler() {
-            @Override
-            protected HttpURLConnection openConnection(URL u) throws IOException {
-                throw new IOException("Bad, bad connection");
-            }
-        };
-
-        storage = new BackblazeStorage("defaultBucket");
-        Whitebox.setInternalState(storage, "urlStreamHandler", stubUrlHandler);
-
-        String accountId = "account_id";
-        String applicationKey = "application_key";
-        Boolean result = storage.authorize(accountId, applicationKey);
-        assertThat(result, equalTo(false));
-        AuthorizeResponse authorizeResponse;
-        authorizeResponse = (AuthorizeResponse)Whitebox.getInternalState(storage, "authorizeResponse");
-        assertThat(authorizeResponse, nullValue());
+        try {
+            wrapper.authorize(accountId, applicationKey);
+        } catch (Exception e) {
+        }
+        verify(mockUrlCon, times(0)).disconnect();
     }
 
 }
