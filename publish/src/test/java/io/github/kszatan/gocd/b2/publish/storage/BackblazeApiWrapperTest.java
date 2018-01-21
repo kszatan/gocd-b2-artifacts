@@ -24,7 +24,8 @@ public class BackblazeApiWrapperTest {
     private BackblazeApiWrapper wrapper;
     private URLStreamHandler stubUrlHandler;
     private HttpURLConnection mockUrlCon;
-    private final String authorizeResponse = "{\n" +
+    private AuthorizeResponse defAuthResponse;
+    private final String authorizeResponseJson = "{\n" +
             "  \"absoluteMinimumPartSize\": 5000000,\n" +
             "  \"accountId\": \"aaaabbbbcccc\",\n" +
             "  \"apiUrl\": \"https://api001.backblazeb2.com\",\n" +
@@ -33,10 +34,37 @@ public class BackblazeApiWrapperTest {
             "  \"minimumPartSize\": 100000000,\n" +
             "  \"recommendedPartSize\": 100000000\n" +
             "}";
-    private final String getUploadUrlResponse = "{\n" +
+    private final String getUploadUrlResponseJson = "{\n" +
             "  \"bucketId\" : \"4a48fe8875c6214145260818\",\n" +
             "  \"uploadUrl\" : \"https://pod-000-1005-03.backblaze.com/b2api/v1/b2_upload_file?cvt=c001_v0001005_t0027&bucket=4a48fe8875c6214145260818\",\n" +
             "  \"authorizationToken\" : \"2_20151009170037_f504a0f39a0f4e657337e624_9754dde94359bd7b8f1445c8f4cc1a231a33f714_upld\"\n" +
+            "}";
+    private final String listBucketsResponseJson = "{\n" +
+            "    \"buckets\": [\n" +
+            "    {\n" +
+            "        \"accountId\": \"30f20426f0b1\",\n" +
+            "        \"bucketId\": \"4a48fe8875c6214145260818\",\n" +
+            "        \"bucketInfo\": {},\n" +
+            "        \"bucketName\" : \"Kitten-Videos\",\n" +
+            "        \"bucketType\": \"allPrivate\",\n" +
+            "        \"lifecycleRules\": []\n" +
+            "    },\n" +
+            "    {\n" +
+            "        \"accountId\": \"30f20426f0b1\",\n" +
+            "        \"bucketId\" : \"5b232e8875c6214145260818\",\n" +
+            "        \"bucketInfo\": {},\n" +
+            "        \"bucketName\": \"Puppy-Videos\",\n" +
+            "        \"bucketType\": \"allPublic\",\n" +
+            "        \"lifecycleRules\": []\n" +
+            "    },\n" +
+            "    {\n" +
+            "        \"accountId\": \"30f20426f0b1\",\n" +
+            "        \"bucketId\": \"87ba238875c6214145260818\",\n" +
+            "        \"bucketInfo\": {},\n" +
+            "        \"bucketName\": \"Vacation-Pictures\",\n" +
+            "        \"bucketType\" : \"allPrivate\",\n" +
+            "        \"lifecycleRules\": []\n" +
+            "    } ]\n" +
             "}";
 
     @Before
@@ -51,11 +79,20 @@ public class BackblazeApiWrapperTest {
         };
 
         wrapper = new BackblazeApiWrapper("defaultBucket", stubUrlHandler);
+
+        defAuthResponse = new AuthorizeResponse();
+        defAuthResponse.absoluteMinimumPartSize = 5000000;
+        defAuthResponse.accountId = "aaaabbbbcccc";
+        defAuthResponse.apiUrl = "https://api001.backblazeb2.com";
+        defAuthResponse.authorizationToken = "token_fristajlo";
+        defAuthResponse.downloadUrl = "https://f001.backblazeb2.com";
+        defAuthResponse.minimumPartSize = 100000000;
+        defAuthResponse.recommendedPartSize = 100000000;
     }
 
     @Test
     public void successfulAuthorizeCallShouldResultInCorrectlyPopulatedResponseFields() throws Exception {
-        ByteArrayInputStream is = new ByteArrayInputStream(authorizeResponse.getBytes("UTF-8"));
+        ByteArrayInputStream is = new ByteArrayInputStream(authorizeResponseJson.getBytes("UTF-8"));
         doReturn(is).when(mockUrlCon).getInputStream();
 
         String accountId = "account_id";
@@ -115,24 +152,40 @@ public class BackblazeApiWrapperTest {
 
     @Test
     public void successfulGetUploadUrlCallShouldResultInCorrectlyPopulatedResponseFields() throws Exception {
-        ByteArrayInputStream is = new ByteArrayInputStream(getUploadUrlResponse.getBytes("UTF-8"));
+        ByteArrayInputStream is = new ByteArrayInputStream(getUploadUrlResponseJson.getBytes("UTF-8"));
         doReturn(is).when(mockUrlCon).getInputStream();
         doReturn(mock(OutputStream.class)).when(mockUrlCon).getOutputStream();
 
-        AuthorizeResponse authorizeResponse = new AuthorizeResponse();
-        authorizeResponse.absoluteMinimumPartSize =5000000;
-        authorizeResponse.accountId = "aaaabbbbcccc";
-        authorizeResponse.apiUrl = "https://api001.backblazeb2.com";
-        authorizeResponse.authorizationToken = "token_fristajlo";
-        authorizeResponse.downloadUrl = "https://f001.backblazeb2.com";
-        authorizeResponse.minimumPartSize = 100000000;
-        authorizeResponse.recommendedPartSize = 100000000;
-
-        UploadUrlResponse response  = wrapper.getUploadUrl(authorizeResponse, "bukhet");
+        UploadUrlResponse response  = wrapper.getUploadUrl(defAuthResponse, "bukhet");
         verify(mockUrlCon).disconnect();
         assertThat(response.bucketId, equalTo("4a48fe8875c6214145260818"));
         assertThat(response.authorizationToken, equalTo("2_20151009170037_f504a0f39a0f4e657337e624_9754dde94359bd7b8f1445c8f4cc1a231a33f714_upld"));
         assertThat(response.uploadUrl, equalTo("https://pod-000-1005-03.backblaze.com/b2api/v1/b2_upload_file?cvt=c001_v0001005_t0027&bucket=4a48fe8875c6214145260818"));
+    }
+    @Test
+    public void successfulListBucketsCallShouldResultInCorrectlyPopulatedResponseFields() throws Exception {
+        ByteArrayInputStream is = new ByteArrayInputStream(listBucketsResponseJson.getBytes("UTF-8"));
+        doReturn(is).when(mockUrlCon).getInputStream();
+        doReturn(mock(OutputStream.class)).when(mockUrlCon).getOutputStream();
+
+        ListBucketsResponse response  = wrapper.listBuckets(defAuthResponse);
+        verify(mockUrlCon).disconnect();
+        assertThat(response.buckets.size(), equalTo(3));
+        ListBucketsResponse.Bucket bucket = response.buckets.get(0);
+        assertThat(bucket.accountId, equalTo("30f20426f0b1"));
+        assertThat(bucket.bucketId, equalTo("4a48fe8875c6214145260818"));
+        assertThat(bucket.bucketName, equalTo("Kitten-Videos"));
+        assertThat(bucket.bucketType, equalTo("allPrivate"));
+        bucket = response.buckets.get(1);
+        assertThat(bucket.accountId, equalTo("30f20426f0b1"));
+        assertThat(bucket.bucketId, equalTo("5b232e8875c6214145260818"));
+        assertThat(bucket.bucketName, equalTo("Puppy-Videos"));
+        assertThat(bucket.bucketType, equalTo("allPublic"));
+        bucket = response.buckets.get(2);
+        assertThat(bucket.accountId, equalTo("30f20426f0b1"));
+        assertThat(bucket.bucketId, equalTo("87ba238875c6214145260818"));
+        assertThat(bucket.bucketName, equalTo("Vacation-Pictures"));
+        assertThat(bucket.bucketType, equalTo("allPrivate"));
     }
 
 }

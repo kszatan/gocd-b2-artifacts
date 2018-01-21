@@ -22,7 +22,7 @@ public class BackblazeStorage implements Storage {
     private BackblazeApiWrapper backblazeApiWrapper;
     private AuthorizeResponse authorizeResponse;
     private UploadUrlResponse uploadUrlResponse;
-    private ListBucketsReponse listBucketsReponse;
+    private ListBucketsResponse listBucketsResponse;
 
     public BackblazeStorage(String bucketName) {
         this.errorMessage = "";
@@ -39,8 +39,8 @@ public class BackblazeStorage implements Storage {
     public Boolean authorize(String accountId, String applicationKey) {
         try {
             authorizeResponse = backblazeApiWrapper.authorize(accountId, applicationKey);
-            listBucketsReponse = backblazeApiWrapper.listBuckets(authorizeResponse);
-            ListBucketsReponse.Bucket bucket = getBucketId(bucketName).orElseThrow(
+            listBucketsResponse = backblazeApiWrapper.listBuckets(authorizeResponse);
+            ListBucketsResponse.Bucket bucket = getBucketId(bucketName).orElseThrow(
                     () -> new StorageException("Bucket '" + bucketName + "' doesn't exist"));
             this.bucketId = bucket.bucketId;
             uploadUrlResponse = backblazeApiWrapper.getUploadUrl(authorizeResponse, bucketId);
@@ -64,7 +64,7 @@ public class BackblazeStorage implements Storage {
         
     }
 
-    private Optional<ListBucketsReponse.Bucket> getBucketId(String bucketName) {
-        return listBucketsReponse.buckets.stream().filter(b -> b.bucketName.equals(bucketName)).findFirst();
+    private Optional<ListBucketsResponse.Bucket> getBucketId(String bucketName) {
+        return listBucketsResponse.buckets.stream().filter(b -> b.bucketName.equals(bucketName)).findFirst();
     }
 }

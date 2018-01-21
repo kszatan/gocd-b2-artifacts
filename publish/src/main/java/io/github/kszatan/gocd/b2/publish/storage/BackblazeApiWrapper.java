@@ -66,6 +66,34 @@ public class BackblazeApiWrapper {
 
     }
 
+    public ListBucketsResponse listBuckets(AuthorizeResponse authorizeResponse) throws IOException {
+        String apiUrl = authorizeResponse.apiUrl; // Provided by b2_authorize_account
+        String accountId = authorizeResponse.accountId; // Obtained from your B2 account page.
+        String accountAuthorizationToken = authorizeResponse.authorizationToken; // Provided by b2_authorize_account
+        HttpURLConnection connection = null;
+        String postParams = "{\"accountId\":\"" + accountId + "\", \"bucketTypes\": [\"allPrivate\",\"allPublic\"]}";
+        String jsonResponse;
+        byte postData[] = postParams.getBytes(StandardCharsets.UTF_8);
+        try {
+            URL url = new URL(new URL(apiUrl), "/b2api/v1/b2_list_buckets", urlStreamHandler);
+            connection = (HttpURLConnection)url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Authorization", accountAuthorizationToken);
+            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            connection.setRequestProperty("charset", "utf-8");
+            connection.setRequestProperty("Content-Length", Integer.toString(postData.length));
+            connection.setDoOutput(true);
+            DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
+            writer.write(postData);
+            jsonResponse = myInputStreamReader(connection.getInputStream());
+            logger.info("listBuckets: " + jsonResponse);
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+        return GsonService.fromJson(jsonResponse, ListBucketsResponse.class);
+    }
 
     public UploadUrlResponse getUploadUrl(AuthorizeResponse authorizeResponse, String bucketId) throws IOException {
         String apiUrl = authorizeResponse.apiUrl; // Provided by b2_authorize_account
