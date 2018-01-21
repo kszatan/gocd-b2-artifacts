@@ -46,24 +46,30 @@ public class BackblazeApiWrapperTest {
             "        \"bucketId\": \"4a48fe8875c6214145260818\",\n" +
             "        \"bucketInfo\": {},\n" +
             "        \"bucketName\" : \"Kitten-Videos\",\n" +
+            "        \"corsRules\": [],\n" +
             "        \"bucketType\": \"allPrivate\",\n" +
-            "        \"lifecycleRules\": []\n" +
+            "        \"lifecycleRules\": [],\n" +
+            "        \"revision\": 1\n" +
             "    },\n" +
             "    {\n" +
             "        \"accountId\": \"30f20426f0b1\",\n" +
             "        \"bucketId\" : \"5b232e8875c6214145260818\",\n" +
             "        \"bucketInfo\": {},\n" +
             "        \"bucketName\": \"Puppy-Videos\",\n" +
+            "        \"corsRules\": [],\n" +
             "        \"bucketType\": \"allPublic\",\n" +
-            "        \"lifecycleRules\": []\n" +
+            "        \"lifecycleRules\": [],\n" +
+            "        \"revision\": 1\n" +
             "    },\n" +
             "    {\n" +
             "        \"accountId\": \"30f20426f0b1\",\n" +
             "        \"bucketId\": \"87ba238875c6214145260818\",\n" +
             "        \"bucketInfo\": {},\n" +
             "        \"bucketName\": \"Vacation-Pictures\",\n" +
+            "        \"corsRules\": [],\n" +
             "        \"bucketType\" : \"allPrivate\",\n" +
-            "        \"lifecycleRules\": []\n" +
+            "        \"lifecycleRules\": [],\n" +
+            "        \"revision\": 1\n" +
             "    } ]\n" +
             "}";
 
@@ -171,7 +177,7 @@ public class BackblazeApiWrapperTest {
         ListBucketsResponse response  = wrapper.listBuckets(defAuthResponse);
         verify(mockUrlCon).disconnect();
         assertThat(response.buckets.size(), equalTo(3));
-        ListBucketsResponse.Bucket bucket = response.buckets.get(0);
+        Bucket bucket = response.buckets.get(0);
         assertThat(bucket.accountId, equalTo("30f20426f0b1"));
         assertThat(bucket.bucketId, equalTo("4a48fe8875c6214145260818"));
         assertThat(bucket.bucketName, equalTo("Kitten-Videos"));

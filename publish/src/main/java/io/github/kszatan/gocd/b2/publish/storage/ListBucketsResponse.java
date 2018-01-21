@@ -9,14 +9,5 @@ package io.github.kszatan.gocd.b2.publish.storage;
 import java.util.List;
 
 public class ListBucketsResponse {
-    public class Bucket {
-        public String accountId;
-        public String bucketId;
-        public Object bucketInfo;
-        public String bucketName;
-        public String bucketType;
-        public List<String> lifecycleRules;
-    }
-
     public List<Bucket> buckets;
 }

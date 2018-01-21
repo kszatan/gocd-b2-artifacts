@@ -2,8 +2,8 @@
     <table>
         <thead>
         <tr>
-            <th><h4>Source</h4></th>
-            <th><h4>Destination</h4></th>
+            <th><label>Source</label></th>
+            <th><label>Destination</label></th>
             <th>&nbsp;</th>
         </tr>
         </thead>
@@ -43,25 +43,28 @@
 jQuery(document).ready(function() {
     var interval = setInterval(function(){
         try {
-            var $scope = angular.element(document.querySelector('[ng-controller="PluginTemplateViewController"]')).scope();
+            var $scope = angular.element(document.getElementById("task_angular_pluggable_task_io_github_kszatan_gocd_b2_publish")).scope();
             $scope.$apply(function() {
                 $scope.sources = $scope.sourceDestinations ? JSON.parse($scope.sourceDestinations) : [];
+
                 $scope.addSource = function() {
                     this.sources.push({ source: "", destination: ""});
                 };
+
                 $scope.removeSource = function(index) {
                     this.sources.splice(index, 1);
                 }
+
             });
 
             $scope.$watch("sources", function(){
-                var scope = angular.element(document.querySelector('[ng-controller="PluginTemplateViewController"]')).scope();
-                scope.sourceDestinations = angular.copy($scope.sources).toJSON();
+                var $scope = angular.element(document.getElementById("task_angular_pluggable_task_io_github_kszatan_gocd_b2_publish")).scope();
+                $scope.sourceDestinations = angular.copy($scope.sources).toJSON();
             }, true);
 
             clearInterval(interval);
-        } catch(e) {
-            console.log(e.message);
+        }
+        catch(e) {
         }
     }, 50);
 });

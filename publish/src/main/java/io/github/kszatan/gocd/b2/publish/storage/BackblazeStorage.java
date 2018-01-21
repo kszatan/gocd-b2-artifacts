@@ -39,7 +39,7 @@ public class BackblazeStorage implements Storage {
         try {
             authorizeResponse = backblazeApiWrapper.authorize(accountId, applicationKey);
             listBucketsResponse = backblazeApiWrapper.listBuckets(authorizeResponse);
-            ListBucketsResponse.Bucket bucket = getBucketId(bucketName).orElseThrow(
+            Bucket bucket = getBucketId(bucketName).orElseThrow(
                     () -> new StorageException("Bucket '" + bucketName + "' doesn't exist"));
             getUploadUrlResponse = backblazeApiWrapper.getUploadUrl(authorizeResponse, bucket.bucketId);
         } catch (Exception e) {
@@ -62,7 +62,7 @@ public class BackblazeStorage implements Storage {
         
     }
 
-    private Optional<ListBucketsResponse.Bucket> getBucketId(String bucketName) {
+    private Optional<Bucket> getBucketId(String bucketName) {
         return listBucketsResponse.buckets.stream().filter(b -> b.bucketName.equals(bucketName)).findFirst();
     }
 }
