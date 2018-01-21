@@ -16,7 +16,7 @@ subprojects {
     }
 
     dependencies {
-        compile 'cd.go.plugin:go-plugin-api:17.11.+'
+        compile 'cd.go.plugin:go-plugin-api:17.12.+'
         compile 'com.google.code.gson:gson:2.8.+'
         compile 'commons-io:commons-io:2.5'
         compile 'org.apache.maven.shared:maven-shared-utils:3.2.0'
