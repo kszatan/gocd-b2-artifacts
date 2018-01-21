@@ -18,7 +18,7 @@ import static org.junit.Assert.*;
 
 @RunWith(Parameterized.class)
 public class ConfigurationValidatorTest {
-    private String bucketId;
+    private String bucketName;
     private String sourceDestinations;
     private Boolean valid;
 
@@ -41,8 +41,8 @@ public class ConfigurationValidatorTest {
         });
     }
 
-    public ConfigurationValidatorTest(String bucketId, String sourceDestinations, Boolean valid) {
-        this.bucketId = bucketId;
+    public ConfigurationValidatorTest(String bucketName, String sourceDestinations, Boolean valid) {
+        this.bucketName = bucketName;
         this.sourceDestinations = sourceDestinations;
         this.valid = valid;
     }
@@ -51,7 +51,7 @@ public class ConfigurationValidatorTest {
     public void validateShouldWorkForRemoteUrls() throws Exception {
         ConfigurationValidator validator = new ConfigurationValidator();
         TaskConfiguration configuration = new TaskConfiguration();
-        configuration.setBucketId(bucketId);
+        configuration.setBucketName(bucketName);
         configuration.setSourceDestinations(sourceDestinations);
         assertThat(validator.validate(configuration).errors.isEmpty(), is(valid));
     }

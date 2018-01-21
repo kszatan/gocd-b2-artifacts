@@ -95,7 +95,7 @@ public class BackblazeApiWrapper {
         return GsonService.fromJson(jsonResponse, ListBucketsResponse.class);
     }
 
-    public UploadUrlResponse getUploadUrl(AuthorizeResponse authorizeResponse, String bucketId) throws IOException {
+    public GetUploadUrlResponse getUploadUrl(AuthorizeResponse authorizeResponse, String bucketId) throws IOException {
         String apiUrl = authorizeResponse.apiUrl; // Provided by b2_authorize_account
         String accountAuthorizationToken = authorizeResponse.authorizationToken; // Provided by b2_authorize_account
         HttpURLConnection connection = null;
@@ -120,7 +120,7 @@ public class BackblazeApiWrapper {
                 connection.disconnect();
             }
         }
-        return GsonService.fromJson(jsonResponse, UploadUrlResponse.class);
+        return GsonService.fromJson(jsonResponse, GetUploadUrlResponse.class);
     }
 
     static public String myInputStreamReader(InputStream in) throws IOException {

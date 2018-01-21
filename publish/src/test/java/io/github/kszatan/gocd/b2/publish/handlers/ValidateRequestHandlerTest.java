@@ -26,12 +26,12 @@ public class ValidateRequestHandlerTest {
     @Test
     public void handleShouldReturnNonNullResponseForValidateConfigurationRequest() throws UnhandledRequestTypeException {
         DefaultGoPluginApiRequest request = new DefaultGoPluginApiRequest("task", "1.0", "validate");
-        request.setRequestBody("{\"sourceDestinations\":{\"value\":\"[{\\\"source\\\":\\\"asdf\\\", \\\"destination\\\":\\\"fdsa\\\"}]\"},\"destinationPrefix\":{\"value\":\"destination/prefix\"},\"bucketId\":{\"value\":\"kszatan-bucket\"}}");
+        request.setRequestBody("{\"sourceDestinations\":{\"value\":\"[{\\\"source\\\":\\\"asdf\\\", \\\"destination\\\":\\\"fdsa\\\"}]\"},\"destinationPrefix\":{\"value\":\"destination/prefix\"},\"bucketName\":{\"value\":\"kszatan-bucket\"}}");
         assertNotNull(handler.handle(request));
     }
 
     @Test
-    public void handleShouldReturnErrorResponseForInvalidBucketId() throws UnhandledRequestTypeException {
+    public void handleShouldReturnErrorResponseForInvalidBucketName() throws UnhandledRequestTypeException {
         DefaultGoPluginApiRequest request = new DefaultGoPluginApiRequest("task", "1.0", "validate");
         request.setRequestBody("{\"sourceDestinations\":{\"value\":\"[{\\\"source\\\":\\\"asdf\\\", \\\"destination\\\":\\\"fdsa\\\"}]\"},\"destination-prefix\":{\"value\":\"destination-prefix\"},\"bucket-id\":{\"value\":\"b2-bucket\"}}");
         GoPluginApiResponse response = handler.handle(request);

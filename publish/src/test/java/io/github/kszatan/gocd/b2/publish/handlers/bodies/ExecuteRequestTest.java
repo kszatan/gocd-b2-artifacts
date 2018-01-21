@@ -22,7 +22,7 @@ public class ExecuteRequestTest {
 
     @Test
     public void constructorShouldParseCorrectJsonString() throws Exception {
-        String json = "{\"config\": {\"sourceDestinations\":{\"value\":\"[{\\\"source\\\":\\\"asdf\\\", \\\"destination\\\":\\\"fdsa\\\"}]\"},\"destinationPrefix\":{\"value\":\"destination/prefix\"},\"bucketId\":{\"value\":\"kszatan-bucket\"}}, \"context\": { \"workingDirectory\": \"working-dir\", \"environmentVariables\": { \"ENV1\":\"VAL1\", \"ENV2\": \"VAL2\" }}}";
+        String json = "{\"config\": {\"sourceDestinations\":{\"value\":\"[{\\\"source\\\":\\\"asdf\\\", \\\"destination\\\":\\\"fdsa\\\"}]\"},\"destinationPrefix\":{\"value\":\"destination/prefix\"},\"bucketName\":{\"value\":\"kszatan-bucket\"}}, \"context\": { \"workingDirectory\": \"working-dir\", \"environmentVariables\": { \"ENV1\":\"VAL1\", \"ENV2\": \"VAL2\" }}}";
         ExecuteRequest request = ExecuteRequest.create(json);
         TaskConfiguration configuration = request.getTaskConfiguration();
         assertThat(configuration.getSourceDestinations(), Matchers.equalTo("[{\"source\":\"asdf\", \"destination\":\"fdsa\"}]"));
@@ -31,7 +31,7 @@ public class ExecuteRequestTest {
         assertThat(sourceDestination.source, Matchers.equalTo("asdf"));
         assertThat(sourceDestination.destination, Matchers.equalTo("fdsa"));
         assertThat(configuration.getDestinationPrefix(), Matchers.equalTo("destination/prefix"));
-        assertThat(configuration.getBucketId(), Matchers.equalTo("kszatan-bucket"));
+        assertThat(configuration.getBucketName(), Matchers.equalTo("kszatan-bucket"));
         TaskContext context = request.getTaskContext();
         assertThat(context.workingDirectory, equalTo("working-dir"));
         assertThat(context.environmentVariables.size(), equalTo(2));

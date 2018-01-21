@@ -31,13 +31,13 @@ public class ConfigurationValidator {
                 result.errors.put("sourceDestinations", "Unable to deserialize sourceDestination JSON: " + ex.getMessage());
             }
         }
-        if (!validateBucketId(configuration.getBucketId())) {
-            result.errors.put("bucketId", "Invalid Bucket ID format");
+        if (!validateBucketName(configuration.getBucketName())) {
+            result.errors.put("bucketName", "Invalid bucket name format");
         }
         return result;
     }
 
-    public Boolean validateBucketId(String bucketId) {
-        return bucketId.isEmpty() || pattern.matcher(bucketId).matches();
+    public Boolean validateBucketName(String bucketName) {
+        return bucketName.isEmpty() || pattern.matcher(bucketName).matches();
     }
 }

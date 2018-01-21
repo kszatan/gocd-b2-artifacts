@@ -156,7 +156,7 @@ public class BackblazeApiWrapperTest {
         doReturn(is).when(mockUrlCon).getInputStream();
         doReturn(mock(OutputStream.class)).when(mockUrlCon).getOutputStream();
 
-        UploadUrlResponse response  = wrapper.getUploadUrl(defAuthResponse, "bukhet");
+        GetUploadUrlResponse response  = wrapper.getUploadUrl(defAuthResponse, "bukhet");
         verify(mockUrlCon).disconnect();
         assertThat(response.bucketId, equalTo("4a48fe8875c6214145260818"));
         assertThat(response.authorizationToken, equalTo("2_20151009170037_f504a0f39a0f4e657337e624_9754dde94359bd7b8f1445c8f4cc1a231a33f714_upld"));

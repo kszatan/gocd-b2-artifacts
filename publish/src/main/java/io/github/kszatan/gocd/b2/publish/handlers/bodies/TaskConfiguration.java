@@ -16,12 +16,12 @@ import java.util.List;
 public class TaskConfiguration {
     private Entry sourceDestinations;
     private Entry destinationPrefix;
-    private Entry bucketId;
+    private Entry bucketName;
 
     public TaskConfiguration() {
         sourceDestinations = new Entry();
         destinationPrefix = new Entry();
-        bucketId = new Entry();
+        bucketName = new Entry();
     }
 
     public String getSourceDestinations() { return sourceDestinations.value; }
@@ -35,8 +35,8 @@ public class TaskConfiguration {
         return destinationPrefix.value;
     }
 
-    public String getBucketId() {
-        return bucketId.value;
+    public String getBucketName() {
+        return bucketName.value;
     }
 
     public void setSourceDestinations(String sourceDestinations) { this.sourceDestinations.value = sourceDestinations; }
@@ -45,7 +45,7 @@ public class TaskConfiguration {
         this.destinationPrefix.value = destinationPrefix;
     }
 
-    public void setBucketId(String bucketId) {
-        this.bucketId.value = bucketId;
+    public void setBucketName(String bucketName) {
+        this.bucketName.value = bucketName;
     }
 }

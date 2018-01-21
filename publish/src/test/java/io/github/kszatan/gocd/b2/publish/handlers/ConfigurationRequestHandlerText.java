@@ -42,7 +42,7 @@ public class ConfigurationRequestHandlerText {
         GoPluginApiResponse response = handler.handle(mock(GoPluginApiRequest.class));
         ConfigurationDefinition definition = GsonService.fromJson(response.responseBody(), ConfigurationDefinition.class);
         assertThat(definition.destinationPrefix, notNullValue());
-        assertThat(definition.bucketId, notNullValue());
+        assertThat(definition.bucketName, notNullValue());
     }
 
 }

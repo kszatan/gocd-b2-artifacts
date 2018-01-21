@@ -20,7 +20,7 @@ public class ConfigurationDefinition {
 
     public Field sourceDestinations;
     public Field destinationPrefix;
-    public Field bucketId;
+    public Field bucketName;
 
     public ConfigurationDefinition() {
         sourceDestinations = new Field();
@@ -33,9 +33,9 @@ public class ConfigurationDefinition {
         destinationPrefix.required = false;
         destinationPrefix.secure = false;
 
-        bucketId = new Field();
-        bucketId.defaultValue = "";
-        bucketId.required = false;
-        bucketId.secure = false;
+        bucketName = new Field();
+        bucketName.defaultValue = "";
+        bucketName.required = false;
+        bucketName.secure = false;
     }
 }

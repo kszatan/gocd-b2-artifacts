@@ -18,10 +18,9 @@ public class BackblazeStorage implements Storage {
 
     private String errorMessage;
     private String bucketName;
-    private String bucketId;
     private BackblazeApiWrapper backblazeApiWrapper;
     private AuthorizeResponse authorizeResponse;
-    private UploadUrlResponse uploadUrlResponse;
+    private GetUploadUrlResponse getUploadUrlResponse;
     private ListBucketsResponse listBucketsResponse;
 
     public BackblazeStorage(String bucketName) {
@@ -42,8 +41,7 @@ public class BackblazeStorage implements Storage {
             listBucketsResponse = backblazeApiWrapper.listBuckets(authorizeResponse);
             ListBucketsResponse.Bucket bucket = getBucketId(bucketName).orElseThrow(
                     () -> new StorageException("Bucket '" + bucketName + "' doesn't exist"));
-            this.bucketId = bucket.bucketId;
-            uploadUrlResponse = backblazeApiWrapper.getUploadUrl(authorizeResponse, bucketId);
+            getUploadUrlResponse = backblazeApiWrapper.getUploadUrl(authorizeResponse, bucket.bucketId);
         } catch (Exception e) {
             authorizeResponse = null;
             errorMessage = e.getMessage();

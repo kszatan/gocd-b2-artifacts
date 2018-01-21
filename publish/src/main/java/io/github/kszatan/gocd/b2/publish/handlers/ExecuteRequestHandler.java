@@ -36,9 +36,9 @@ public class ExecuteRequestHandler implements RequestHandler {
             TaskConfiguration configuration = executeRequest.getTaskConfiguration();
             TaskContext context = executeRequest.getTaskContext();
             if (executor == null) { // for tests
-                String bucketId = getBucketId(configuration, context).orElseThrow(
-                        () -> new StorageException("BucketID not specified"));
-                setExecutor(new PublishTaskExecutor(new BackblazeStorage(bucketId), new DefaultDirectoryScanner()));
+                String bucketName = getBucketName(configuration, context).orElseThrow(
+                        () -> new StorageException("Bucket name not specified"));
+                setExecutor(new PublishTaskExecutor(new BackblazeStorage(bucketName), new DefaultDirectoryScanner()));
             }
             ExecuteResponse result = executor.execute(configuration, context);
             response = DefaultGoPluginApiResponse.success(result.toJson());
@@ -56,12 +56,12 @@ public class ExecuteRequestHandler implements RequestHandler {
         this.executor = executor;
     }
 
-    private Optional<String> getBucketId(TaskConfiguration configuration, TaskContext context) {
-        String bucketId = configuration.getBucketId();
-        if (bucketId == null || bucketId.isEmpty()) {
-            bucketId = context.environmentVariables.get(GO_ARTIFACTS_B2_BUCKET);
+    private Optional<String> getBucketName(TaskConfiguration configuration, TaskContext context) {
+        String bucketName = configuration.getBucketName();
+        if (bucketName == null || bucketName.isEmpty()) {
+            bucketName = context.environmentVariables.get(GO_ARTIFACTS_B2_BUCKET);
         }
-        return Optional.ofNullable(bucketId);
+        return Optional.ofNullable(bucketName);
     }
 
 }

@@ -10,15 +10,12 @@ import com.thoughtworks.go.plugin.api.task.JobConsoleLogger;
 import io.github.kszatan.gocd.b2.publish.handlers.bodies.*;
 import io.github.kszatan.gocd.b2.publish.storage.Storage;
 import io.github.kszatan.gocd.b2.publish.storage.StorageException;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static io.github.kszatan.gocd.b2.publish.Constants.GO_ARTIFACTS_B2_BUCKET;
 
@@ -60,9 +57,9 @@ public class PublishTaskExecutor implements TaskExecutor {
     private List<String> validateEnvironment(Map<String, String> environment) {
         List<String> errors = new ArrayList<>();
         ConfigurationValidator validator = new ConfigurationValidator();
-        String bucketId = environment.get(GO_ARTIFACTS_B2_BUCKET);
-        if (bucketId != null && !validator.validateBucketId(bucketId)) {
-            errors.add("Invalid Bucket ID format in GO_ARTIFACTS_B2_BUCKET environmental variable");
+        String bucketName = environment.get(GO_ARTIFACTS_B2_BUCKET);
+        if (bucketName != null && !validator.validateBucketName(bucketName)) {
+            errors.add("Invalid bucket name format in GO_ARTIFACTS_B2_BUCKET environmental variable");
         }
         return errors;
     }

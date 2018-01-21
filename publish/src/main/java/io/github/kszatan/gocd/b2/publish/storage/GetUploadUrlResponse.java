@@ -6,7 +6,7 @@
 
 package io.github.kszatan.gocd.b2.publish.storage;
 
-public class UploadUrlResponse {
+public class GetUploadUrlResponse {
     public String bucketId;
     public String uploadUrl;
     public String authorizationToken;

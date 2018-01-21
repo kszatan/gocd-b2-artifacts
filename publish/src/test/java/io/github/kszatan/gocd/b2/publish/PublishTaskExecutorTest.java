@@ -38,13 +38,13 @@ public class PublishTaskExecutorTest {
     }
     
     @Test
-    public void executeShouldReturnErrorForInvalidEnvironmentBucketId() {
+    public void executeShouldReturnErrorForInvalidEnvironmentBucketName() {
         TaskConfiguration configuration = new TaskConfiguration();
         TaskContext context = new TaskContext();
         context.environmentVariables.put(GO_ARTIFACTS_B2_BUCKET, "buk");
         ExecuteResponse response = executor.execute(configuration, context);
         assertThat(response.success, equalTo(false));
-        assertThat(response.message, equalTo("Failure: Invalid Bucket ID format in GO_ARTIFACTS_B2_BUCKET environmental variable"));
+        assertThat(response.message, equalTo("Failure: Invalid bucket name format in GO_ARTIFACTS_B2_BUCKET environmental variable"));
     }
 
     @Test
