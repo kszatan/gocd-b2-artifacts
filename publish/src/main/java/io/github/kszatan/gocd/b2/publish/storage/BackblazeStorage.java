@@ -8,6 +8,9 @@ package io.github.kszatan.gocd.b2.publish.storage;
 
 import com.thoughtworks.go.plugin.api.logging.Logger;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
 
 public class BackblazeStorage implements Storage {
@@ -52,9 +55,14 @@ public class BackblazeStorage implements Storage {
     }
 
     @Override
-    public void upload(String filePath, String destination) throws StorageException {
-
-        //throw new StorageException("Unable to upload file " + file.getPath());
+    public void upload(Path workDir, String relativeFilePath, String destination) throws StorageException {
+        logger.info("uploading " + relativeFilePath);
+        Optional<UploadFileResponse> response;
+        try {
+            response = backblazeApiWrapper.uploadFile(workDir, relativeFilePath, getUploadUrlResponse);
+        } catch (IOException | NoSuchAlgorithmException e) {
+            throw new StorageException(e.getMessage());
+        }
     }
 
     @Override

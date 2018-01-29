@@ -6,12 +6,14 @@
 
 package io.github.kszatan.gocd.b2.publish.storage;
 
+import java.nio.file.Path;
+
 public interface Storage {
     String getLastErrorMessage();
 
     Boolean authorize(String accountId, String applicationKey);
 
-    void upload(String filePath, String destination) throws StorageException;
+    void upload(Path workDir, String relativeFilePath, String destination) throws StorageException;
 
     void download(String filename);
 }

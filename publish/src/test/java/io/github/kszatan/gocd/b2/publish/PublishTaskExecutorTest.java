@@ -17,6 +17,8 @@ import io.github.kszatan.gocd.b2.publish.storage.StorageException;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 
 import static io.github.kszatan.gocd.b2.publish.Constants.GO_ARTIFACTS_B2_BUCKET;
@@ -56,7 +58,7 @@ public class PublishTaskExecutorTest {
         String applicationKey = "caca85ed4e7a3404db0b08bb8256d00d84e247e46";
         context.environmentVariables.put("B2_ACCOUNT_ID", accountId);
         context.environmentVariables.put("B2_APPLICATION_KEY", applicationKey);
-        ExecuteResponse response = executor.execute(configuration, context);
+        executor.execute(configuration, context);
         verify(storage).authorize(accountId, applicationKey);
     }
 
@@ -68,11 +70,13 @@ public class PublishTaskExecutorTest {
         configuration.setSourceDestinations("[{\"source\": \"**\", \"destination\": \"desti/nation\"}]");
         TaskContext context = new TaskContext();
         context.environmentVariables.put(GO_ARTIFACTS_B2_BUCKET, "bukiet");
-        ExecuteResponse response = executor.execute(configuration, context);
+        context.workingDirectory = "gocd/agent/";
+        executor.execute(configuration, context);
+        final Path workDirPath = Paths.get(context.workingDirectory).toAbsolutePath();
         
-        verify(storage).upload("a/file1", "desti/nation");
-        verify(storage).upload("file2", "desti/nation");
-        verify(storage).upload("b/c/file3", "desti/nation");
+        verify(storage).upload(workDirPath, "a/file1", "desti/nation");
+        verify(storage).upload(workDirPath, "file2", "desti/nation");
+        verify(storage).upload(workDirPath, "b/c/file3", "desti/nation");
     }
 
     @Test
@@ -83,7 +87,7 @@ public class PublishTaskExecutorTest {
         configuration.setSourceDestinations("[{\"source\": \"source1/*\", \"destination\": \"\"},{\"source\": \"source2/*\", \"destination\": \"\"}]");
         TaskContext context = new TaskContext();
         context.environmentVariables.put(GO_ARTIFACTS_B2_BUCKET, "bukiet");
-        ExecuteResponse response = executor.execute(configuration, context);
+        executor.execute(configuration, context);
 
         verify(scanner).scan("source1/*");
         verify(scanner).scan("source2/*");
@@ -97,12 +101,14 @@ public class PublishTaskExecutorTest {
         configuration.setSourceDestinations("[{\"source\": \"**\", \"destination\": \"dest1\"},{\"source\": \"**\", \"destination\": \"dest2\"}]");
         TaskContext context = new TaskContext();
         context.environmentVariables.put(GO_ARTIFACTS_B2_BUCKET, "bukiet");
-        ExecuteResponse response = executor.execute(configuration, context);
+        context.workingDirectory = "gocd/agent/";
+        executor.execute(configuration, context);
+        final Path workDirPath = Paths.get(context.workingDirectory).toAbsolutePath();
 
-        verify(storage).upload("file1", "dest1");
-        verify(storage).upload("file2", "dest1");
-        verify(storage).upload("file1", "dest2");
-        verify(storage).upload("file2", "dest2");
+        verify(storage).upload(workDirPath, "file1", "dest1");
+        verify(storage).upload(workDirPath, "file2", "dest1");
+        verify(storage).upload(workDirPath, "file1", "dest2");
+        verify(storage).upload(workDirPath, "file2", "dest2");
     }
 
     @Test
@@ -113,7 +119,7 @@ public class PublishTaskExecutorTest {
         TaskContext context = new TaskContext();
         context.environmentVariables.put(GO_ARTIFACTS_B2_BUCKET, "bukiet");
         context.workingDirectory = workDir;
-        ExecuteResponse response = executor.execute(configuration, context);
+        executor.execute(configuration, context);
 
         verify(scanner).setBaseDir(workDir);
     }

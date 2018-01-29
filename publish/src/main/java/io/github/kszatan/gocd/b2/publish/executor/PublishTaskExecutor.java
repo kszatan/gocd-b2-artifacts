@@ -6,12 +6,15 @@
 
 package io.github.kszatan.gocd.b2.publish.executor;
 
+import com.thoughtworks.go.plugin.api.logging.Logger;
 import com.thoughtworks.go.plugin.api.task.JobConsoleLogger;
 import io.github.kszatan.gocd.b2.publish.handlers.bodies.*;
 import io.github.kszatan.gocd.b2.publish.storage.Storage;
 import io.github.kszatan.gocd.b2.publish.storage.StorageException;
 import org.apache.commons.lang3.StringUtils;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +24,7 @@ import static io.github.kszatan.gocd.b2.publish.Constants.GO_ARTIFACTS_B2_BUCKET
 
 public class PublishTaskExecutor implements TaskExecutor {
     public JobConsoleLogger console = new JobConsoleLogger() {};
+    private Logger logger = Logger.getLoggerFor(PublishTaskExecutor.class);
     private final Storage storage;
     private final DirectoryScanner scanner;
 
@@ -43,8 +47,9 @@ public class PublishTaskExecutor implements TaskExecutor {
                 List<SourceDestination> expandSources =
                         expandSources(configuration.getSourceDestinationsAsList(), context.workingDirectory,
                                 configuration.getDestinationPrefix());
+                Path absoluteWorkDir = Paths.get(context.workingDirectory).toAbsolutePath();
                 for (SourceDestination sd : expandSources) {
-                    storage.upload(sd.source, sd.destination);
+                    storage.upload(absoluteWorkDir, sd.source, sd.destination);
                     console.printLine("Uploaded: " + sd.source + " to: " + sd.destination);
                 }
             }

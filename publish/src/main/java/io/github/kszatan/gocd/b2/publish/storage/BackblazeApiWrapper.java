@@ -57,9 +57,8 @@ public class BackblazeApiWrapper {
         return GsonService.fromJson(jsonResponse, AuthorizeResponse.class);
     }
 
-    public void upload(String filePath, String destination) throws StorageException {
-
-        //throw new StorageException("Unable to upload file " + file.getPath());
+    public Optional<UploadFileResponse> uploadFile(Path workDir, String filePath, GetUploadUrlResponse getUploadUrlResponse)
+            throws NoSuchAlgorithmException, IOException {
     }
 
     public void download(String filename) {
