@@ -6,8 +6,6 @@
 
 package io.github.kszatan.gocd.b2.publish.executor;
 
-import org.apache.commons.lang3.ArrayUtils;
-
 import java.util.Arrays;
 import java.util.List;
 
@@ -27,6 +25,6 @@ public class DefaultDirectoryScanner implements DirectoryScanner {
 
     @Override
     public List<String> getIncludedFiles() {
-        return Arrays.asList(ArrayUtils.addAll(scanner.getIncludedFiles(), scanner.getIncludedDirectories()));
+        return Arrays.asList(scanner.getIncludedFiles());
     }
 }
