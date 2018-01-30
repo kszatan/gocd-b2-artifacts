@@ -22,18 +22,17 @@ public class BackblazeApiWrapper {
 
     private Logger logger = Logger.getLoggerFor(BackblazeApiWrapper.class);
 
-    private String errorMessage;
+    private ErrorResponse lastError;
     private String bucketName;
     private URLStreamHandler urlStreamHandler;
 
     public BackblazeApiWrapper(String bucketName, URLStreamHandler urlStreamHandler) {
-        this.errorMessage = "";
         this.bucketName = bucketName;
         this.urlStreamHandler = urlStreamHandler;
     }
 
-    public String getLastErrorMessage() {
-        return errorMessage;
+    public Optional<ErrorResponse> getLastError() {
+        return Optional.ofNullable(lastError);
     }
 
     public AuthorizeResponse authorize(String accountId, String applicationKey) throws IOException {
