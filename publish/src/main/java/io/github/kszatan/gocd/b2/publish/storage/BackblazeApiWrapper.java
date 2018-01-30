@@ -17,8 +17,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 public class BackblazeApiWrapper {
-    private static final String B2_API_URL = "https://api.backblazeb2.com/b2api/v1/";
-    private static final String AUTHORIZE_ACCOUNT_CMD = "b2_authorize_account";
+    private static final String B2_API_URL = "https://api.backblazeb2.com";
+    private static final String AUTHORIZE_ACCOUNT_CMD = "/b2api/v1/b2_authorize_account";
+    private static final String LIST_BUCKETS_CMD = "/b2api/v1/b2_list_buckets";
+    private static final String GET_UPLOAD_URL_CMD = "/b2api/v1/b2_get_upload_url";
 
     private Logger logger = Logger.getLoggerFor(BackblazeApiWrapper.class);
 
@@ -42,7 +44,7 @@ public class BackblazeApiWrapper {
         String jsonResponse;
         try {
             URL url = new URL(new URL(B2_API_URL), AUTHORIZE_ACCOUNT_CMD, urlStreamHandler);
-            connection = (HttpURLConnection)url.openConnection();
+            connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
             connection.setRequestProperty("Authorization", headerForAuthorizeAccount);
             InputStream in = new BufferedInputStream(connection.getInputStream());
@@ -65,16 +67,16 @@ public class BackblazeApiWrapper {
     }
 
     public ListBucketsResponse listBuckets(AuthorizeResponse authorizeResponse) throws IOException {
-        String apiUrl = authorizeResponse.apiUrl; // Provided by b2_authorize_account
-        String accountId = authorizeResponse.accountId; // Obtained from your B2 account page.
-        String accountAuthorizationToken = authorizeResponse.authorizationToken; // Provided by b2_authorize_account
+        String apiUrl = authorizeResponse.apiUrl;
+        String accountId = authorizeResponse.accountId;
+        String accountAuthorizationToken = authorizeResponse.authorizationToken;
         HttpURLConnection connection = null;
         String postParams = "{\"accountId\":\"" + accountId + "\", \"bucketTypes\": [\"allPrivate\",\"allPublic\"]}";
         String jsonResponse;
         byte postData[] = postParams.getBytes(StandardCharsets.UTF_8);
         try {
-            URL url = new URL(new URL(apiUrl), "/b2api/v1/b2_list_buckets", urlStreamHandler);
-            connection = (HttpURLConnection)url.openConnection();
+            URL url = new URL(new URL(apiUrl), LIST_BUCKETS_CMD, urlStreamHandler);
+            connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("POST");
             connection.setRequestProperty("Authorization", accountAuthorizationToken);
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
@@ -94,15 +96,15 @@ public class BackblazeApiWrapper {
     }
 
     public GetUploadUrlResponse getUploadUrl(AuthorizeResponse authorizeResponse, String bucketId) throws IOException {
-        String apiUrl = authorizeResponse.apiUrl; // Provided by b2_authorize_account
-        String accountAuthorizationToken = authorizeResponse.authorizationToken; // Provided by b2_authorize_account
+        String apiUrl = authorizeResponse.apiUrl;
+        String accountAuthorizationToken = authorizeResponse.authorizationToken;
         HttpURLConnection connection = null;
         String postParams = "{\"bucketId\":\"" + bucketId + "\"}";
         String jsonResponse;
         byte postData[] = postParams.getBytes(StandardCharsets.UTF_8);
         try {
-            URL url = new URL(new URL(apiUrl), "/b2api/v1/b2_get_upload_url", urlStreamHandler);
-            connection = (HttpURLConnection)url.openConnection();
+            URL url = new URL(new URL(apiUrl), GET_UPLOAD_URL_CMD, urlStreamHandler);
+            connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("POST");
             connection.setRequestProperty("Authorization", accountAuthorizationToken);
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
