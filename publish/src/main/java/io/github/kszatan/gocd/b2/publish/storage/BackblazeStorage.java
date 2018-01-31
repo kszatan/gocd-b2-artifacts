@@ -60,6 +60,12 @@ public class BackblazeStorage implements Storage {
         Optional<UploadFileResponse> response;
         try {
             response = backblazeApiWrapper.uploadFile(workDir, relativeFilePath, getUploadUrlResponse);
+            if (response.isPresent()) {
+                logger.info("SUCCESS");
+            } else {
+                ErrorResponse error = backblazeApiWrapper.getLastError().get();
+                logger.info("FAILURE: " + error.toString() );
+            }
         } catch (IOException | NoSuchAlgorithmException e) {
             throw new StorageException(e.getMessage());
         }

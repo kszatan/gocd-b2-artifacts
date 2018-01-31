@@ -14,7 +14,13 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLStreamHandler;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.util.Formatter;
+import java.util.Optional;
 
 public class BackblazeApiWrapper {
     private static final String B2_API_URL = "https://api.backblazeb2.com";
@@ -60,6 +66,36 @@ public class BackblazeApiWrapper {
 
     public Optional<UploadFileResponse> uploadFile(Path workDir, String filePath, GetUploadUrlResponse getUploadUrlResponse)
             throws NoSuchAlgorithmException, IOException {
+        Path absoluteFilePath = workDir.resolve(filePath);
+        String content_sha1 = sha1(absoluteFilePath);
+        HttpURLConnection connection = null;
+        String jsonResponse;
+        try {
+            URL url = new URL(new URL(getUploadUrlResponse.uploadUrl), "", urlStreamHandler);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Authorization", getUploadUrlResponse.authorizationToken);
+            connection.setRequestProperty("Content-Type", "b2/x-auto");
+            connection.setRequestProperty("X-Bz-File-Name", filePath);
+            connection.setRequestProperty("X-Bz-Content-Sha1", content_sha1);
+            connection.setDoOutput(true);
+            DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
+            Files.copy(absoluteFilePath, writer);
+            if (connection.getResponseCode() == 200) {
+                jsonResponse = myInputStreamReader(connection.getInputStream());
+                logger.info("uploadFile: " + jsonResponse);
+                return Optional.of(GsonService.fromJson(jsonResponse, UploadFileResponse.class));
+            } else {
+                jsonResponse = myInputStreamReader(connection.getErrorStream());
+                lastError = GsonService.fromJson(jsonResponse, ErrorResponse.class);
+                logger.info("uploadFile: " + jsonResponse);
+            }
+        } catch (Exception e) {
+            logger.info("uploadFile exception: " + e.getMessage());
+        } finally {
+            connection.disconnect();
+        }
+        return Optional.empty();
     }
 
     public void download(String filename) {
@@ -123,12 +159,28 @@ public class BackblazeApiWrapper {
         return GsonService.fromJson(jsonResponse, GetUploadUrlResponse.class);
     }
 
+    private String sha1(Path filePath) throws NoSuchAlgorithmException, IOException {
+        final MessageDigest digest = MessageDigest.getInstance("SHA-1");
+        InputStream fis = Files.newInputStream(filePath);
+        byte[] buffer = new byte[8192];
+        for (int read = 0; (read = fis.read(buffer)) != -1; ) {
+            digest.update(buffer, 0, read);
+        }
+
+        try (Formatter formatter = new Formatter()) {
+            for (final byte b : digest.digest()) {
+                formatter.format("%02x", b);
+            }
+            return formatter.toString();
+        }
+    }
+
     static public String myInputStreamReader(InputStream in) throws IOException {
         InputStreamReader reader = new InputStreamReader(in);
         StringBuilder sb = new StringBuilder();
         int c = reader.read();
         while (c != -1) {
-            sb.append((char)c);
+            sb.append((char) c);
             c = reader.read();
         }
         reader.close();
