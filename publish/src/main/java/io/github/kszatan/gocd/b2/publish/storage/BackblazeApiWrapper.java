@@ -11,6 +11,7 @@ import io.github.kszatan.gocd.b2.publish.json.GsonService;
 
 import java.io.*;
 import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.URLStreamHandler;
 import java.nio.charset.StandardCharsets;
@@ -27,6 +28,7 @@ public class BackblazeApiWrapper {
     private static final String AUTHORIZE_ACCOUNT_CMD = "/b2api/v1/b2_authorize_account";
     private static final String LIST_BUCKETS_CMD = "/b2api/v1/b2_list_buckets";
     private static final String GET_UPLOAD_URL_CMD = "/b2api/v1/b2_get_upload_url";
+    private static final Integer CONNECTION_TIMEOUT = 5000;
 
     private Logger logger = Logger.getLoggerFor(BackblazeApiWrapper.class);
 
@@ -47,15 +49,18 @@ public class BackblazeApiWrapper {
         HttpURLConnection connection = null;
         String headerForAuthorizeAccount = "Basic " +
                 Base64.getEncoder().encodeToString((accountId + ":" + applicationKey).getBytes());
-        String jsonResponse;
+        String jsonResponse = "";
         try {
             URL url = new URL(new URL(B2_API_URL), AUTHORIZE_ACCOUNT_CMD, urlStreamHandler);
             connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
+            connection.setConnectTimeout(CONNECTION_TIMEOUT);
             connection.setRequestProperty("Authorization", headerForAuthorizeAccount);
             InputStream in = new BufferedInputStream(connection.getInputStream());
-            jsonResponse = myInputStreamReader(in);
+            jsonResponse = myStreamReader(in);
             logger.info("authorize: " + jsonResponse);
+        } catch (SocketTimeoutException e) {
+            logger.info("Connection timeout");
         } finally {
             if (connection != null) {
                 connection.disconnect();
@@ -74,6 +79,7 @@ public class BackblazeApiWrapper {
             URL url = new URL(new URL(getUploadUrlResponse.uploadUrl), "", urlStreamHandler);
             connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("POST");
+            connection.setConnectTimeout(CONNECTION_TIMEOUT);
             connection.setRequestProperty("Authorization", getUploadUrlResponse.authorizationToken);
             connection.setRequestProperty("Content-Type", "b2/x-auto");
             connection.setRequestProperty("X-Bz-File-Name", filePath);
@@ -82,18 +88,22 @@ public class BackblazeApiWrapper {
             DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
             Files.copy(absoluteFilePath, writer);
             if (connection.getResponseCode() == 200) {
-                jsonResponse = myInputStreamReader(connection.getInputStream());
+                jsonResponse = myStreamReader(connection.getInputStream());
                 logger.info("uploadFile: " + jsonResponse);
                 return Optional.of(GsonService.fromJson(jsonResponse, UploadFileResponse.class));
             } else {
-                jsonResponse = myInputStreamReader(connection.getErrorStream());
+                jsonResponse = myStreamReader(connection.getErrorStream());
                 lastError = GsonService.fromJson(jsonResponse, ErrorResponse.class);
                 logger.info("uploadFile: " + jsonResponse);
             }
+        } catch (SocketTimeoutException e) {
+            logger.info("Connection timeout");
         } catch (Exception e) {
             logger.info("uploadFile exception: " + e.getMessage());
         } finally {
-            connection.disconnect();
+            if (connection != null) {
+                connection.disconnect();
+            }
         }
         return Optional.empty();
     }
@@ -108,12 +118,13 @@ public class BackblazeApiWrapper {
         String accountAuthorizationToken = authorizeResponse.authorizationToken;
         HttpURLConnection connection = null;
         String postParams = "{\"accountId\":\"" + accountId + "\", \"bucketTypes\": [\"allPrivate\",\"allPublic\"]}";
-        String jsonResponse;
+        String jsonResponse = "";
         byte postData[] = postParams.getBytes(StandardCharsets.UTF_8);
         try {
             URL url = new URL(new URL(apiUrl), LIST_BUCKETS_CMD, urlStreamHandler);
             connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("POST");
+            connection.setConnectTimeout(CONNECTION_TIMEOUT);
             connection.setRequestProperty("Authorization", accountAuthorizationToken);
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
             connection.setRequestProperty("charset", "utf-8");
@@ -121,8 +132,10 @@ public class BackblazeApiWrapper {
             connection.setDoOutput(true);
             DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
             writer.write(postData);
-            jsonResponse = myInputStreamReader(connection.getInputStream());
+            jsonResponse = myStreamReader(connection.getInputStream());
             logger.info("listBuckets: " + jsonResponse);
+        } catch (SocketTimeoutException e) {
+            logger.info("Connection timeout");
         } finally {
             if (connection != null) {
                 connection.disconnect();
@@ -136,12 +149,13 @@ public class BackblazeApiWrapper {
         String accountAuthorizationToken = authorizeResponse.authorizationToken;
         HttpURLConnection connection = null;
         String postParams = "{\"bucketId\":\"" + bucketId + "\"}";
-        String jsonResponse;
+        String jsonResponse = "";
         byte postData[] = postParams.getBytes(StandardCharsets.UTF_8);
         try {
             URL url = new URL(new URL(apiUrl), GET_UPLOAD_URL_CMD, urlStreamHandler);
             connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("POST");
+            connection.setConnectTimeout(CONNECTION_TIMEOUT);
             connection.setRequestProperty("Authorization", accountAuthorizationToken);
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
             connection.setRequestProperty("charset", "utf-8");
@@ -149,8 +163,10 @@ public class BackblazeApiWrapper {
             connection.setDoOutput(true);
             DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
             writer.write(postData);
-            jsonResponse = myInputStreamReader(connection.getInputStream());
+            jsonResponse = myStreamReader(connection.getInputStream());
             logger.info("b2_get_upload_url:" + jsonResponse);
+        } catch (SocketTimeoutException e) {
+            logger.info("Connection timeout");
         } finally {
             if (connection != null) {
                 connection.disconnect();
@@ -175,7 +191,7 @@ public class BackblazeApiWrapper {
         }
     }
 
-    static public String myInputStreamReader(InputStream in) throws IOException {
+    static public String myStreamReader(InputStream in) throws IOException {
         InputStreamReader reader = new InputStreamReader(in);
         StringBuilder sb = new StringBuilder();
         int c = reader.read();
