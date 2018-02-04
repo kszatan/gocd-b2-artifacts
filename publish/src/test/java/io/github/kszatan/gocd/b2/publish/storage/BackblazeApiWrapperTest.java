@@ -6,15 +6,19 @@
 
 package io.github.kszatan.gocd.b2.publish.storage;
 
+import io.github.kszatan.gocd.b2.publish.json.GsonService;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLStreamHandler;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -25,6 +29,8 @@ public class BackblazeApiWrapperTest {
     private URLStreamHandler stubUrlHandler;
     private HttpURLConnection mockUrlCon;
     private AuthorizeResponse defAuthResponse;
+    private FileHash mockFileHahs;
+
     private final String authorizeResponseJson = "{\n" +
             "  \"absoluteMinimumPartSize\": 5000000,\n" +
             "  \"accountId\": \"aaaabbbbcccc\",\n" +
@@ -72,19 +78,30 @@ public class BackblazeApiWrapperTest {
             "        \"revision\": 1\n" +
             "    } ]\n" +
             "}";
+    private String uploadFileResponseJson = "{\n" +
+            "    \"fileId\" : \"4_h4a48fe8875c6214145260818_f000000000000472a_d20140104_m032022_c001_v0000123_t0104\",\n" +
+            "    \"fileName\" : \"typing_test.txt\",\n" +
+            "    \"accountId\" : \"d522aa47a10f\",\n" +
+            "    \"bucketId\" : \"4a48fe8875c6214145260818\",\n" +
+            "    \"contentLength\" : 46,\n" +
+            "    \"contentSha1\" : \"bae5ed658ab3546aee12f23f36392f35dba1ebdd\",\n" +
+            "    \"contentType\" : \"text/plain\",\n" +
+            "    \"fileInfo\" : {\n" +
+            "       \"author\" : \"unknown\"\n" +
+            "    }\n" +
+            "}";
 
     @Before
     public void setUp() throws Exception {
         mockUrlCon = mock(HttpURLConnection.class);
-
         stubUrlHandler = new URLStreamHandler() {
             @Override
             protected HttpURLConnection openConnection(URL u) throws IOException {
                 return mockUrlCon;
             }
         };
-
-        wrapper = new BackblazeApiWrapper("defaultBucket", stubUrlHandler);
+        mockFileHahs = mock(FileHash.class);
+        wrapper = new BackblazeApiWrapper(stubUrlHandler, mockFileHahs);
 
         defAuthResponse = new AuthorizeResponse();
         defAuthResponse.absoluteMinimumPartSize = 5000000;
@@ -115,7 +132,7 @@ public class BackblazeApiWrapperTest {
     }
 
     @Test
-    public void exceptionDuringOpeningConnectionDuringAuthorizeShouldCloseConnection() throws Exception {
+    public void exceptionDuringOpeningConnectionOnAuthorizeShouldCloseConnection() throws Exception {
         doThrow(new IOException("Bad")).when(mockUrlCon).getInputStream();
 
         stubUrlHandler = new URLStreamHandler() {
@@ -125,7 +142,7 @@ public class BackblazeApiWrapperTest {
             }
         };
 
-        wrapper = new BackblazeApiWrapper("defaultBucket", stubUrlHandler);
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
 
         String accountId = "account_id";
         String applicationKey = "application_key";
@@ -137,7 +154,7 @@ public class BackblazeApiWrapperTest {
     }
 
     @Test
-    public void exceptionDuringOpeningConnectionShouldNotResultInAttemptToCloseConnection() throws Exception {
+    public void exceptionDuringOpeningConnectionOnAuthorizeShouldNotResultInAttemptToCloseConnection() throws Exception {
         stubUrlHandler = new URLStreamHandler() {
             @Override
             protected HttpURLConnection openConnection(URL u) throws IOException {
@@ -145,7 +162,7 @@ public class BackblazeApiWrapperTest {
             }
         };
 
-        wrapper = new BackblazeApiWrapper("defaultBucket", stubUrlHandler);
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
 
         String accountId = "account_id";
         String applicationKey = "application_key";
@@ -157,24 +174,66 @@ public class BackblazeApiWrapperTest {
     }
 
     @Test
+    public void exceptionDuringOpeningConnectionOnUploadFileShouldCloseConnection() throws Exception {
+        doThrow(new IOException("Bad")).when(mockUrlCon).getInputStream();
+
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                return mockUrlCon;
+            }
+        };
+        doReturn("hash").when(mockFileHahs).getHashValue(any());
+
+        wrapper = new BackblazeApiWrapper(stubUrlHandler, mockFileHahs);
+
+        GetUploadUrlResponse uploadUrlResponse = GsonService.fromJson(getUploadUrlResponseJson, GetUploadUrlResponse.class);
+        try {
+            wrapper.uploadFile(Paths.get(""), "file", uploadUrlResponse);
+        } catch (Exception e) {
+        }
+        verify(mockUrlCon).disconnect();
+    }
+
+    @Test
+    public void exceptionDuringOpeningConnectionOnUploadFileShouldNotResultInAttemptToCloseConnection() throws Exception {
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                throw new IOException("Bad, bad connection");
+            }
+        };
+
+        wrapper = new BackblazeApiWrapper(stubUrlHandler, mockFileHahs);
+
+        GetUploadUrlResponse uploadUrlResponse = GsonService.fromJson(getUploadUrlResponseJson, GetUploadUrlResponse.class);
+        try {
+            wrapper.uploadFile(Paths.get(""), "file", uploadUrlResponse);
+        } catch (Exception e) {
+        }
+        verify(mockUrlCon, times(0)).disconnect();
+    }
+
+    @Test
     public void successfulGetUploadUrlCallShouldResultInCorrectlyPopulatedResponseFields() throws Exception {
         ByteArrayInputStream is = new ByteArrayInputStream(getUploadUrlResponseJson.getBytes("UTF-8"));
         doReturn(is).when(mockUrlCon).getInputStream();
         doReturn(mock(OutputStream.class)).when(mockUrlCon).getOutputStream();
 
-        GetUploadUrlResponse response  = wrapper.getUploadUrl(defAuthResponse, "bukhet");
+        GetUploadUrlResponse response = wrapper.getUploadUrl(defAuthResponse, "bukhet");
         verify(mockUrlCon).disconnect();
         assertThat(response.bucketId, equalTo("4a48fe8875c6214145260818"));
         assertThat(response.authorizationToken, equalTo("2_20151009170037_f504a0f39a0f4e657337e624_9754dde94359bd7b8f1445c8f4cc1a231a33f714_upld"));
         assertThat(response.uploadUrl, equalTo("https://pod-000-1005-03.backblaze.com/b2api/v1/b2_upload_file?cvt=c001_v0001005_t0027&bucket=4a48fe8875c6214145260818"));
     }
+
     @Test
     public void successfulListBucketsCallShouldResultInCorrectlyPopulatedResponseFields() throws Exception {
         ByteArrayInputStream is = new ByteArrayInputStream(listBucketsResponseJson.getBytes("UTF-8"));
         doReturn(is).when(mockUrlCon).getInputStream();
         doReturn(mock(OutputStream.class)).when(mockUrlCon).getOutputStream();
 
-        ListBucketsResponse response  = wrapper.listBuckets(defAuthResponse);
+        ListBucketsResponse response = wrapper.listBuckets(defAuthResponse);
         verify(mockUrlCon).disconnect();
         assertThat(response.buckets.size(), equalTo(3));
         Bucket bucket = response.buckets.get(0);
@@ -192,6 +251,40 @@ public class BackblazeApiWrapperTest {
         assertThat(bucket.bucketId, equalTo("87ba238875c6214145260818"));
         assertThat(bucket.bucketName, equalTo("Vacation-Pictures"));
         assertThat(bucket.bucketType, equalTo("allPrivate"));
+    }
+
+    @Test
+    public void uploadFileShouldUploadAllFileContents() throws Exception {
+        ByteArrayInputStream is = new ByteArrayInputStream(uploadFileResponseJson.getBytes("UTF-8"));
+        doReturn(is).when(mockUrlCon).getInputStream();
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        doReturn(os).when(mockUrlCon).getOutputStream();
+        doReturn(200).when(mockUrlCon).getResponseCode();
+
+        String filePath = this.getClass().getResource("UploadFileTest.txt").getPath();
+        GetUploadUrlResponse uploadUrlResponse = GsonService.fromJson(getUploadUrlResponseJson, GetUploadUrlResponse.class);
+
+        wrapper.uploadFile(Paths.get(""), filePath, uploadUrlResponse);
+
+        byte[] fileBytes = Files.readAllBytes(Paths.get(filePath));
+        String fileContents = new String(fileBytes);
+        assertThat(os.toString(), equalTo(fileContents));
+    }
+
+    @Test
+    public void uploadFileShouldCloseConnectionAfterSuccessfulUpload() throws Exception {
+        ByteArrayInputStream is = new ByteArrayInputStream(uploadFileResponseJson.getBytes("UTF-8"));
+        doReturn(is).when(mockUrlCon).getInputStream();
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        doReturn(os).when(mockUrlCon).getOutputStream();
+        doReturn(200).when(mockUrlCon).getResponseCode();
+
+        String filePath = this.getClass().getResource("UploadFileTest.txt").getPath();
+        GetUploadUrlResponse uploadUrlResponse = GsonService.fromJson(getUploadUrlResponseJson, GetUploadUrlResponse.class);
+
+        wrapper.uploadFile(Paths.get(""), filePath, uploadUrlResponse);
+
+        verify(mockUrlCon).disconnect();
     }
 
 }
