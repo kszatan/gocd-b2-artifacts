@@ -17,10 +17,8 @@ import java.net.URLStreamHandler;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
-import java.util.Formatter;
 import java.util.Optional;
 
 public class BackblazeApiWrapper {
@@ -33,12 +31,22 @@ public class BackblazeApiWrapper {
     private Logger logger = Logger.getLoggerFor(BackblazeApiWrapper.class);
 
     private ErrorResponse lastError;
-    private String bucketName;
     private URLStreamHandler urlStreamHandler;
+    private FileHash fileHash;
 
-    public BackblazeApiWrapper(String bucketName, URLStreamHandler urlStreamHandler) {
-        this.bucketName = bucketName;
+    public BackblazeApiWrapper() {
+        this.urlStreamHandler = null;
+        this.fileHash = new Sha1FileHash();
+    }
+
+    public BackblazeApiWrapper(URLStreamHandler urlStreamHandler) {
         this.urlStreamHandler = urlStreamHandler;
+        this.fileHash = new Sha1FileHash();
+    }
+
+    public BackblazeApiWrapper(URLStreamHandler urlStreamHandler, FileHash fileHash) {
+        this.urlStreamHandler = urlStreamHandler;
+        this.fileHash = fileHash;
     }
 
     public Optional<ErrorResponse> getLastError() {
@@ -72,7 +80,7 @@ public class BackblazeApiWrapper {
     public Optional<UploadFileResponse> uploadFile(Path workDir, String filePath, GetUploadUrlResponse getUploadUrlResponse)
             throws NoSuchAlgorithmException, IOException {
         Path absoluteFilePath = workDir.resolve(filePath);
-        String content_sha1 = sha1(absoluteFilePath);
+        String content_sha1 = fileHash.getHashValue(absoluteFilePath);
         HttpURLConnection connection = null;
         String jsonResponse;
         try {
@@ -98,8 +106,6 @@ public class BackblazeApiWrapper {
             }
         } catch (SocketTimeoutException e) {
             logger.info("Connection timeout");
-        } catch (Exception e) {
-            logger.info("uploadFile exception: " + e.getMessage());
         } finally {
             if (connection != null) {
                 connection.disconnect();
@@ -173,22 +179,6 @@ public class BackblazeApiWrapper {
             }
         }
         return GsonService.fromJson(jsonResponse, GetUploadUrlResponse.class);
-    }
-
-    private String sha1(Path filePath) throws NoSuchAlgorithmException, IOException {
-        final MessageDigest digest = MessageDigest.getInstance("SHA-1");
-        InputStream fis = Files.newInputStream(filePath);
-        byte[] buffer = new byte[8192];
-        for (int read = 0; (read = fis.read(buffer)) != -1; ) {
-            digest.update(buffer, 0, read);
-        }
-
-        try (Formatter formatter = new Formatter()) {
-            for (final byte b : digest.digest()) {
-                formatter.format("%02x", b);
-            }
-            return formatter.toString();
-        }
     }
 
     static public String myStreamReader(InputStream in) throws IOException {

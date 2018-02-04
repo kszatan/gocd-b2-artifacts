@@ -29,7 +29,7 @@ public class BackblazeStorage implements Storage {
     public BackblazeStorage(String bucketName) {
         this.errorMessage = "";
         this.bucketName = bucketName;
-        this.backblazeApiWrapper = new BackblazeApiWrapper(bucketName, null);
+        this.backblazeApiWrapper = new BackblazeApiWrapper();
     }
 
     @Override
