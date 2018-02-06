@@ -26,7 +26,8 @@ public class BackblazeApiWrapper {
     private static final String AUTHORIZE_ACCOUNT_CMD = "/b2api/v1/b2_authorize_account";
     private static final String LIST_BUCKETS_CMD = "/b2api/v1/b2_list_buckets";
     private static final String GET_UPLOAD_URL_CMD = "/b2api/v1/b2_get_upload_url";
-    private static final Integer CONNECTION_TIMEOUT = 5000;
+    private static final Integer CONNECTION_TIMEOUT_MS = 60 * 1000;
+    private static final Integer READ_TIMEOUT_MS = 120 * 1000;
 
     private Logger logger = Logger.getLoggerFor(BackblazeApiWrapper.class);
 
@@ -59,10 +60,7 @@ public class BackblazeApiWrapper {
                 Base64.getEncoder().encodeToString((accountId + ":" + applicationKey).getBytes());
         String jsonResponse = "";
         try {
-            URL url = new URL(new URL(B2_API_URL), AUTHORIZE_ACCOUNT_CMD, urlStreamHandler);
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
-            connection.setConnectTimeout(CONNECTION_TIMEOUT);
+            connection = newHttpConnection(B2_API_URL, AUTHORIZE_ACCOUNT_CMD, "GET");
             connection.setRequestProperty("Authorization", headerForAuthorizeAccount);
             InputStream in = new BufferedInputStream(connection.getInputStream());
             jsonResponse = myStreamReader(in);
@@ -84,10 +82,7 @@ public class BackblazeApiWrapper {
         HttpURLConnection connection = null;
         String jsonResponse;
         try {
-            URL url = new URL(new URL(getUploadUrlResponse.uploadUrl), "", urlStreamHandler);
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setConnectTimeout(CONNECTION_TIMEOUT);
+            connection = newHttpConnection(getUploadUrlResponse.uploadUrl, "", "POST");
             connection.setRequestProperty("Authorization", getUploadUrlResponse.authorizationToken);
             connection.setRequestProperty("Content-Type", "b2/x-auto");
             connection.setRequestProperty("X-Bz-File-Name", filePath);
@@ -127,10 +122,7 @@ public class BackblazeApiWrapper {
         String jsonResponse = "";
         byte postData[] = postParams.getBytes(StandardCharsets.UTF_8);
         try {
-            URL url = new URL(new URL(apiUrl), LIST_BUCKETS_CMD, urlStreamHandler);
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setConnectTimeout(CONNECTION_TIMEOUT);
+            connection = newHttpConnection(apiUrl, LIST_BUCKETS_CMD, "POST");
             connection.setRequestProperty("Authorization", accountAuthorizationToken);
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
             connection.setRequestProperty("charset", "utf-8");
@@ -158,10 +150,7 @@ public class BackblazeApiWrapper {
         String jsonResponse = "";
         byte postData[] = postParams.getBytes(StandardCharsets.UTF_8);
         try {
-            URL url = new URL(new URL(apiUrl), GET_UPLOAD_URL_CMD, urlStreamHandler);
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setConnectTimeout(CONNECTION_TIMEOUT);
+            connection = newHttpConnection(apiUrl, GET_UPLOAD_URL_CMD, "POST");
             connection.setRequestProperty("Authorization", accountAuthorizationToken);
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
             connection.setRequestProperty("charset", "utf-8");
@@ -191,5 +180,14 @@ public class BackblazeApiWrapper {
         }
         reader.close();
         return sb.toString();
+    }
+
+    private HttpURLConnection newHttpConnection(String urlContext, String urlSpec, String requestMethod) throws IOException {
+        URL url = new URL(new URL(urlContext), urlSpec, urlStreamHandler);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod(requestMethod);
+        connection.setConnectTimeout(CONNECTION_TIMEOUT_MS);
+        connection.setReadTimeout(READ_TIMEOUT_MS);
+        return connection;
     }
 }
