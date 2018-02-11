@@ -8,6 +8,7 @@ package io.github.kszatan.gocd.b2.publish.storage;
 
 import com.thoughtworks.go.plugin.api.logging.Logger;
 import io.github.kszatan.gocd.b2.publish.json.GsonService;
+import org.apache.http.HttpStatus;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -54,11 +55,11 @@ public class BackblazeApiWrapper {
         return Optional.ofNullable(lastError);
     }
 
-    public AuthorizeResponse authorize(String accountId, String applicationKey) throws IOException {
+    public Optional<AuthorizeResponse> authorize(String accountId, String applicationKey) throws IOException {
         HttpURLConnection connection = null;
         String headerForAuthorizeAccount = "Basic " +
                 Base64.getEncoder().encodeToString((accountId + ":" + applicationKey).getBytes());
-        String jsonResponse = "";
+        String jsonResponse;
         try {
             connection = newHttpConnection(B2_API_URL, AUTHORIZE_ACCOUNT_CMD, "GET");
             connection.setRequestProperty("Authorization", headerForAuthorizeAccount);
@@ -66,13 +67,14 @@ public class BackblazeApiWrapper {
             jsonResponse = myStreamReader(in);
             logger.info("authorize: " + jsonResponse);
         } catch (SocketTimeoutException e) {
-            logger.info("Connection timeout");
+            setRequestTimeoutError(e);
+            return Optional.empty();
         } finally {
             if (connection != null) {
                 connection.disconnect();
             }
         }
-        return GsonService.fromJson(jsonResponse, AuthorizeResponse.class);
+        return Optional.of(GsonService.fromJson(jsonResponse, AuthorizeResponse.class));
     }
 
     public Optional<UploadFileResponse> uploadFile(Path workDir, String filePath, GetUploadUrlResponse getUploadUrlResponse)
@@ -100,6 +102,7 @@ public class BackblazeApiWrapper {
                 logger.info("uploadFile: " + jsonResponse);
             }
         } catch (SocketTimeoutException e) {
+            setRequestTimeoutError(e);
             logger.info("Connection timeout");
         } finally {
             if (connection != null) {
@@ -113,7 +116,7 @@ public class BackblazeApiWrapper {
 
     }
 
-    public ListBucketsResponse listBuckets(AuthorizeResponse authorizeResponse) throws IOException {
+    public Optional<ListBucketsResponse> listBuckets(AuthorizeResponse authorizeResponse) throws IOException {
         String apiUrl = authorizeResponse.apiUrl;
         String accountId = authorizeResponse.accountId;
         String accountAuthorizationToken = authorizeResponse.authorizationToken;
@@ -133,16 +136,18 @@ public class BackblazeApiWrapper {
             jsonResponse = myStreamReader(connection.getInputStream());
             logger.info("listBuckets: " + jsonResponse);
         } catch (SocketTimeoutException e) {
+            setRequestTimeoutError(e);
             logger.info("Connection timeout");
+            return Optional.empty();
         } finally {
             if (connection != null) {
                 connection.disconnect();
             }
         }
-        return GsonService.fromJson(jsonResponse, ListBucketsResponse.class);
+        return Optional.of(GsonService.fromJson(jsonResponse, ListBucketsResponse.class));
     }
 
-    public GetUploadUrlResponse getUploadUrl(AuthorizeResponse authorizeResponse, String bucketId) throws IOException {
+    public Optional<GetUploadUrlResponse> getUploadUrl(AuthorizeResponse authorizeResponse, String bucketId) throws IOException {
         String apiUrl = authorizeResponse.apiUrl;
         String accountAuthorizationToken = authorizeResponse.authorizationToken;
         HttpURLConnection connection = null;
@@ -161,16 +166,18 @@ public class BackblazeApiWrapper {
             jsonResponse = myStreamReader(connection.getInputStream());
             logger.info("b2_get_upload_url:" + jsonResponse);
         } catch (SocketTimeoutException e) {
+            setRequestTimeoutError(e);
             logger.info("Connection timeout");
+            return Optional.empty();
         } finally {
             if (connection != null) {
                 connection.disconnect();
             }
         }
-        return GsonService.fromJson(jsonResponse, GetUploadUrlResponse.class);
+        return Optional.of(GsonService.fromJson(jsonResponse, GetUploadUrlResponse.class));
     }
 
-    static public String myStreamReader(InputStream in) throws IOException {
+    static private String myStreamReader(InputStream in) throws IOException {
         InputStreamReader reader = new InputStreamReader(in);
         StringBuilder sb = new StringBuilder();
         int c = reader.read();
@@ -189,5 +196,12 @@ public class BackblazeApiWrapper {
         connection.setConnectTimeout(CONNECTION_TIMEOUT_MS);
         connection.setReadTimeout(READ_TIMEOUT_MS);
         return connection;
+    }
+
+    private void setRequestTimeoutError(SocketTimeoutException e) {
+        lastError = new ErrorResponse();
+        lastError.status = HttpStatus.SC_REQUEST_TIMEOUT;
+        lastError.message = e.getMessage();
+        lastError.code = "request_timeout";
     }
 }

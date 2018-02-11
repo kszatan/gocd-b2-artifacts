@@ -40,11 +40,17 @@ public class BackblazeStorage implements Storage {
     @Override
     public Boolean authorize(String accountId, String applicationKey) {
         try {
-            authorizeResponse = backblazeApiWrapper.authorize(accountId, applicationKey);
-            listBucketsResponse = backblazeApiWrapper.listBuckets(authorizeResponse);
+            authorizeResponse = backblazeApiWrapper.authorize(accountId, applicationKey).orElseThrow(
+                    () -> new StorageException("Error during authorization"));
+            listBucketsResponse = backblazeApiWrapper.listBuckets(authorizeResponse).orElseThrow(
+                    () -> new StorageException("Error during listing of buckets"));
             Bucket bucket = getBucketId(bucketName).orElseThrow(
                     () -> new StorageException("Bucket '" + bucketName + "' doesn't exist"));
-            getUploadUrlResponse = backblazeApiWrapper.getUploadUrl(authorizeResponse, bucket.bucketId);
+            getUploadUrlResponse = backblazeApiWrapper.getUploadUrl(authorizeResponse, bucket.bucketId).orElseThrow(
+                    () -> new StorageException("Error during fetching upload url"));
+        } catch (StorageException e) {
+            logger.error(e.getMessage());
+            return false;
         } catch (Exception e) {
             authorizeResponse = null;
             errorMessage = e.getMessage();

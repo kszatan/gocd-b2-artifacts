@@ -21,6 +21,7 @@ subprojects {
         compile 'commons-io:commons-io:2.5'
         compile 'org.apache.maven.shared:maven-shared-utils:3.2.0'
         compile 'org.apache.commons:commons-lang3:3.1'
+        compile 'org.apache.httpcomponents:httpcore:4.4.9'
 
         testCompile 'junit:junit:4.12'
         testCompile 'org.mockito:mockito-core:1.+'
