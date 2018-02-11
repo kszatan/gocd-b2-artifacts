@@ -6,7 +6,6 @@
 
 package io.github.kszatan.gocd.b2.publish.storage;
 
-import com.thoughtworks.go.plugin.api.logging.Logger;
 import io.github.kszatan.gocd.b2.publish.json.GsonService;
 import org.apache.http.HttpStatus;
 
@@ -29,8 +28,6 @@ public class BackblazeApiWrapper {
     private static final String GET_UPLOAD_URL_CMD = "/b2api/v1/b2_get_upload_url";
     private static final Integer CONNECTION_TIMEOUT_MS = 60 * 1000;
     private static final Integer READ_TIMEOUT_MS = 120 * 1000;
-
-    private Logger logger = Logger.getLoggerFor(BackblazeApiWrapper.class);
 
     private ErrorResponse lastError;
     private URLStreamHandler urlStreamHandler;
@@ -59,13 +56,17 @@ public class BackblazeApiWrapper {
         HttpURLConnection connection = null;
         String headerForAuthorizeAccount = "Basic " +
                 Base64.getEncoder().encodeToString((accountId + ":" + applicationKey).getBytes());
-        String jsonResponse;
+        String jsonResponse = "";
         try {
             connection = newHttpConnection(B2_API_URL, AUTHORIZE_ACCOUNT_CMD, "GET");
             connection.setRequestProperty("Authorization", headerForAuthorizeAccount);
             InputStream in = new BufferedInputStream(connection.getInputStream());
-            jsonResponse = myStreamReader(in);
-            logger.info("authorize: " + jsonResponse);
+            if (connection.getResponseCode() == HttpStatus.SC_OK) {
+                jsonResponse = myStreamReader(in);
+            } else {
+                parseErrorResponse(connection.getResponseCode(), connection.getErrorStream());
+                return Optional.empty();
+            }
         } catch (SocketTimeoutException e) {
             setRequestTimeoutError(e);
             return Optional.empty();
@@ -82,7 +83,7 @@ public class BackblazeApiWrapper {
         Path absoluteFilePath = workDir.resolve(filePath);
         String content_sha1 = fileHash.getHashValue(absoluteFilePath);
         HttpURLConnection connection = null;
-        String jsonResponse;
+        String jsonResponse = "";
         try {
             connection = newHttpConnection(getUploadUrlResponse.uploadUrl, "", "POST");
             connection.setRequestProperty("Authorization", getUploadUrlResponse.authorizationToken);
@@ -92,24 +93,21 @@ public class BackblazeApiWrapper {
             connection.setDoOutput(true);
             DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
             Files.copy(absoluteFilePath, writer);
-            if (connection.getResponseCode() == 200) {
+            if (connection.getResponseCode() == HttpStatus.SC_OK) {
                 jsonResponse = myStreamReader(connection.getInputStream());
-                logger.info("uploadFile: " + jsonResponse);
-                return Optional.of(GsonService.fromJson(jsonResponse, UploadFileResponse.class));
             } else {
-                jsonResponse = myStreamReader(connection.getErrorStream());
-                lastError = GsonService.fromJson(jsonResponse, ErrorResponse.class);
-                logger.info("uploadFile: " + jsonResponse);
+                parseErrorResponse(connection.getResponseCode(), connection.getErrorStream());
+                return Optional.empty();
             }
         } catch (SocketTimeoutException e) {
             setRequestTimeoutError(e);
-            logger.info("Connection timeout");
+            return Optional.empty();
         } finally {
             if (connection != null) {
                 connection.disconnect();
             }
         }
-        return Optional.empty();
+        return Optional.of(GsonService.fromJson(jsonResponse, UploadFileResponse.class));
     }
 
     public void download(String filename) {
@@ -133,11 +131,14 @@ public class BackblazeApiWrapper {
             connection.setDoOutput(true);
             DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
             writer.write(postData);
-            jsonResponse = myStreamReader(connection.getInputStream());
-            logger.info("listBuckets: " + jsonResponse);
+            if (connection.getResponseCode() == HttpStatus.SC_OK) {
+                jsonResponse = myStreamReader(connection.getInputStream());
+            } else {
+                parseErrorResponse(connection.getResponseCode(), connection.getErrorStream());
+                return Optional.empty();
+            }
         } catch (SocketTimeoutException e) {
             setRequestTimeoutError(e);
-            logger.info("Connection timeout");
             return Optional.empty();
         } finally {
             if (connection != null) {
@@ -163,11 +164,14 @@ public class BackblazeApiWrapper {
             connection.setDoOutput(true);
             DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
             writer.write(postData);
-            jsonResponse = myStreamReader(connection.getInputStream());
-            logger.info("b2_get_upload_url:" + jsonResponse);
+            if (connection.getResponseCode() == HttpStatus.SC_OK) {
+                jsonResponse = myStreamReader(connection.getInputStream());
+            } else {
+                parseErrorResponse(connection.getResponseCode(), connection.getErrorStream());
+                return Optional.empty();
+            }
         } catch (SocketTimeoutException e) {
             setRequestTimeoutError(e);
-            logger.info("Connection timeout");
             return Optional.empty();
         } finally {
             if (connection != null) {
@@ -203,5 +207,18 @@ public class BackblazeApiWrapper {
         lastError.status = HttpStatus.SC_REQUEST_TIMEOUT;
         lastError.message = e.getMessage();
         lastError.code = "request_timeout";
+    }
+
+    private void parseErrorResponse(int responseCode, InputStream errorStream) {
+        String responseBody;
+        try {
+            responseBody = myStreamReader(errorStream);
+            lastError = GsonService.fromJson(responseBody, ErrorResponse.class);
+        } catch (IOException e) {
+            lastError = new ErrorResponse();
+            lastError.status = responseCode;
+            lastError.message = "Error while reading error response body";
+            lastError.code = "unknown";
+        }
     }
 }

@@ -11,10 +11,7 @@ import org.apache.http.HttpStatus;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.SocketTimeoutException;
 import java.net.URL;
@@ -93,6 +90,11 @@ public class BackblazeApiWrapperTest {
             "       \"author\" : \"unknown\"\n" +
             "    }\n" +
             "}";
+    private String errorResponseJson = "{\n" +
+            "    \"status\" : 400,\n" +
+            "    \"code\" : \"invalid_bucket_name\",\n" +
+            "    \"message\" : \"bucket name is too long\"\n" +
+            "}";
 
     @Before
     public void setUp() throws Exception {
@@ -119,6 +121,7 @@ public class BackblazeApiWrapperTest {
     public void successfulAuthorizeCallShouldResultInCorrectlyPopulatedResponseFields() throws Exception {
         ByteArrayInputStream is = new ByteArrayInputStream(authorizeResponseJson.getBytes("UTF-8"));
         doReturn(is).when(mockUrlCon).getInputStream();
+        doReturn(HttpStatus.SC_OK).when(mockUrlCon).getResponseCode();
 
         String accountId = "account_id";
         String applicationKey = "application_key";
@@ -260,6 +263,7 @@ public class BackblazeApiWrapperTest {
     public void successfulListBucketsCallShouldResultInCorrectlyPopulatedResponseFields() throws Exception {
         ByteArrayInputStream is = new ByteArrayInputStream(listBucketsResponseJson.getBytes("UTF-8"));
         doReturn(is).when(mockUrlCon).getInputStream();
+        doReturn(HttpStatus.SC_OK).when(mockUrlCon).getResponseCode();
         doReturn(mock(OutputStream.class)).when(mockUrlCon).getOutputStream();
 
         ListBucketsResponse response = wrapper.listBuckets(defAuthResponse).get();
@@ -351,7 +355,7 @@ public class BackblazeApiWrapperTest {
         doReturn(is).when(mockUrlCon).getInputStream();
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         doReturn(os).when(mockUrlCon).getOutputStream();
-        doReturn(200).when(mockUrlCon).getResponseCode();
+        doReturn(HttpStatus.SC_OK).when(mockUrlCon).getResponseCode();
 
         String filePath = this.getClass().getResource("UploadFileTest.txt").getPath();
         GetUploadUrlResponse uploadUrlResponse = GsonService.fromJson(getUploadUrlResponseJson, GetUploadUrlResponse.class);
@@ -369,7 +373,7 @@ public class BackblazeApiWrapperTest {
         doReturn(is).when(mockUrlCon).getInputStream();
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         doReturn(os).when(mockUrlCon).getOutputStream();
-        doReturn(200).when(mockUrlCon).getResponseCode();
+        doReturn(HttpStatus.SC_OK).when(mockUrlCon).getResponseCode();
 
         String filePath = this.getClass().getResource("UploadFileTest.txt").getPath();
         GetUploadUrlResponse uploadUrlResponse = GsonService.fromJson(getUploadUrlResponseJson, GetUploadUrlResponse.class);
@@ -385,7 +389,7 @@ public class BackblazeApiWrapperTest {
         doReturn(is).when(mockUrlCon).getInputStream();
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         doReturn(os).when(mockUrlCon).getOutputStream();
-        doReturn(200).when(mockUrlCon).getResponseCode();
+        doReturn(HttpStatus.SC_OK).when(mockUrlCon).getResponseCode();
 
         String filePath = this.getClass().getResource("UploadFileTest.txt").getPath();
         GetUploadUrlResponse uploadUrlResponse = GsonService.fromJson(getUploadUrlResponseJson, GetUploadUrlResponse.class);
@@ -401,7 +405,7 @@ public class BackblazeApiWrapperTest {
         doReturn(is).when(mockUrlCon).getInputStream();
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         doReturn(os).when(mockUrlCon).getOutputStream();
-        doReturn(200).when(mockUrlCon).getResponseCode();
+        doReturn(HttpStatus.SC_OK).when(mockUrlCon).getResponseCode();
 
         String filePath = this.getClass().getResource("UploadFileTest.txt").getPath();
         GetUploadUrlResponse uploadUrlResponse = GsonService.fromJson(getUploadUrlResponseJson, GetUploadUrlResponse.class);
@@ -477,12 +481,36 @@ public class BackblazeApiWrapperTest {
         ByteArrayInputStream is = new ByteArrayInputStream(getUploadUrlResponseJson.getBytes("UTF-8"));
         doReturn(is).when(mockUrlCon).getInputStream();
         doReturn(mock(OutputStream.class)).when(mockUrlCon).getOutputStream();
+        doReturn(HttpStatus.SC_OK).when(mockUrlCon).getResponseCode();
 
         GetUploadUrlResponse response = wrapper.getUploadUrl(defAuthResponse, "bukhet").get();
         verify(mockUrlCon).disconnect();
         assertThat(response.bucketId, equalTo("4a48fe8875c6214145260818"));
         assertThat(response.authorizationToken, equalTo("2_20151009170037_f504a0f39a0f4e657337e624_9754dde94359bd7b8f1445c8f4cc1a231a33f714_upld"));
         assertThat(response.uploadUrl, equalTo("https://pod-000-1005-03.backblaze.com/b2api/v1/b2_upload_file?cvt=c001_v0001005_t0027&bucket=4a48fe8875c6214145260818"));
+    }
+    
+    @Test
+    public void exceptionDuringErrorResponseParsingShouldResultInUknownErrorSet() throws Exception {
+        InputStream is = new InputStream() {
+            @Override
+            public int read() throws IOException {
+                throw new IOException("read error");
+            }
+        };
+        final Integer responseCode = 401;
+        doReturn(is).when(mockUrlCon).getErrorStream();
+        doReturn(responseCode).when(mockUrlCon).getResponseCode();
+
+        String accountId = "account_id";
+        String applicationKey = "application_key";
+        Optional<AuthorizeResponse> authorizeResponse = wrapper.authorize(accountId, applicationKey);
+        assertThat(authorizeResponse, equalTo(Optional.empty()));
+        ErrorResponse error = wrapper.getLastError().orElseThrow(
+                () -> new Exception("Should return error response"));
+        assertThat(error.status, equalTo(responseCode));
+        assertThat(error.message, equalTo("Error while reading error response body"));
+        assertThat(error.code, equalTo("unknown"));
     }
 
 }
