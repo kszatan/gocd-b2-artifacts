@@ -112,7 +112,6 @@ public class BackblazeApiWrapperTest {
         defAuthResponse.apiUrl = "https://api001.backblazeb2.com";
         defAuthResponse.authorizationToken = "token_fristajlo";
         defAuthResponse.downloadUrl = "https://f001.backblazeb2.com";
-        defAuthResponse.minimumPartSize = 100000000;
         defAuthResponse.recommendedPartSize = 100000000;
     }
 
@@ -131,7 +130,6 @@ public class BackblazeApiWrapperTest {
         assertThat(authorizeResponse.apiUrl, equalTo("https://api001.backblazeb2.com"));
         assertThat(authorizeResponse.authorizationToken, equalTo("token_fristajlo"));
         assertThat(authorizeResponse.downloadUrl, equalTo("https://f001.backblazeb2.com"));
-        assertThat(authorizeResponse.minimumPartSize, equalTo(100000000));
         assertThat(authorizeResponse.recommendedPartSize, equalTo(100000000));
     }
 

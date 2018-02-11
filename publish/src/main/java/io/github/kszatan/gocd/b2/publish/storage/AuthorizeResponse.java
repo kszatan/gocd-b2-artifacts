@@ -12,6 +12,5 @@ public class AuthorizeResponse {
     public String apiUrl;
     public String authorizationToken;
     public String downloadUrl;
-    public Integer minimumPartSize;
     public Integer recommendedPartSize;
 }
