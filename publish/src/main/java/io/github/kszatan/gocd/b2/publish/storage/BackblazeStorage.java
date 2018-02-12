@@ -11,6 +11,8 @@ import com.thoughtworks.go.plugin.api.logging.Logger;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 public class BackblazeStorage implements Storage {
@@ -19,17 +21,22 @@ public class BackblazeStorage implements Storage {
 
     private Logger logger = Logger.getLoggerFor(BackblazeStorage.class);
 
-    private String errorMessage;
+    private String errorMessage = "";
     private String bucketName;
     private BackblazeApiWrapper backblazeApiWrapper;
     private AuthorizeResponse authorizeResponse;
     private GetUploadUrlResponse getUploadUrlResponse;
     private ListBucketsResponse listBucketsResponse;
+    private List<ProgressObserver> progressObservers = new ArrayList<>();
 
     public BackblazeStorage(String bucketName) {
-        this.errorMessage = "";
         this.bucketName = bucketName;
         this.backblazeApiWrapper = new BackblazeApiWrapper();
+    }
+
+    @Override
+    public void addProgressObserver(ProgressObserver observer) {
+        progressObservers.add(observer);
     }
 
     @Override
@@ -84,5 +91,9 @@ public class BackblazeStorage implements Storage {
 
     private Optional<Bucket> getBucketId(String bucketName) {
         return listBucketsResponse.buckets.stream().filter(b -> b.bucketName.equals(bucketName)).findFirst();
+    }
+
+    private void notify(String notification) {
+        progressObservers.stream().forEach(o -> o.notify(notification));
     }
 }

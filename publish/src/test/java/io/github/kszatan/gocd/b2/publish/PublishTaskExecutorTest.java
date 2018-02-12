@@ -38,6 +38,12 @@ public class PublishTaskExecutorTest {
         executor = new PublishTaskExecutor(storage, scanner);
         executor.console = mock(JobConsoleLogger.class);
     }
+
+    @Test
+    public void executorShouldAddItselfToStorageProgressObservers() {
+        PublishTaskExecutor executor = new PublishTaskExecutor(storage, scanner);
+        verify(storage).addProgressObserver(executor);
+    }
     
     @Test
     public void executeShouldReturnErrorForInvalidEnvironmentBucketName() {
@@ -46,7 +52,7 @@ public class PublishTaskExecutorTest {
         context.environmentVariables.put(GO_ARTIFACTS_B2_BUCKET, "buk");
         ExecuteResponse response = executor.execute(configuration, context);
         assertThat(response.success, equalTo(false));
-        assertThat(response.message, equalTo("Failure: Invalid bucket name format in GO_ARTIFACTS_B2_BUCKET environmental variable"));
+        assertThat(response.message, equalTo("Configuration failure: Invalid bucket name format in GO_ARTIFACTS_B2_BUCKET environmental variable"));
     }
 
     @Test

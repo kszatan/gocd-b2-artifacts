@@ -10,6 +10,8 @@ import java.nio.file.Path;
 
 public interface Storage {
     String getLastErrorMessage();
+    
+    public void addProgressObserver(ProgressObserver observer);
 
     Boolean authorize(String accountId, String applicationKey);
 
