@@ -56,7 +56,7 @@ public class PublishTaskExecutorTest {
     }
 
     @Test
-    public void executeShouldAuthorizeWithGivenCredentials() {
+    public void executeShouldAuthorizeWithGivenCredentials() throws Exception {
         TaskConfiguration configuration = new TaskConfiguration();
         TaskContext context = new TaskContext();
         context.environmentVariables.put(GO_ARTIFACTS_B2_BUCKET, "bukiet");

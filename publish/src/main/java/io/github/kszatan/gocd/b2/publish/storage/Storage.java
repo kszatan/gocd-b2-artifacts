@@ -13,7 +13,7 @@ public interface Storage {
     
     public void addProgressObserver(ProgressObserver observer);
 
-    Boolean authorize(String accountId, String applicationKey);
+    Boolean authorize(String accountId, String applicationKey) throws StorageException;
 
     void upload(Path workDir, String relativeFilePath, String destination) throws StorageException;
 

@@ -52,7 +52,7 @@ public class PublishTaskExecutor implements TaskExecutor, ProgressObserver {
                 Path absoluteWorkDir = Paths.get(context.workingDirectory).toAbsolutePath();
                 for (SourceDestination sd : expandSources) {
                     storage.upload(absoluteWorkDir, sd.source, sd.destination);
-                    console.printLine("Uploaded: " + sd.source + " to: " + sd.destination);
+//                    console.printLine("Uploaded: " + sd.source + " to: " + sd.destination);
                 }
             }
         } catch (StorageException | RuntimeException e ) {
