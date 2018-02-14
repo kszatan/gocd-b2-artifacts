@@ -17,6 +17,10 @@ import java.util.List;
 import java.util.Optional;
 
 public class BackblazeStorage implements Storage {
+    @FunctionalInterface
+    private interface B2ApiCall {
+        Boolean call() throws IOException;
+    }
     private static final Integer MAX_RETRY_ATTEMPTS = 5;
 
     private Logger logger = Logger.getLoggerFor(BackblazeStorage.class);
@@ -52,22 +56,60 @@ public class BackblazeStorage implements Storage {
     @Override
     public Boolean authorize(String accountId, String applicationKey) throws StorageException {
         try {
-            if (!tryAuthorize(accountId, applicationKey)) {
+            if (!attempt(MAX_RETRY_ATTEMPTS, () -> tryAuthorize(accountId, applicationKey))) {
                 errorMessage = "Failed to authorize: maximum number of retry attempts reached.";
                 return false;
             }
-            listBucketsResponse = backblazeApiWrapper.listBuckets(authorizeResponse).orElseThrow(
-                    () -> new StorageException("Error during listing of buckets"));
-            Bucket bucket = getBucketId(bucketName).orElseThrow(
-                    () -> new StorageException("Bucket '" + bucketName + "' doesn't exist"));
-            getUploadUrlResponse = backblazeApiWrapper.getUploadUrl(authorizeResponse, bucket.bucketId).orElseThrow(
-                    () -> new StorageException("Error during fetching upload url"));
+            if (!attempt(MAX_RETRY_ATTEMPTS, () -> tryListBuckets(authorizeResponse))) {
+                errorMessage = "Failed to list buckets: maximum number of retry attempts reached.";
+                return false;
+            }
+            Optional<Bucket> maybeBucket = getBucketId(bucketName);
+            if (!maybeBucket.isPresent()) {
+                errorMessage = "Bucket '" + bucketName + "' doesn't exist";
+                return false;
+            }
+            Bucket bucket = maybeBucket.get();
+            if (!attempt(MAX_RETRY_ATTEMPTS, () -> tryGetUploadUrl(authorizeResponse, bucket.bucketId))) {
+                errorMessage = "Failed to get upload url: maximum number of retry attempts reached";
+            }
         } catch (IOException e) {
             authorizeResponse = null;
             logger.info("authorize error: " + e.getMessage());
             throw new StorageException("Failed to authorize: " + e.getMessage(), e);
         }
+        notify("Successfully authorized with B2.");
         return true;
+    }
+
+    private Boolean attempt(final Integer times, final B2ApiCall action) throws IOException, StorageException {
+        int attempt;
+        for (attempt = 0; attempt < times; attempt++) {
+            if (action.call()) {
+                break;
+            }
+            ErrorResponse errorResponse = backblazeApiWrapper.getLastError().orElseThrow(
+                    () -> new StorageException("Unknown error from B2 storage layer"));
+            handleGeneralErrors(errorResponse);
+            notify("Failed to authorize: (" + errorResponse.status + ") " + errorResponse.message);
+            notify("Retrying...");
+        }
+        return attempt < times;
+    }
+
+    private Boolean tryAuthorize(String accountId, String applicationKey) throws IOException {
+        authorizeResponse = backblazeApiWrapper.authorize(accountId, applicationKey).orElse(null);
+        return authorizeResponse != null;
+    }
+
+    private Boolean tryGetUploadUrl(AuthorizeResponse authorizeResponse, String bucketId) throws IOException {
+        getUploadUrlResponse = backblazeApiWrapper.getUploadUrl(authorizeResponse, bucketId).orElse(null);
+        return getUploadUrlResponse != null;
+    }
+
+    private Boolean tryListBuckets(AuthorizeResponse authorizeResponse) throws IOException {
+        listBucketsResponse = backblazeApiWrapper.listBuckets(authorizeResponse).orElse(null);
+        return listBucketsResponse != null;
     }
 
     @Override
@@ -90,25 +132,6 @@ public class BackblazeStorage implements Storage {
     @Override
     public void download(String filename) {
 
-    }
-
-    private Boolean tryAuthorize(String accountId, String applicationKey) throws IOException, StorageException {
-        int attempt;
-        for (attempt = 0; attempt < MAX_RETRY_ATTEMPTS; attempt++) {
-            Optional<AuthorizeResponse> maybeAuthorizeResponse = backblazeApiWrapper.authorize(accountId, applicationKey);
-            if (maybeAuthorizeResponse.isPresent()) {
-                authorizeResponse = maybeAuthorizeResponse.get();
-                notify("Successfully authorized with B2.");
-                break;
-            }
-            ErrorResponse errorResponse = backblazeApiWrapper.getLastError().orElseThrow(
-                    () -> new StorageException("Unknown error from B2 storage layer"));
-            logger.info("authorize call error: (" + errorResponse.status + ") " + errorResponse.message);
-            handleGeneralErrors(errorResponse);
-            notify("Failed to authorize: (" + errorResponse.status + ") " + errorResponse.message);
-            notify("Retrying...");
-        }
-        return attempt < MAX_RETRY_ATTEMPTS;
     }
 
     private Optional<Bucket> getBucketId(String bucketName) {
