@@ -69,7 +69,7 @@ public class PublishTaskExecutorTest {
     }
 
     @Test
-    public void executeShouldUploadPrefixedFilesReturnedFromScanner() throws StorageException {
+    public void executeShouldUploadPrefixedFilesReturnedFromScanner() throws Exception {
         when(storage.authorize(any(), any())).thenReturn(true);
         when(scanner.getIncludedFiles()).thenReturn(Arrays.asList("a/file1", "file2", "b/c/file3"));
         TaskConfiguration configuration = new TaskConfiguration();
@@ -100,7 +100,7 @@ public class PublishTaskExecutorTest {
     }
 
     @Test
-    public void executorShouldUploadFilesToAppropriateDestinations() throws StorageException {
+    public void executorShouldUploadFilesToAppropriateDestinations() throws Exception {
         when(storage.authorize(any(), any())).thenReturn(true);
         when(scanner.getIncludedFiles()).thenReturn(Arrays.asList("file1", "file2"));
         TaskConfiguration configuration = new TaskConfiguration();

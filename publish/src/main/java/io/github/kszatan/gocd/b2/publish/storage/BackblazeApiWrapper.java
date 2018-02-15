@@ -17,6 +17,7 @@ import java.net.URLStreamHandler;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Optional;
@@ -78,17 +79,18 @@ public class BackblazeApiWrapper {
         return Optional.of(GsonService.fromJson(jsonResponse, AuthorizeResponse.class));
     }
 
-    public Optional<UploadFileResponse> uploadFile(Path workDir, String filePath, GetUploadUrlResponse getUploadUrlResponse)
+    public Optional<UploadFileResponse> uploadFile(Path workDir, String filePath, String destination, GetUploadUrlResponse getUploadUrlResponse)
             throws NoSuchAlgorithmException, IOException {
         Path absoluteFilePath = workDir.resolve(filePath);
         String content_sha1 = fileHash.getHashValue(absoluteFilePath);
         HttpURLConnection connection = null;
         String jsonResponse = "";
+        destination = destination == null ? "" : destination;
         try {
             connection = newHttpConnection(getUploadUrlResponse.uploadUrl, "", "POST");
             connection.setRequestProperty("Authorization", getUploadUrlResponse.authorizationToken);
             connection.setRequestProperty("Content-Type", "b2/x-auto");
-            connection.setRequestProperty("X-Bz-File-Name", filePath);
+            connection.setRequestProperty("X-Bz-File-Name", Paths.get(destination, filePath).toString());
             connection.setRequestProperty("X-Bz-Content-Sha1", content_sha1);
             connection.setDoOutput(true);
             DataOutputStream writer = new DataOutputStream(connection.getOutputStream());

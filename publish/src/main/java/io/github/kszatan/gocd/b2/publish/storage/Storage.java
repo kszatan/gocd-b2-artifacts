@@ -7,15 +7,16 @@
 package io.github.kszatan.gocd.b2.publish.storage;
 
 import java.nio.file.Path;
+import java.security.GeneralSecurityException;
 
 public interface Storage {
     String getLastErrorMessage();
     
-    public void addProgressObserver(ProgressObserver observer);
+    void addProgressObserver(ProgressObserver observer);
 
     Boolean authorize(String accountId, String applicationKey) throws StorageException;
 
-    void upload(Path workDir, String relativeFilePath, String destination) throws StorageException;
+    Boolean upload(Path workDir, String relativeFilePath, String destination) throws StorageException, GeneralSecurityException;
 
     void download(String filename);
 }

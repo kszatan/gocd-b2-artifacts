@@ -16,6 +16,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +45,7 @@ public class PublishTaskExecutor implements TaskExecutor, ProgressObserver {
                 response = ExecuteResponse.failure("Configuration failure: " + StringUtils.join(errors, "; "));
             } else {
                 if (!storage.authorize(context.getAccountId(), context.getApplicationKey())) {
-                    return ExecuteResponse.failure(storage.getLastErrorMessage());
+                    return ExecuteResponse.failure("Failed to authorize: " + storage.getLastErrorMessage());
                 }
                 List<SourceDestination> expandSources =
                         expandSources(configuration.getSourceDestinationsAsList(), context.workingDirectory,
@@ -52,10 +53,9 @@ public class PublishTaskExecutor implements TaskExecutor, ProgressObserver {
                 Path absoluteWorkDir = Paths.get(context.workingDirectory).toAbsolutePath();
                 for (SourceDestination sd : expandSources) {
                     storage.upload(absoluteWorkDir, sd.source, sd.destination);
-//                    console.printLine("Uploaded: " + sd.source + " to: " + sd.destination);
                 }
             }
-        } catch (StorageException | RuntimeException e ) {
+        } catch (GeneralSecurityException | StorageException | RuntimeException e ) {
             response = ExecuteResponse.failure(e.getMessage());
         }
         return response;

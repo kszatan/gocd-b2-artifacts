@@ -302,7 +302,7 @@ public class BackblazeApiWrapperTest {
 
         GetUploadUrlResponse uploadUrlResponse = GsonService.fromJson(getUploadUrlResponseJson, GetUploadUrlResponse.class);
         try {
-            wrapper.uploadFile(Paths.get(""), "file", uploadUrlResponse);
+            wrapper.uploadFile(Paths.get(""), "file", null, uploadUrlResponse);
         } catch (Exception e) {
         }
         verify(mockUrlCon).disconnect();
@@ -321,7 +321,7 @@ public class BackblazeApiWrapperTest {
 
         GetUploadUrlResponse uploadUrlResponse = GsonService.fromJson(getUploadUrlResponseJson, GetUploadUrlResponse.class);
         try {
-            wrapper.uploadFile(Paths.get(""), "file", uploadUrlResponse);
+            wrapper.uploadFile(Paths.get(""), "file", "", uploadUrlResponse);
         } catch (Exception e) {
         }
         verify(mockUrlCon, times(0)).disconnect();
@@ -340,7 +340,7 @@ public class BackblazeApiWrapperTest {
 
         String filePath = this.getClass().getResource("UploadFileTest.txt").getPath();
         GetUploadUrlResponse uploadUrlResponse = GsonService.fromJson(getUploadUrlResponseJson, GetUploadUrlResponse.class);
-        Optional<UploadFileResponse> response = wrapper.uploadFile(Paths.get(""), filePath, uploadUrlResponse);
+        Optional<UploadFileResponse> response = wrapper.uploadFile(Paths.get(""), filePath, null, uploadUrlResponse);
         assertThat(response, equalTo(Optional.empty()));
         ErrorResponse error = wrapper.getLastError().get();
         assertThat(error.status, equalTo(HttpStatus.SC_REQUEST_TIMEOUT));
@@ -360,7 +360,7 @@ public class BackblazeApiWrapperTest {
         String filePath = this.getClass().getResource("UploadFileTest.txt").getPath();
         GetUploadUrlResponse uploadUrlResponse = GsonService.fromJson(getUploadUrlResponseJson, GetUploadUrlResponse.class);
 
-        wrapper.uploadFile(Paths.get(""), filePath, uploadUrlResponse);
+        wrapper.uploadFile(Paths.get(""), filePath, "", uploadUrlResponse);
 
         byte[] fileBytes = Files.readAllBytes(Paths.get(filePath));
         String fileContents = new String(fileBytes);
@@ -378,7 +378,7 @@ public class BackblazeApiWrapperTest {
         String filePath = this.getClass().getResource("UploadFileTest.txt").getPath();
         GetUploadUrlResponse uploadUrlResponse = GsonService.fromJson(getUploadUrlResponseJson, GetUploadUrlResponse.class);
 
-        wrapper.uploadFile(Paths.get(""), filePath, uploadUrlResponse);
+        wrapper.uploadFile(Paths.get(""), filePath, null, uploadUrlResponse);
 
         verify(mockUrlCon).disconnect();
     }
@@ -394,7 +394,7 @@ public class BackblazeApiWrapperTest {
         String filePath = this.getClass().getResource("UploadFileTest.txt").getPath();
         GetUploadUrlResponse uploadUrlResponse = GsonService.fromJson(getUploadUrlResponseJson, GetUploadUrlResponse.class);
 
-        wrapper.uploadFile(Paths.get(""), filePath, uploadUrlResponse);
+        wrapper.uploadFile(Paths.get(""), filePath, "", uploadUrlResponse);
 
         verify(mockUrlCon).disconnect();
     }
@@ -411,7 +411,7 @@ public class BackblazeApiWrapperTest {
         GetUploadUrlResponse uploadUrlResponse = GsonService.fromJson(getUploadUrlResponseJson, GetUploadUrlResponse.class);
         doReturn("asdf1234fdsa").when(mockFileHash).getHashValue(Paths.get(filePath));
 
-        wrapper.uploadFile(Paths.get(""), filePath, uploadUrlResponse);
+        wrapper.uploadFile(Paths.get(""), filePath, null, uploadUrlResponse);
 
         String fileContents = this.getClass().getResourceAsStream("UploadFileTest.txt").toString();
         verify(mockUrlCon).disconnect();
@@ -491,7 +491,7 @@ public class BackblazeApiWrapperTest {
     }
     
     @Test
-    public void exceptionDuringErrorResponseParsingShouldResultInUknownErrorSet() throws Exception {
+    public void exceptionDuringErrorResponseParsingShouldResultInUnknownErrorSet() throws Exception {
         InputStream is = new InputStream() {
             @Override
             public int read() throws IOException {

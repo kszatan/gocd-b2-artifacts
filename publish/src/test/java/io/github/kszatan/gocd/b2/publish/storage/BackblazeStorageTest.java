@@ -6,6 +6,7 @@
 
 package io.github.kszatan.gocd.b2.publish.storage;
 
+import org.apache.http.HttpStatus;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Before;
 import org.junit.Rule;
@@ -13,11 +14,14 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
+import java.nio.file.Paths;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Optional;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -170,7 +174,7 @@ public class BackblazeStorageTest {
     }
 
     @Test
-    public void authorizeShouldThrowStorageExceptionAuthorizeCallThrowsIoException() throws Exception {
+    public void authorizeShouldThrowStorageExceptionWhenAuthorizeCallThrowsIoException() throws Exception {
         final String accountId = "account_id";
         final String applicationKey = "application_key";
         doThrow(new IOException("read error"))
@@ -179,5 +183,39 @@ public class BackblazeStorageTest {
         thrown.expect(StorageException.class);
         thrown.expectCause(IsInstanceOf.instanceOf(IOException.class));
         storage.authorize(accountId, applicationKey);
+    }
+
+    @Test
+    public void uploadFileShouldThrowNoSuchAlgorithmExceptionWhenShaImplementationIsNotPresent() throws Exception {
+        thrown.expect(NoSuchAlgorithmException.class);
+        doThrow(NoSuchAlgorithmException.class).when(backblazeApiWrapperMock).uploadFile(any(), any(), any(), any());
+        storage.upload(Paths.get(""), "", "");
+    }
+
+    @Test
+    public void uploadShouldReturnFalseAfterFiveUnsuccessfulUploadFileAttempts() throws Exception {
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
+        errorResponse.message = "Internal Error";
+        doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
+        doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .when(backblazeApiWrapperMock).uploadFile(any(), any(), any(), any());
+
+        Boolean result = storage.upload(Paths.get(""), "relative/file", "dest");
+        assertThat(result, equalTo(false));
+    }
+
+    @Test
+    public void uploadShouldThrowStorageExceptionWhenUploadFileCallThrowsIoException() throws Exception {
+        doThrow(new IOException("read error"))
+                .when(backblazeApiWrapperMock).uploadFile(any(), any(), any(), any());
+
+        thrown.expect(StorageException.class);
+        thrown.expectCause(IsInstanceOf.instanceOf(IOException.class));
+        storage.upload(Paths.get(""), "relative/file", "dest");
     }
 }
