@@ -107,6 +107,57 @@ public class BackblazeStorageTest {
     }
 
     @Test
+    public void authorizeShouldReturnFalseAfterFiveUnsuccessfulListBucketsAttempts() throws Exception {
+        final String accountId = "account_id";
+        final String applicationKey = "application_key";
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.status = 429;
+        errorResponse.message = "Too many requests";
+        doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
+        Optional<AuthorizeResponse> authorizeResponse = Optional.of(new AuthorizeResponse());
+        doReturn(authorizeResponse).when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
+        Bucket bucket = new Bucket();
+        bucket.accountId = accountId;
+        bucket.bucketId = "bucket_id";
+        bucket.bucketName = bucketName;
+        ListBucketsResponse bucketList = new ListBucketsResponse();
+        bucketList.buckets = new ArrayList<>();
+        bucketList.buckets.add(bucket);
+        Optional<ListBucketsResponse> listBucketResponse = Optional.of(bucketList);
+        doReturn(listBucketResponse).when(backblazeApiWrapperMock).listBuckets(authorizeResponse.get());
+        doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .when(backblazeApiWrapperMock).getUploadUrl(authorizeResponse.get(), bucket.bucketId);
+
+        Boolean result = storage.authorize(accountId, applicationKey);
+        assertThat(result, equalTo(false));
+    }
+
+    @Test
+    public void authorizeShouldReturnFalseAfterFiveUnsuccessfulGetUploadUrlAttempts() throws Exception {
+        final String accountId = "account_id";
+        final String applicationKey = "application_key";
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.status = 429;
+        errorResponse.message = "Too many requests";
+        doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
+        Optional<AuthorizeResponse> authorizeResponse = Optional.of(new AuthorizeResponse());
+        doReturn(authorizeResponse).when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
+        doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .when(backblazeApiWrapperMock).listBuckets(authorizeResponse.get());
+
+        Boolean result = storage.authorize(accountId, applicationKey);
+        assertThat(result, equalTo(false));
+    }
+
+    @Test
     public void authorizeShouldThrowExceptionWhenLastErrorIsEmptyAfterFailedCall() throws Exception {
         final String accountId = "account_id";
         final String applicationKey = "application_key";

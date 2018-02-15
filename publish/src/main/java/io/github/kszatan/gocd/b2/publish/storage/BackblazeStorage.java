@@ -72,6 +72,7 @@ public class BackblazeStorage implements Storage {
             Bucket bucket = maybeBucket.get();
             if (!attempt(MAX_RETRY_ATTEMPTS, () -> tryGetUploadUrl(authorizeResponse, bucket.bucketId))) {
                 errorMessage = "Failed to get upload url: maximum number of retry attempts reached";
+                return false;
             }
         } catch (IOException e) {
             authorizeResponse = null;
