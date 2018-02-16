@@ -66,7 +66,7 @@ public class BackblazeStorageTest {
         final String accountId = "account_id";
         final String applicationKey = "application_key";
         ErrorResponse errorResponse = new ErrorResponse();
-        errorResponse.status = 429;
+        errorResponse.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
         errorResponse.message = "Too many requests";
         doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
         Optional<AuthorizeResponse> authorizeResponse = Optional.of(new AuthorizeResponse());
@@ -96,7 +96,7 @@ public class BackblazeStorageTest {
         final String accountId = "account_id";
         final String applicationKey = "application_key";
         ErrorResponse errorResponse = new ErrorResponse();
-        errorResponse.status = 429;
+        errorResponse.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
         errorResponse.message = "Too many requests";
         doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
         doReturn(Optional.empty())
@@ -115,7 +115,7 @@ public class BackblazeStorageTest {
         final String accountId = "account_id";
         final String applicationKey = "application_key";
         ErrorResponse errorResponse = new ErrorResponse();
-        errorResponse.status = 429;
+        errorResponse.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
         errorResponse.message = "Too many requests";
         doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
         Optional<AuthorizeResponse> authorizeResponse = Optional.of(new AuthorizeResponse());
@@ -145,7 +145,7 @@ public class BackblazeStorageTest {
         final String accountId = "account_id";
         final String applicationKey = "application_key";
         ErrorResponse errorResponse = new ErrorResponse();
-        errorResponse.status = 429;
+        errorResponse.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
         errorResponse.message = "Too many requests";
         doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
         Optional<AuthorizeResponse> authorizeResponse = Optional.of(new AuthorizeResponse());

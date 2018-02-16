@@ -22,11 +22,13 @@ public class BackblazeStorage implements Storage {
         Boolean call() throws IOException, GeneralSecurityException;
     }
     private static final Integer MAX_RETRY_ATTEMPTS = 5;
+    private static final Integer MAX_BACKOFF_SEC = 64;
 
     private Logger logger = Logger.getLoggerFor(BackblazeStorage.class);
 
     private String errorMessage = "";
     private String bucketName;
+    private Integer backoffSec = 1;
     private BackblazeApiWrapper backblazeApiWrapper;
     private AuthorizeResponse authorizeResponse;
     private GetUploadUrlResponse getUploadUrlResponse;
@@ -158,14 +160,27 @@ public class BackblazeStorage implements Storage {
                 // retry
                 break;
             case 429: // Too many requests
-                // retry
+                sleep(5000);
+                backoffSec = 1;
                 break;
             case HttpStatus.SC_INTERNAL_SERVER_ERROR:
                 // retry
                 break;
             case HttpStatus.SC_SERVICE_UNAVAILABLE:
-                // retry with backoff
+                if (backoffSec > MAX_BACKOFF_SEC) {
+                    throw new StorageException("Service Unavailable: " + error.message);
+                }
+                sleep(backoffSec);
+                backoffSec *= 2;
                 break;
+        }
+    }
+
+    private void sleep(Integer seconds) {
+        try {
+            Thread.sleep(seconds * 1000);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
         }
     }
 
