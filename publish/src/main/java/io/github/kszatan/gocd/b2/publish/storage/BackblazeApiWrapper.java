@@ -92,6 +92,7 @@ public class BackblazeApiWrapper {
             connection.setRequestProperty("Content-Type", "b2/x-auto");
             connection.setRequestProperty("X-Bz-File-Name", Paths.get(destination, filePath).toString());
             connection.setRequestProperty("X-Bz-Content-Sha1", content_sha1);
+//            connection.setRequestProperty("X-Bz-Test-Mode", "fail_some_uploads");
             connection.setDoOutput(true);
             DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
             Files.copy(absoluteFilePath, writer);

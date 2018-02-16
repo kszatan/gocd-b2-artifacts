@@ -117,14 +117,14 @@ public class BackblazeStorage implements Storage {
     public Boolean upload(Path workDir, String relativeFilePath, String destination)
             throws StorageException, GeneralSecurityException {
         try {
-            if (!attempt(MAX_RETRY_ATTEMPTS, "upload",
+            if (!attempt(MAX_RETRY_ATTEMPTS, "upload " + relativeFilePath,
                     () -> tryUpload(workDir, relativeFilePath, destination, getUploadUrlResponse))) {
                 errorMessage = "Failed to upload: maximum number of retry attempts reached.";
                 return false;
             }
         } catch (IOException e) {
             logger.info("upload error: " + e.getMessage());
-            throw new StorageException("Failed to upload: " + e.getMessage(), e);
+            throw new StorageException("Failed to upload " + relativeFilePath  + ": " + e.getMessage(), e);
         }
         notify("Successfully uploaded " + relativeFilePath + " to " + destination + ".");
         return true;
