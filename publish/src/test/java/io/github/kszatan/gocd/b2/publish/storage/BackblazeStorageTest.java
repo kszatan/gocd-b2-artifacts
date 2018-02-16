@@ -22,9 +22,7 @@ import java.util.Optional;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 
 public class BackblazeStorageTest {
     private final String bucketName = "bucket_name";
@@ -187,6 +185,8 @@ public class BackblazeStorageTest {
 
     @Test
     public void uploadFileShouldThrowNoSuchAlgorithmExceptionWhenShaImplementationIsNotPresent() throws Exception {
+        Optional<GetUploadUrlResponse> getUploadUrlResponse = Optional.of(new GetUploadUrlResponse());
+        doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(any(), any());
         thrown.expect(NoSuchAlgorithmException.class);
         doThrow(NoSuchAlgorithmException.class).when(backblazeApiWrapperMock).uploadFile(any(), any(), any(), any());
         storage.upload(Paths.get(""), "", "");
@@ -194,6 +194,8 @@ public class BackblazeStorageTest {
 
     @Test
     public void uploadShouldReturnFalseAfterFiveUnsuccessfulUploadFileAttempts() throws Exception {
+        Optional<GetUploadUrlResponse> getUploadUrlResponse = Optional.of(new GetUploadUrlResponse());
+        doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(any(), any());
         ErrorResponse errorResponse = new ErrorResponse();
         errorResponse.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
         errorResponse.message = "Internal Error";
@@ -210,7 +212,43 @@ public class BackblazeStorageTest {
     }
 
     @Test
+    public void uploadShouldFetchNewUploadUrlAfterReceivingRequestTimeout() throws Exception {
+        final String accountId = "account_id";
+        final String applicationKey = "application_key";
+        Optional<AuthorizeResponse> authorizeResponse = Optional.of(new AuthorizeResponse());
+        doReturn(authorizeResponse).when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
+        Bucket bucket = new Bucket();
+        bucket.accountId = accountId;
+        bucket.bucketId = "bucket_id";
+        bucket.bucketName = bucketName;
+        ListBucketsResponse bucketList = new ListBucketsResponse();
+        bucketList.buckets = new ArrayList<>();
+        bucketList.buckets.add(bucket);
+        Optional<ListBucketsResponse> listBucketResponse = Optional.of(bucketList);
+        doReturn(listBucketResponse).when(backblazeApiWrapperMock).listBuckets(authorizeResponse.get());
+        Optional<GetUploadUrlResponse> getUploadUrlResponse = Optional.of(new GetUploadUrlResponse());
+        doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(authorizeResponse.get(), bucket.bucketId);
+        storage.authorize(accountId, applicationKey);
+        reset(backblazeApiWrapperMock);
+
+        doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(any(), any());
+
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.status = HttpStatus.SC_REQUEST_TIMEOUT;
+        errorResponse.message = "Request Timeout";
+        doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
+        doReturn(Optional.empty()).doReturn(Optional.of(new UploadFileResponse()))
+                .when(backblazeApiWrapperMock).uploadFile(any(), any(), any(), any());
+
+        Boolean result = storage.upload(Paths.get(""), "relative/file", "dest");
+        assertThat(result, equalTo(true));
+        verify(backblazeApiWrapperMock).getUploadUrl(any(), eq("bucket_id"));
+    }
+
+    @Test
     public void uploadShouldThrowStorageExceptionWhenUploadFileCallThrowsIoException() throws Exception {
+        Optional<GetUploadUrlResponse> getUploadUrlResponse = Optional.of(new GetUploadUrlResponse());
+        doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(any(), any());
         doThrow(new IOException("read error"))
                 .when(backblazeApiWrapperMock).uploadFile(any(), any(), any(), any());
 

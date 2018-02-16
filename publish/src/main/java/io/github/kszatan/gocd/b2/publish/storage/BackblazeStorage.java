@@ -28,6 +28,7 @@ public class BackblazeStorage implements Storage {
 
     private String errorMessage = "";
     private String bucketName;
+    private String bucketId;
     private Integer backoffSec = 1;
     private BackblazeApiWrapper backblazeApiWrapper;
     private AuthorizeResponse authorizeResponse;
@@ -71,8 +72,8 @@ public class BackblazeStorage implements Storage {
                 errorMessage = "Bucket '" + bucketName + "' doesn't exist";
                 return false;
             }
-            Bucket bucket = maybeBucket.get();
-            if (!attempt(MAX_RETRY_ATTEMPTS, "get upload url", () -> tryGetUploadUrl(authorizeResponse, bucket.bucketId))) {
+            bucketId = maybeBucket.get().bucketId;
+            if (!attempt(MAX_RETRY_ATTEMPTS, "get upload url", () -> tryGetUploadUrl(authorizeResponse, bucketId))) {
                 errorMessage = "Failed to get upload url: maximum number of retry attempts reached";
                 return false;
             }
@@ -134,6 +135,14 @@ public class BackblazeStorage implements Storage {
 
     public Boolean tryUpload(Path workDir, String relativeFilePath, String destination, GetUploadUrlResponse getUploadUrlResponse)
             throws IOException, GeneralSecurityException {
+        if (getUploadUrlResponse == null) {
+            notify("Fetching new upload url...");
+            Optional<GetUploadUrlResponse> maybeUploadUrl = backblazeApiWrapper.getUploadUrl(authorizeResponse, bucketId);
+            if (!maybeUploadUrl.isPresent()) {
+                return false;
+            }
+            this.getUploadUrlResponse = maybeUploadUrl.get();
+        }
         Optional<UploadFileResponse> response =
                 backblazeApiWrapper.uploadFile(workDir, relativeFilePath, destination, getUploadUrlResponse);
         return response.isPresent();
@@ -157,6 +166,7 @@ public class BackblazeStorage implements Storage {
             case HttpStatus.SC_FORBIDDEN:
                 throw new StorageException("Forbidden: " + error.message);
             case HttpStatus.SC_REQUEST_TIMEOUT:
+                getUploadUrlResponse = null;
                 // retry
                 break;
             case 429: // Too many requests
