@@ -56,7 +56,7 @@ public class ExecuteRequestHandlerTest {
         DefaultGoPluginApiRequest request = new DefaultGoPluginApiRequest("task", "1.0", "validate");
         request.setRequestBody("Invalid JSON");
         GoPluginApiResponse response = handler.handle(request);
-        assertThat(response.responseCode(), Matchers.equalTo(DefaultGoPluginApiResponse.INTERNAL_ERROR));
+        assertThat(response.responseCode(), Matchers.equalTo(DefaultGoPluginApiResponse.SUCCESS_RESPONSE_CODE));
     }
 
     @Test
@@ -64,7 +64,7 @@ public class ExecuteRequestHandlerTest {
         DefaultGoPluginApiRequest request = validRequest;
         request.setRequestBody(null);
         GoPluginApiResponse response = handler.handle(request);
-        assertThat(response.responseCode(), equalTo(DefaultGoPluginApiResponse.INTERNAL_ERROR));
+        assertThat(response.responseCode(), equalTo(DefaultGoPluginApiResponse.SUCCESS_RESPONSE_CODE));
     }
     
     @Test
@@ -74,6 +74,6 @@ public class ExecuteRequestHandlerTest {
         request.setRequestBody(bodyWithMissingBucketName);
         handler.setExecutor(null);
         GoPluginApiResponse response = handler.handle(request);
-        assertThat(response.responseCode(), equalTo(DefaultGoPluginApiResponse.INTERNAL_ERROR));
+        assertThat(response.responseCode(), equalTo(DefaultGoPluginApiResponse.SUCCESS_RESPONSE_CODE));
     }
 }

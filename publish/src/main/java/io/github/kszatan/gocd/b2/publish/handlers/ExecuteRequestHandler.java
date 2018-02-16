@@ -21,13 +21,14 @@ import io.github.kszatan.gocd.b2.publish.json.InvalidJson;
 import io.github.kszatan.gocd.b2.publish.storage.BackblazeStorage;
 import io.github.kszatan.gocd.b2.publish.storage.StorageException;
 
+import java.security.GeneralSecurityException;
 import java.util.Optional;
 
 import static io.github.kszatan.gocd.b2.publish.Constants.GO_ARTIFACTS_B2_BUCKET;
 
 public class ExecuteRequestHandler implements RequestHandler {
     private TaskExecutor executor;
-    
+
     @Override
     public GoPluginApiResponse handle(GoPluginApiRequest request) {
         GoPluginApiResponse response;
@@ -37,17 +38,21 @@ public class ExecuteRequestHandler implements RequestHandler {
             TaskContext context = executeRequest.getTaskContext();
             if (executor == null) { // for tests
                 String bucketName = getBucketName(configuration, context).orElseThrow(
-                        () -> new StorageException("Bucket name not specified"));
+                        () -> new StorageException("Failure: Bucket name not specified."));
                 setExecutor(new PublishTaskExecutor(new BackblazeStorage(bucketName), new DefaultDirectoryScanner()));
             }
             ExecuteResponse result = executor.execute(configuration, context);
             response = DefaultGoPluginApiResponse.success(result.toJson());
-        } catch (StorageException e) {
-            response = DefaultGoPluginApiResponse.error(e.getMessage());
-        } catch (InvalidJson e) {
-            response = DefaultGoPluginApiResponse.error("InvalidJSON: " + e.getMessage());
+        } catch (InvalidJson | StorageException e) {
+            ExecuteResponse result = ExecuteResponse.failure(e.getMessage());
+            if (e.getCause() instanceof GeneralSecurityException) {
+                response = DefaultGoPluginApiResponse.success(result.toJson());
+            } else {
+                response = DefaultGoPluginApiResponse.success(result.toJson());
+            }
         } catch (IncompleteJson e) {
-            response = DefaultGoPluginApiResponse.incompleteRequest(e.getMessage());
+            ExecuteResponse result = ExecuteResponse.failure(e.getMessage());
+            response = DefaultGoPluginApiResponse.incompleteRequest(result.toJson());
         }
         return response;
     }
