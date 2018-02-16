@@ -19,7 +19,6 @@ import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.github.kszatan.gocd.b2.publish.Constants.GO_ARTIFACTS_B2_BUCKET;
@@ -40,7 +39,7 @@ public class PublishTaskExecutor implements TaskExecutor, ProgressObserver {
     public ExecuteResponse execute(TaskConfiguration configuration, TaskContext context) {
         ExecuteResponse response = ExecuteResponse.success("Success");
         try {
-            List<String> errors = validateEnvironment(context.environmentVariables);
+            List<String> errors = validateContext(context);
             if (!errors.isEmpty()) {
                 response = ExecuteResponse.failure("Configuration failure: " + StringUtils.join(errors, "; "));
             } else {
@@ -66,12 +65,15 @@ public class PublishTaskExecutor implements TaskExecutor, ProgressObserver {
         console.printLine(notification);
     }
 
-    private List<String> validateEnvironment(Map<String, String> environment) {
+    private List<String> validateContext(TaskContext context) {
         List<String> errors = new ArrayList<>();
         ConfigurationValidator validator = new ConfigurationValidator();
-        String bucketName = environment.get(GO_ARTIFACTS_B2_BUCKET);
+        String bucketName = context.environmentVariables.get(GO_ARTIFACTS_B2_BUCKET);
         if (bucketName != null && !validator.validateBucketName(bucketName)) {
-            errors.add("Invalid bucket name format in GO_ARTIFACTS_B2_BUCKET environmental variable");
+            errors.add("Invalid bucket name format in GO_ARTIFACTS_B2_BUCKET environmental variable.");
+        }
+        if (context.getAccountId().isEmpty() || context.getApplicationKey().isEmpty()) {
+            errors.add("Missing B2 credentials. Please set B2_ACCOUNT_ID and B2_APPLICATION_KEY environmental variables.");
         }
         return errors;
     }

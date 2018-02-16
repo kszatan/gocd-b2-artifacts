@@ -8,12 +8,10 @@ package io.github.kszatan.gocd.b2.publish.storage;
 
 import com.thoughtworks.go.plugin.api.logging.Logger;
 import org.apache.http.HttpStatus;
-import sun.java2d.loops.FillRect;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

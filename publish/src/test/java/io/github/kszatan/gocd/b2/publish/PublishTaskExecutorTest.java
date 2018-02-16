@@ -31,6 +31,17 @@ public class PublishTaskExecutorTest {
     private DirectoryScanner scanner;
     private PublishTaskExecutor executor;
 
+    private TaskContext getDefaultTaskContext() {
+        TaskContext context = new TaskContext();
+        context.environmentVariables.put(GO_ARTIFACTS_B2_BUCKET, "bukiet");
+        context.workingDirectory = "gocd/agent/";
+        String accountId = "4abcdefgaf77";
+        String applicationKey = "caca85ed4e7a3404db0b08bb8256d00d84e247e46";
+        context.environmentVariables.put("B2_ACCOUNT_ID", accountId);
+        context.environmentVariables.put("B2_APPLICATION_KEY", applicationKey);
+        return context;
+    }
+
     @Before
     public void setUp() throws Exception {
         storage = mock(Storage.class);
@@ -44,15 +55,26 @@ public class PublishTaskExecutorTest {
         PublishTaskExecutor executor = new PublishTaskExecutor(storage, scanner);
         verify(storage).addProgressObserver(executor);
     }
-    
+
     @Test
     public void executeShouldReturnErrorForInvalidEnvironmentBucketName() {
         TaskConfiguration configuration = new TaskConfiguration();
-        TaskContext context = new TaskContext();
+        TaskContext context = getDefaultTaskContext();
         context.environmentVariables.put(GO_ARTIFACTS_B2_BUCKET, "buk");
         ExecuteResponse response = executor.execute(configuration, context);
         assertThat(response.success, equalTo(false));
-        assertThat(response.message, equalTo("Configuration failure: Invalid bucket name format in GO_ARTIFACTS_B2_BUCKET environmental variable"));
+        assertThat(response.message, equalTo("Configuration failure: Invalid bucket name format in GO_ARTIFACTS_B2_BUCKET environmental variable."));
+    }
+
+    @Test
+    public void executeShouldReturnErrorForMissingCredentials() {
+        TaskConfiguration configuration = new TaskConfiguration();
+        TaskContext context = getDefaultTaskContext();
+        context.environmentVariables.remove("B2_ACCOUNT_ID");
+        context.environmentVariables.remove("B2_APPLICATION_KEY");
+        ExecuteResponse response = executor.execute(configuration, context);
+        assertThat(response.success, equalTo(false));
+        assertThat(response.message, equalTo("Configuration failure: Missing B2 credentials. Please set B2_ACCOUNT_ID and B2_APPLICATION_KEY environmental variables."));
     }
 
     @Test
@@ -74,25 +96,22 @@ public class PublishTaskExecutorTest {
         when(scanner.getIncludedFiles()).thenReturn(Arrays.asList("a/file1", "file2", "b/c/file3"));
         TaskConfiguration configuration = new TaskConfiguration();
         configuration.setSourceDestinations("[{\"source\": \"**\", \"destination\": \"desti/nation\"}]");
-        TaskContext context = new TaskContext();
-        context.environmentVariables.put(GO_ARTIFACTS_B2_BUCKET, "bukiet");
-        context.workingDirectory = "gocd/agent/";
+        TaskContext context = getDefaultTaskContext();
         executor.execute(configuration, context);
         final Path workDirPath = Paths.get(context.workingDirectory).toAbsolutePath();
-        
+
         verify(storage).upload(workDirPath, "a/file1", "desti/nation");
         verify(storage).upload(workDirPath, "file2", "desti/nation");
         verify(storage).upload(workDirPath, "b/c/file3", "desti/nation");
     }
 
     @Test
-    public void executorShouldPassAllSourcesToSccanner() throws StorageException {
+    public void executorShouldPassAllSourcesToScanner() throws StorageException {
         when(storage.authorize(any(), any())).thenReturn(true);
         when(scanner.getIncludedFiles()).thenReturn(Arrays.asList("a/file1", "file2", "b/c/file3"));
         TaskConfiguration configuration = new TaskConfiguration();
         configuration.setSourceDestinations("[{\"source\": \"source1/*\", \"destination\": \"\"},{\"source\": \"source2/*\", \"destination\": \"\"}]");
-        TaskContext context = new TaskContext();
-        context.environmentVariables.put(GO_ARTIFACTS_B2_BUCKET, "bukiet");
+        TaskContext context = getDefaultTaskContext();
         executor.execute(configuration, context);
 
         verify(scanner).scan("source1/*");
@@ -105,9 +124,7 @@ public class PublishTaskExecutorTest {
         when(scanner.getIncludedFiles()).thenReturn(Arrays.asList("file1", "file2"));
         TaskConfiguration configuration = new TaskConfiguration();
         configuration.setSourceDestinations("[{\"source\": \"**\", \"destination\": \"dest1\"},{\"source\": \"**\", \"destination\": \"dest2\"}]");
-        TaskContext context = new TaskContext();
-        context.environmentVariables.put(GO_ARTIFACTS_B2_BUCKET, "bukiet");
-        context.workingDirectory = "gocd/agent/";
+        TaskContext context = getDefaultTaskContext();
         executor.execute(configuration, context);
         final Path workDirPath = Paths.get(context.workingDirectory).toAbsolutePath();
 
@@ -122,8 +139,7 @@ public class PublishTaskExecutorTest {
         when(storage.authorize(any(), any())).thenReturn(true);
         String workDir = "base/dir";
         TaskConfiguration configuration = new TaskConfiguration();
-        TaskContext context = new TaskContext();
-        context.environmentVariables.put(GO_ARTIFACTS_B2_BUCKET, "bukiet");
+        TaskContext context = getDefaultTaskContext();
         context.workingDirectory = workDir;
         executor.execute(configuration, context);
 
