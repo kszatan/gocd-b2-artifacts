@@ -21,6 +21,7 @@ import io.github.kszatan.gocd.b2.publish.json.InvalidJson;
 import io.github.kszatan.gocd.b2.publish.storage.BackblazeStorage;
 import io.github.kszatan.gocd.b2.publish.storage.StorageException;
 
+import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Optional;
 
@@ -53,6 +54,9 @@ public class ExecuteRequestHandler implements RequestHandler {
         } catch (IncompleteJson e) {
             ExecuteResponse result = ExecuteResponse.failure(e.getMessage());
             response = DefaultGoPluginApiResponse.incompleteRequest(result.toJson());
+        } catch (IOException e) {
+            ExecuteResponse result = ExecuteResponse.failure(e.getMessage());
+            response = DefaultGoPluginApiResponse.success(result.toJson());
         }
         return response;
     }

@@ -21,6 +21,7 @@ import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Optional;
+import java.util.Properties;
 
 public class BackblazeApiWrapper {
     private static final String B2_API_URL = "https://api.backblazeb2.com";
@@ -33,20 +34,26 @@ public class BackblazeApiWrapper {
     private ErrorResponse lastError;
     private URLStreamHandler urlStreamHandler;
     private FileHash fileHash;
+    private Properties properties;
 
-    public BackblazeApiWrapper() {
+    public BackblazeApiWrapper() throws IOException {
         this.urlStreamHandler = null;
         this.fileHash = new Sha1FileHash();
+        this.properties = new Properties();
+        InputStream in = this.getClass().getResourceAsStream("/version.properties");
+        properties.load(in);
+        in.close();
     }
 
     public BackblazeApiWrapper(URLStreamHandler urlStreamHandler) {
-        this.urlStreamHandler = urlStreamHandler;
-        this.fileHash = new Sha1FileHash();
+        this(urlStreamHandler, new Sha1FileHash());
     }
 
     public BackblazeApiWrapper(URLStreamHandler urlStreamHandler, FileHash fileHash) {
         this.urlStreamHandler = urlStreamHandler;
         this.fileHash = fileHash;
+        properties = new Properties();
+        properties.setProperty("version", "0.314");
     }
 
     public Optional<ErrorResponse> getLastError() {
@@ -202,6 +209,7 @@ public class BackblazeApiWrapper {
         connection.setRequestMethod(requestMethod);
         connection.setConnectTimeout(CONNECTION_TIMEOUT_MS);
         connection.setReadTimeout(READ_TIMEOUT_MS);
+        connection.setRequestProperty("User-Agent", userAgentVersion());
         return connection;
     }
 
@@ -223,5 +231,9 @@ public class BackblazeApiWrapper {
             lastError.message = "Error while reading error response body";
             lastError.code = "unknown";
         }
+    }
+
+    private String userAgentVersion() {
+        return "gocd-b2-artifacts/publish-" + properties.getProperty("version");
     }
 }

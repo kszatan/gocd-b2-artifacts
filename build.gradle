@@ -34,6 +34,11 @@ subprojects {
                 expand project.pluginDesc
             }
         }
+        from("src/main/resources") {
+            filesMatching('version.properties') {
+                expand project.pluginDesc
+            }
+        }
     }
 
     jar {

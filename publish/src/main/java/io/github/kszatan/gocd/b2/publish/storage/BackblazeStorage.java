@@ -36,7 +36,7 @@ public class BackblazeStorage implements Storage {
     private ListBucketsResponse listBucketsResponse;
     private List<ProgressObserver> progressObservers = new ArrayList<>();
 
-    public BackblazeStorage(String bucketName) {
+    public BackblazeStorage(String bucketName) throws IOException {
         this.bucketName = bucketName;
         this.backblazeApiWrapper = new BackblazeApiWrapper();
     }
