@@ -170,7 +170,7 @@ public class BackblazeStorage implements Storage {
                 // retry
                 break;
             case 429: // Too many requests
-                sleep(5000);
+                sleep(5);
                 backoffSec = 1;
                 break;
             case HttpStatus.SC_INTERNAL_SERVER_ERROR:
