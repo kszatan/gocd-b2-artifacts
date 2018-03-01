@@ -4,9 +4,10 @@
  * top-level directory of this distribution.
  */
 
-package io.github.kszatan.gocd.b2.publish.storage;
+package io.github.kszatan.gocd.b2.publish.storage.api;
 
 import io.github.kszatan.gocd.b2.publish.json.GsonService;
+import io.github.kszatan.gocd.b2.publish.storage.*;
 import org.apache.http.HttpStatus;
 
 import java.io.*;

@@ -6,6 +6,7 @@
 
 package io.github.kszatan.gocd.b2.publish.storage;
 
+import io.github.kszatan.gocd.b2.publish.storage.api.BackblazeApiWrapper;
 import org.apache.http.HttpStatus;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Before;

@@ -7,6 +7,7 @@
 package io.github.kszatan.gocd.b2.publish.storage;
 
 import io.github.kszatan.gocd.b2.publish.json.GsonService;
+import io.github.kszatan.gocd.b2.publish.storage.api.BackblazeApiWrapper;
 import org.apache.http.HttpStatus;
 import org.junit.Before;
 import org.junit.Test;
