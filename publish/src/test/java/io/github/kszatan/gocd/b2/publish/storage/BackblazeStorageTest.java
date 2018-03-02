@@ -188,7 +188,8 @@ public class BackblazeStorageTest {
     public void uploadFileShouldThrowNoSuchAlgorithmExceptionWhenShaImplementationIsNotPresent() throws Exception {
         Optional<GetUploadUrlResponse> getUploadUrlResponse = Optional.of(new GetUploadUrlResponse());
         doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(any(), any());
-        thrown.expect(NoSuchAlgorithmException.class);
+        thrown.expect(StorageException.class);
+        thrown.expectCause(IsInstanceOf.instanceOf(NoSuchAlgorithmException.class));
         doThrow(NoSuchAlgorithmException.class).when(backblazeApiWrapperMock).uploadFile(any(), any(), any(), any());
         storage.upload(Paths.get(""), "", "");
     }

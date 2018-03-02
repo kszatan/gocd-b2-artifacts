@@ -13,23 +13,28 @@ import io.github.kszatan.gocd.b2.publish.storage.StorageException;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.Optional;
 
 public class ListBuckets extends B2ApiCall {
     private final AuthorizeResponse authorizeResponse;
     private ListBucketsResponse listBucketsResponse;
 
-    public ListBuckets(AuthorizeResponse authorizeResponse) {
-        super("list buckets");
+    public ListBuckets(BackblazeApiWrapper backblazeApiWrapper, AuthorizeResponse authorizeResponse) {
+        super("list buckets", backblazeApiWrapper);
         this.authorizeResponse = authorizeResponse;
     }
 
-    public ListBucketsResponse getResponse() {
-        return listBucketsResponse;
+    public Optional<ListBucketsResponse> getResponse() {
+        return Optional.of(listBucketsResponse);
     }
 
     @Override
-    public Boolean call(BackblazeApiWrapper backblazeApiWrapper) throws IOException, GeneralSecurityException {
-        listBucketsResponse = backblazeApiWrapper.listBuckets(authorizeResponse).orElse(null);
+    public Boolean call() throws StorageException {
+        try {
+            listBucketsResponse = backblazeApiWrapper.listBuckets(authorizeResponse).orElse(null);
+        } catch (IOException e) {
+            throw new StorageException(e);
+        }
         return listBucketsResponse != null;
     }
 
@@ -38,8 +43,4 @@ public class ListBuckets extends B2ApiCall {
         super.handleErrors(error);
     }
 
-    @Override
-    public Boolean shouldGetNewUploadUrl(ErrorResponse response) {
-        return false;
-    }
 }

@@ -33,21 +33,21 @@ public class AuthorizeTest {
     @Before
     public void setUp() {
         mockApiWrapper = mock(BackblazeApiWrapper.class);
-        authorize = new Authorize(accountId, applicationKey);
+        authorize = new Authorize(mockApiWrapper, accountId, applicationKey);
     }
 
     @Test
     public void callShouldReturnTrueOnSuccess() throws Exception {
         AuthorizeResponse response = new AuthorizeResponse();
         doReturn(Optional.of(response)).when(mockApiWrapper).authorize(accountId, applicationKey);
-        Boolean result = authorize.call(mockApiWrapper);
+        Boolean result = authorize.call();
         assertThat(result, equalTo(true));
     }
     
     @Test
     public void callShouldReturnFalseOnFailure() throws Exception {
         doReturn(Optional.empty()).when(mockApiWrapper).authorize(accountId, applicationKey);
-        Boolean result = authorize.call(mockApiWrapper);
+        Boolean result = authorize.call();
         assertThat(result, equalTo(false));
     }
 

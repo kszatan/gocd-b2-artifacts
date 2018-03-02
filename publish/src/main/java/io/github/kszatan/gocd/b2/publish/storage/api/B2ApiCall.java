@@ -10,23 +10,22 @@ import io.github.kszatan.gocd.b2.publish.storage.ErrorResponse;
 import io.github.kszatan.gocd.b2.publish.storage.StorageException;
 import org.apache.http.HttpStatus;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-
 public abstract class B2ApiCall {
     private static final Integer MAX_BACKOFF_SEC = 64;
     private Integer backoffSec = 1;
     private String name;
+    protected BackblazeApiWrapper backblazeApiWrapper;
 
-    public B2ApiCall(String callName) {
+    public B2ApiCall(String callName, BackblazeApiWrapper backblazeApiWrapper) {
         this.name = callName;
+        this.backblazeApiWrapper = backblazeApiWrapper;
     }
 
     public String getName() {
         return name;
     }
 
-    public abstract Boolean call(BackblazeApiWrapper backblazeApiWrapper) throws IOException, GeneralSecurityException;
+    public abstract Boolean call() throws StorageException;
     public void handleErrors(ErrorResponse error) throws StorageException {
         switch (error.status) {
             case HttpStatus.SC_BAD_REQUEST:
@@ -55,8 +54,6 @@ public abstract class B2ApiCall {
                 break;
         }
     }
-
-    public abstract Boolean shouldGetNewUploadUrl(ErrorResponse error);
 
     protected void sleep(Integer seconds) {
         try {

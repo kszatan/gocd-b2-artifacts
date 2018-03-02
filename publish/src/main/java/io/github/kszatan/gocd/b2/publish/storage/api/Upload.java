@@ -12,6 +12,7 @@ import org.apache.http.HttpStatus;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
 
 public class Upload extends B2ApiCall {
@@ -23,9 +24,9 @@ public class Upload extends B2ApiCall {
     private GetUploadUrlResponse getUploadUrlResponse;
     private UploadFileResponse uploadFileResponse;
 
-    public Upload(String bucketId, Path workDir, String relativeFilePath, String destination,
-                  AuthorizeResponse authorizeResponse, GetUploadUrlResponse getUploadUrlResponse) {
-        super("upload " + relativeFilePath);
+    public Upload(BackblazeApiWrapper backblazeApiWrapper, String bucketId, Path workDir, String relativeFilePath,
+                  String destination, AuthorizeResponse authorizeResponse, GetUploadUrlResponse getUploadUrlResponse) {
+        super("upload " + relativeFilePath, backblazeApiWrapper);
         this.bucketId = bucketId;
         this.workDir = workDir;
         this.relativeFilePath = relativeFilePath;
@@ -39,27 +40,35 @@ public class Upload extends B2ApiCall {
     }
 
     @Override
-    public Boolean call(BackblazeApiWrapper backblazeApiWrapper) throws IOException, GeneralSecurityException {
+    public Boolean call() throws StorageException {
         if (getUploadUrlResponse == null) {
-//            notify("Fetching new upload url...");
-            Optional<GetUploadUrlResponse> maybeUploadUrl = backblazeApiWrapper.getUploadUrl(authorizeResponse, bucketId);
-            if (!maybeUploadUrl.isPresent()) {
-                return false;
-            }
-            this.getUploadUrlResponse = maybeUploadUrl.get();
+            fetchNewUploadUrl();
         }
-        uploadFileResponse = backblazeApiWrapper.uploadFile(workDir, relativeFilePath, destination, getUploadUrlResponse)
-                .orElse(null);
+        try {
+            uploadFileResponse = backblazeApiWrapper.uploadFile(workDir, relativeFilePath, destination, getUploadUrlResponse)
+                    .orElse(null);
+        } catch(IOException | GeneralSecurityException e) {
+            throw new StorageException("Exception while uploading file: " + e.getMessage(), e);
+        }
         return uploadFileResponse != null;
     }
 
     @Override
     public void handleErrors(ErrorResponse error) throws StorageException {
+        if (error.status == HttpStatus.SC_REQUEST_TIMEOUT) {
+            fetchNewUploadUrl();
+        }
         super.handleErrors(error);
     }
 
-    @Override
-    public Boolean shouldGetNewUploadUrl(ErrorResponse error) {
-        return error.status == HttpStatus.SC_REQUEST_TIMEOUT;
+    private void fetchNewUploadUrl() throws StorageException {
+        GetUploadUrl getUploadUrl = new GetUploadUrl(backblazeApiWrapper, authorizeResponse, bucketId);
+        if (getUploadUrl.call()) {
+            this.getUploadUrlResponse = getUploadUrl.getResponse().get();
+        } else {
+            String errorMessage = backblazeApiWrapper.getLastError().orElse(new ErrorResponse()).message;
+            throw new StorageException("Cannot get new upload URL: " + errorMessage);
+        }
     }
+
 }

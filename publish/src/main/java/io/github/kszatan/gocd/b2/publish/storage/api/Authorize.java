@@ -8,30 +8,36 @@ package io.github.kszatan.gocd.b2.publish.storage.api;
 
 import io.github.kszatan.gocd.b2.publish.storage.AuthorizeResponse;
 import io.github.kszatan.gocd.b2.publish.storage.ErrorResponse;
+import io.github.kszatan.gocd.b2.publish.storage.Storage;
 import io.github.kszatan.gocd.b2.publish.storage.StorageException;
 import org.apache.http.HttpStatus;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.Optional;
 
 public class Authorize extends B2ApiCall {
     private final String accountId;
     private final String applicationKey;
     private AuthorizeResponse authorizeResponse;
 
-    public Authorize(String accountId, String applicationKey) {
-        super("authorize");
+    public Authorize(BackblazeApiWrapper backblazeApiWrapper, String accountId, String applicationKey) {
+        super("authorize", backblazeApiWrapper);
         this.accountId = accountId;
         this.applicationKey = applicationKey;
     }
 
-    public AuthorizeResponse getResponse() {
-        return authorizeResponse;
+    public Optional<AuthorizeResponse> getResponse() {
+        return Optional.of(authorizeResponse);
     }
 
     @Override
-    public Boolean call(BackblazeApiWrapper backblazeApiWrapper) throws IOException, GeneralSecurityException {
-        authorizeResponse = backblazeApiWrapper.authorize(accountId, applicationKey).orElse(null);
+    public Boolean call() throws StorageException {
+        try {
+            authorizeResponse = backblazeApiWrapper.authorize(accountId, applicationKey).orElse(null);
+        } catch (IOException e) {
+            throw new StorageException(e);
+        }
         return authorizeResponse != null;
     }
 
@@ -41,10 +47,5 @@ public class Authorize extends B2ApiCall {
             throw new StorageException("Unauthorized: " + error.message);
         }
         super.handleErrors(error);
-    }
-
-    @Override
-    public Boolean shouldGetNewUploadUrl(ErrorResponse response) {
-        return false;
     }
 }
