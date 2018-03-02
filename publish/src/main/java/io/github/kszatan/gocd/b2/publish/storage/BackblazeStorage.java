@@ -57,11 +57,13 @@ public class BackblazeStorage implements Storage {
                 errorMessage = "Failed to authorize: maximum number of retry attempts reached.";
                 return false;
             }
+            authorizeResponse = authorize.getResponse();
             final ListBuckets listBuckets = new ListBuckets(authorize.getResponse());
             if (!attempt(MAX_RETRY_ATTEMPTS, listBuckets)) {
                 errorMessage = "Failed to list buckets: maximum number of retry attempts reached.";
                 return false;
             }
+            listBucketsResponse = listBuckets.getResponse();
             Optional<Bucket> maybeBucket = getBucketId(bucketName);
             if (!maybeBucket.isPresent()) {
                 errorMessage = "Bucket '" + bucketName + "' doesn't exist";
@@ -73,6 +75,7 @@ public class BackblazeStorage implements Storage {
                 errorMessage = "Failed to get upload url: maximum number of retry attempts reached";
                 return false;
             }
+            getUploadUrlResponse = getUploadUrl.getResponse();
         } catch (GeneralSecurityException | IOException e) {
             authorizeResponse = null;
             logger.info("authorize error: " + e.getMessage());

@@ -7,6 +7,7 @@
 package io.github.kszatan.gocd.b2.publish.storage.api;
 
 import io.github.kszatan.gocd.b2.publish.storage.*;
+import org.apache.http.HttpStatus;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -58,7 +59,7 @@ public class Upload extends B2ApiCall {
     }
 
     @Override
-    public Boolean shouldGetNewUploadUrl(ErrorResponse response) {
-        return null;
+    public Boolean shouldGetNewUploadUrl(ErrorResponse error) {
+        return error.status == HttpStatus.SC_REQUEST_TIMEOUT;
     }
 }

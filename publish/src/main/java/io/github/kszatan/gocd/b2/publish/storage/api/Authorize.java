@@ -9,6 +9,7 @@ package io.github.kszatan.gocd.b2.publish.storage.api;
 import io.github.kszatan.gocd.b2.publish.storage.AuthorizeResponse;
 import io.github.kszatan.gocd.b2.publish.storage.ErrorResponse;
 import io.github.kszatan.gocd.b2.publish.storage.StorageException;
+import org.apache.http.HttpStatus;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -36,11 +37,14 @@ public class Authorize extends B2ApiCall {
 
     @Override
     public void handleErrors(ErrorResponse error) throws StorageException {
+        if (error.status == HttpStatus.SC_UNAUTHORIZED) {
+            throw new StorageException("Unauthorized: " + error.message);
+        }
         super.handleErrors(error);
     }
 
     @Override
     public Boolean shouldGetNewUploadUrl(ErrorResponse response) {
-        return null;
+        return false;
     }
 }

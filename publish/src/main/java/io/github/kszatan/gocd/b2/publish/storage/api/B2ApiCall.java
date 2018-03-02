@@ -32,7 +32,8 @@ public abstract class B2ApiCall {
             case HttpStatus.SC_BAD_REQUEST:
                 throw new StorageException("Bad request: " + error.message);
             case HttpStatus.SC_UNAUTHORIZED:
-                throw new StorageException("Unauthorized: " + error.message);
+                // Usually obtain a new auth token and retry
+                break;
             case HttpStatus.SC_FORBIDDEN:
                 throw new StorageException("Forbidden: " + error.message);
             case HttpStatus.SC_REQUEST_TIMEOUT:
@@ -55,7 +56,7 @@ public abstract class B2ApiCall {
         }
     }
 
-    public abstract Boolean shouldGetNewUploadUrl(ErrorResponse response);
+    public abstract Boolean shouldGetNewUploadUrl(ErrorResponse error);
 
     protected void sleep(Integer seconds) {
         try {
