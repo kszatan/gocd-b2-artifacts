@@ -26,7 +26,7 @@ public abstract class B2ApiCall {
         return name;
     }
 
-    public abstract Boolean call() throws IOException, GeneralSecurityException;
+    public abstract Boolean call(BackblazeApiWrapper backblazeApiWrapper) throws IOException, GeneralSecurityException;
     public void handleErrors(ErrorResponse error) throws StorageException {
         switch (error.status) {
             case HttpStatus.SC_BAD_REQUEST:
@@ -36,7 +36,6 @@ public abstract class B2ApiCall {
             case HttpStatus.SC_FORBIDDEN:
                 throw new StorageException("Forbidden: " + error.message);
             case HttpStatus.SC_REQUEST_TIMEOUT:
-//                getUploadUrlResponse = null;
                 // retry
                 break;
             case 429: // Too many requests

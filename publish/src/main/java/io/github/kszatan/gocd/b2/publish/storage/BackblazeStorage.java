@@ -7,8 +7,7 @@
 package io.github.kszatan.gocd.b2.publish.storage;
 
 import com.thoughtworks.go.plugin.api.logging.Logger;
-import io.github.kszatan.gocd.b2.publish.storage.api.B2ApiCall;
-import io.github.kszatan.gocd.b2.publish.storage.api.BackblazeApiWrapper;
+import io.github.kszatan.gocd.b2.publish.storage.api.*;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -53,11 +52,13 @@ public class BackblazeStorage implements Storage {
     @Override
     public Boolean authorize(String accountId, String applicationKey) throws StorageException {
         try {
-            if (!attempt(MAX_RETRY_ATTEMPTS, "authorize", () -> tryAuthorize(accountId, applicationKey))) {
+            final Authorize authorize = new Authorize(accountId, applicationKey);
+            if (!attempt(MAX_RETRY_ATTEMPTS, authorize)) {
                 errorMessage = "Failed to authorize: maximum number of retry attempts reached.";
                 return false;
             }
-            if (!attempt(MAX_RETRY_ATTEMPTS, "list buckets", () -> tryListBuckets(authorizeResponse))) {
+            final ListBuckets listBuckets = new ListBuckets(authorize.getResponse());
+            if (!attempt(MAX_RETRY_ATTEMPTS, listBuckets)) {
                 errorMessage = "Failed to list buckets: maximum number of retry attempts reached.";
                 return false;
             }
@@ -67,7 +68,8 @@ public class BackblazeStorage implements Storage {
                 return false;
             }
             bucketId = maybeBucket.get().bucketId;
-            if (!attempt(MAX_RETRY_ATTEMPTS, "get upload url", () -> tryGetUploadUrl(authorizeResponse, bucketId))) {
+            final GetUploadUrl getUploadUrl = new GetUploadUrl(authorizeResponse, bucketId);
+            if (!attempt(MAX_RETRY_ATTEMPTS, getUploadUrl)) {
                 errorMessage = "Failed to get upload url: maximum number of retry attempts reached";
                 return false;
             }
@@ -80,42 +82,12 @@ public class BackblazeStorage implements Storage {
         return true;
     }
 
-    private Boolean attempt(final Integer times, String actionName, final B2ApiCall action) throws IOException, StorageException, GeneralSecurityException {
-        int attempt;
-        for (attempt = 0; attempt < times; attempt++) {
-            if (action.call()) {
-                break;
-            }
-            ErrorResponse errorResponse = backblazeApiWrapper.getLastError().orElseThrow(
-                    () -> new StorageException("Unknown error from B2 storage layer"));
-            handleGeneralErrors(errorResponse);
-            notify("Failed to " + actionName + ": (" + errorResponse.status + ") " + errorResponse.message);
-            notify("Retrying...");
-        }
-        return attempt < times;
-    }
-
-    private Boolean tryAuthorize(String accountId, String applicationKey) throws IOException {
-        authorizeResponse = backblazeApiWrapper.authorize(accountId, applicationKey).orElse(null);
-        return authorizeResponse != null;
-    }
-
-    private Boolean tryGetUploadUrl(AuthorizeResponse authorizeResponse, String bucketId) throws IOException {
-        getUploadUrlResponse = backblazeApiWrapper.getUploadUrl(authorizeResponse, bucketId).orElse(null);
-        return getUploadUrlResponse != null;
-    }
-
-    private Boolean tryListBuckets(AuthorizeResponse authorizeResponse) throws IOException {
-        listBucketsResponse = backblazeApiWrapper.listBuckets(authorizeResponse).orElse(null);
-        return listBucketsResponse != null;
-    }
-
     @Override
     public Boolean upload(Path workDir, String relativeFilePath, String destination)
             throws StorageException, GeneralSecurityException {
         try {
-            if (!attempt(MAX_RETRY_ATTEMPTS, "upload " + relativeFilePath,
-                    () -> tryUpload(workDir, relativeFilePath, destination, getUploadUrlResponse))) {
+            Upload upload = new Upload(bucketId, workDir, relativeFilePath, destination, authorizeResponse, getUploadUrlResponse);
+            if (!attempt(MAX_RETRY_ATTEMPTS, upload)) {
                 errorMessage = "Failed to upload: maximum number of retry attempts reached.";
                 return false;
             }
@@ -127,19 +99,19 @@ public class BackblazeStorage implements Storage {
         return true;
     }
 
-    public Boolean tryUpload(Path workDir, String relativeFilePath, String destination, GetUploadUrlResponse getUploadUrlResponse)
-            throws IOException, GeneralSecurityException {
-        if (getUploadUrlResponse == null) {
-            notify("Fetching new upload url...");
-            Optional<GetUploadUrlResponse> maybeUploadUrl = backblazeApiWrapper.getUploadUrl(authorizeResponse, bucketId);
-            if (!maybeUploadUrl.isPresent()) {
-                return false;
+    private Boolean attempt(final Integer times, final B2ApiCall action) throws IOException, StorageException, GeneralSecurityException {
+        int attempt;
+        for (attempt = 0; attempt < times; attempt++) {
+            if (action.call(backblazeApiWrapper)) {
+                break;
             }
-            this.getUploadUrlResponse = maybeUploadUrl.get();
+            ErrorResponse errorResponse = backblazeApiWrapper.getLastError().orElseThrow(
+                    () -> new StorageException("Unknown error from B2 storage layer"));
+            action.handleErrors(errorResponse);
+            notify("Failed to " + action.getName() + ": (" + errorResponse.status + ") " + errorResponse.message);
+            notify("Retrying...");
         }
-        Optional<UploadFileResponse> response =
-                backblazeApiWrapper.uploadFile(workDir, relativeFilePath, destination, getUploadUrlResponse);
-        return response.isPresent();
+        return attempt < times;
     }
 
     @Override
