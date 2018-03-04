@@ -66,11 +66,15 @@ public abstract class B2ApiCall {
                 // retry
                 break;
             case HttpStatus.SC_SERVICE_UNAVAILABLE:
-                if (backoffSec > MAX_BACKOFF_SEC) {
-                    throw new StorageException("Service Unavailable: " + error.message);
+                if (error.retryAfter > 0) {
+                    sleep(error.retryAfter);
+                } else {
+                    if (backoffSec > MAX_BACKOFF_SEC) {
+                        throw new StorageException("Service Unavailable: " + error.message);
+                    }
+                    sleep(backoffSec);
+                    backoffSec *= 2;
                 }
-                sleep(backoffSec);
-                backoffSec *= 2;
                 break;
         }
     }

@@ -73,7 +73,7 @@ public class BackblazeApiWrapper {
             if (connection.getResponseCode() == HttpStatus.SC_OK) {
                 jsonResponse = myStreamReader(in);
             } else {
-                parseErrorResponse(connection.getResponseCode(), connection.getErrorStream());
+                parseErrorResponse(connection);
                 return Optional.empty();
             }
         } catch (SocketTimeoutException e) {
@@ -107,7 +107,7 @@ public class BackblazeApiWrapper {
             if (connection.getResponseCode() == HttpStatus.SC_OK) {
                 jsonResponse = myStreamReader(connection.getInputStream());
             } else {
-                parseErrorResponse(connection.getResponseCode(), connection.getErrorStream());
+                parseErrorResponse(connection);
                 return Optional.empty();
             }
         } catch (SocketTimeoutException e) {
@@ -145,7 +145,7 @@ public class BackblazeApiWrapper {
             if (connection.getResponseCode() == HttpStatus.SC_OK) {
                 jsonResponse = myStreamReader(connection.getInputStream());
             } else {
-                parseErrorResponse(connection.getResponseCode(), connection.getErrorStream());
+                parseErrorResponse(connection);
                 return Optional.empty();
             }
         } catch (SocketTimeoutException e) {
@@ -178,7 +178,7 @@ public class BackblazeApiWrapper {
             if (connection.getResponseCode() == HttpStatus.SC_OK) {
                 jsonResponse = myStreamReader(connection.getInputStream());
             } else {
-                parseErrorResponse(connection.getResponseCode(), connection.getErrorStream());
+                parseErrorResponse(connection);
                 return Optional.empty();
             }
         } catch (SocketTimeoutException e) {
@@ -221,14 +221,18 @@ public class BackblazeApiWrapper {
         lastError.code = "request_timeout";
     }
 
-    private void parseErrorResponse(int responseCode, InputStream errorStream) {
+    private void parseErrorResponse(HttpURLConnection connection) throws IOException {
         String responseBody;
         try {
-            responseBody = myStreamReader(errorStream);
+            responseBody = myStreamReader(connection.getErrorStream());
             lastError = GsonService.fromJson(responseBody, ErrorResponse.class);
+            if (connection.getResponseCode() == HttpStatus.SC_SERVICE_UNAVAILABLE) {
+                String retryAfter = connection.getHeaderField("Retry-After");
+                lastError.retryAfter = Integer.parseInt(retryAfter != null ? retryAfter : "-1");
+            }
         } catch (IOException e) {
             lastError = new ErrorResponse();
-            lastError.status = responseCode;
+            lastError.status = connection.getResponseCode();
             lastError.message = "Error while reading error response body";
             lastError.code = "unknown";
         }

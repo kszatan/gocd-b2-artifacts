@@ -133,4 +133,14 @@ public class B2ApiCallTest {
         b2ApiCall.handleErrors(error);
         b2ApiCall.handleErrors(error);
     }
+
+    @Test
+    public void handleErrorShouldSleepRetryAfterAmountOfSeconds() throws Exception {
+        ErrorResponse error = new ErrorResponse();
+        error.message = "Service Unavailable";
+        error.status = HttpStatus.SC_SERVICE_UNAVAILABLE;
+        error.retryAfter = 6;
+        b2ApiCall.handleErrors(error);
+        verify(mockSleeper).sleep(error.retryAfter);
+    }
 }

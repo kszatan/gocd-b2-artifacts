@@ -141,15 +141,6 @@ public class BackblazeApiWrapperTest {
     public void exceptionDuringOpeningConnectionOnAuthorizeShouldCloseConnection() throws Exception {
         doThrow(new IOException("Bad")).when(mockUrlCon).getInputStream();
 
-        stubUrlHandler = new URLStreamHandler() {
-            @Override
-            protected HttpURLConnection openConnection(URL u) throws IOException {
-                return mockUrlCon;
-            }
-        };
-
-        wrapper = new BackblazeApiWrapper(stubUrlHandler);
-
         String accountId = "account_id";
         String applicationKey = "application_key";
         try {
@@ -401,35 +392,8 @@ public class BackblazeApiWrapperTest {
     }
 
     @Test
-    public void uploadFileShould() throws Exception {
-        ByteArrayInputStream is = new ByteArrayInputStream(uploadFileResponseJson.getBytes("UTF-8"));
-        doReturn(is).when(mockUrlCon).getInputStream();
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        doReturn(os).when(mockUrlCon).getOutputStream();
-        doReturn(HttpStatus.SC_OK).when(mockUrlCon).getResponseCode();
-
-        String filePath = this.getClass().getResource("UploadFileTest.txt").getPath();
-        GetUploadUrlResponse uploadUrlResponse = GsonService.fromJson(getUploadUrlResponseJson, GetUploadUrlResponse.class);
-        doReturn("asdf1234fdsa").when(mockFileHash).getHashValue(Paths.get(filePath));
-
-        wrapper.uploadFile(Paths.get(""), filePath, null, uploadUrlResponse);
-
-        String fileContents = this.getClass().getResourceAsStream("UploadFileTest.txt").toString();
-        verify(mockUrlCon).disconnect();
-    }
-
-    @Test
     public void exceptionDuringOpeningConnectionOnGetUploadUrlShouldCloseConnection() throws Exception {
         doThrow(new IOException("Bad")).when(mockUrlCon).getInputStream();
-
-        stubUrlHandler = new URLStreamHandler() {
-            @Override
-            protected HttpURLConnection openConnection(URL u) throws IOException {
-                return mockUrlCon;
-            }
-        };
-
-        wrapper = new BackblazeApiWrapper(stubUrlHandler);
 
         try {
             wrapper.getUploadUrl(GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class), "asdf");
@@ -514,4 +478,39 @@ public class BackblazeApiWrapperTest {
         assertThat(error.code, equalTo("unknown"));
     }
 
+    @Test
+    public void errorResponseShouldContainRetryAfterValueIfPresent() throws Exception {
+        doReturn("6").when(mockUrlCon).getHeaderField("Retry-After");
+        ByteArrayInputStream is = new ByteArrayInputStream(uploadFileResponseJson.getBytes("UTF-8"));
+        doReturn(is).when(mockUrlCon).getInputStream();
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        doReturn(os).when(mockUrlCon).getOutputStream();
+        ByteArrayInputStream es =  new ByteArrayInputStream(errorResponseJson.getBytes("UTF-8"));
+        doReturn(es).when(mockUrlCon).getErrorStream();
+        doReturn(HttpStatus.SC_SERVICE_UNAVAILABLE).when(mockUrlCon).getResponseCode();
+
+        String accountId = "account_id";
+        String applicationKey = "application_key";
+        wrapper.authorize(accountId, applicationKey);
+        ErrorResponse error = wrapper.getLastError().get();
+        assertThat(error.retryAfter, equalTo(6));
+    }
+
+    @Test
+    public void errorResponseShouldBeMinusOneIfRetryAfterValueNotPresent() throws Exception {
+        doReturn(null).when(mockUrlCon).getHeaderField("Retry-After");
+        ByteArrayInputStream is = new ByteArrayInputStream(uploadFileResponseJson.getBytes("UTF-8"));
+        doReturn(is).when(mockUrlCon).getInputStream();
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        doReturn(os).when(mockUrlCon).getOutputStream();
+        ByteArrayInputStream es =  new ByteArrayInputStream(errorResponseJson.getBytes("UTF-8"));
+        doReturn(es).when(mockUrlCon).getErrorStream();
+        doReturn(HttpStatus.SC_SERVICE_UNAVAILABLE).when(mockUrlCon).getResponseCode();
+
+        String accountId = "account_id";
+        String applicationKey = "application_key";
+        wrapper.authorize(accountId, applicationKey);
+        ErrorResponse error = wrapper.getLastError().get();
+        assertThat(error.retryAfter, equalTo(-1));
+    }
 }

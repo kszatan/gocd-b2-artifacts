@@ -10,4 +10,5 @@ public class ErrorResponse {
     public Integer status;
     public String code;
     public String message;
+    public Integer retryAfter;
 }
