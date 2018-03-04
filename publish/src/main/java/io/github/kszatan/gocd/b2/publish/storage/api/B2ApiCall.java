@@ -11,14 +11,33 @@ import io.github.kszatan.gocd.b2.publish.storage.StorageException;
 import org.apache.http.HttpStatus;
 
 public abstract class B2ApiCall {
+    @FunctionalInterface
+    public interface ThreadSleeper {
+        void sleep(Integer seconds);
+    }
+
     private static final Integer MAX_BACKOFF_SEC = 64;
     private Integer backoffSec = 1;
     private String name;
     protected BackblazeApiWrapper backblazeApiWrapper;
+    private ThreadSleeper sleeper;
 
     public B2ApiCall(String callName, BackblazeApiWrapper backblazeApiWrapper) {
         this.name = callName;
         this.backblazeApiWrapper = backblazeApiWrapper;
+        this.sleeper = seconds -> {
+            try {
+                Thread.sleep(seconds * 1000);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
+        };
+    }
+
+    public B2ApiCall(String callName, BackblazeApiWrapper backblazeApiWrapper, ThreadSleeper sleeper) {
+        this.name = callName;
+        this.backblazeApiWrapper = backblazeApiWrapper;
+        this.sleeper = sleeper;
     }
 
     public String getName() {
@@ -26,6 +45,7 @@ public abstract class B2ApiCall {
     }
 
     public abstract Boolean call() throws StorageException;
+    
     public void handleErrors(ErrorResponse error) throws StorageException {
         switch (error.status) {
             case HttpStatus.SC_BAD_REQUEST:
@@ -56,10 +76,6 @@ public abstract class B2ApiCall {
     }
 
     protected void sleep(Integer seconds) {
-        try {
-            Thread.sleep(seconds * 1000);
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-        }
+        sleeper.sleep(seconds);
     }
 }
