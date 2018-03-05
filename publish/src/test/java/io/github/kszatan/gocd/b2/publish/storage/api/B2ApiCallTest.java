@@ -8,6 +8,7 @@ package io.github.kszatan.gocd.b2.publish.storage.api;
 
 import io.github.kszatan.gocd.b2.publish.storage.ErrorResponse;
 import io.github.kszatan.gocd.b2.publish.storage.StorageException;
+import io.github.kszatan.gocd.b2.publish.storage.UnauthorizedCallException;
 import org.apache.http.HttpStatus;
 import org.junit.Before;
 import org.junit.Rule;
@@ -55,7 +56,8 @@ public class B2ApiCallTest {
     }
 
     @Test
-    public void handleErrorShouldDoNothingOnUnauthorized() throws Exception {
+    public void handleErrorShouldThrownUnauthorizedCallOnUnauthorized() throws Exception {
+        thrown.expect(instanceOf(UnauthorizedCallException.class));
         ErrorResponse error = new ErrorResponse();
         error.message = "Unauthorized";
         error.status = HttpStatus.SC_UNAUTHORIZED;

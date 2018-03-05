@@ -228,7 +228,9 @@ public class BackblazeApiWrapper {
             lastError = GsonService.fromJson(responseBody, ErrorResponse.class);
             if (connection.getResponseCode() == HttpStatus.SC_SERVICE_UNAVAILABLE) {
                 String retryAfter = connection.getHeaderField("Retry-After");
-                lastError.retryAfter = Integer.parseInt(retryAfter != null ? retryAfter : "-1");
+                if (retryAfter != null) {
+                    lastError.retryAfter = Integer.parseInt(retryAfter);
+                }
             }
         } catch (IOException e) {
             lastError = new ErrorResponse();

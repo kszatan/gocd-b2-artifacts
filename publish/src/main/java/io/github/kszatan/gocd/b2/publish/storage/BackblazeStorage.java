@@ -54,13 +54,11 @@ public class BackblazeStorage implements Storage {
         try {
             final Authorize authorize = new Authorize(backblazeApiWrapper, accountId, applicationKey);
             if (!attempt(MAX_RETRY_ATTEMPTS, authorize)) {
-                errorMessage = "Failed to authorize: maximum number of retry attempts reached.";
                 return false;
             }
             authorizeResponse = authorize.getResponse().get();
             final ListBuckets listBuckets = new ListBuckets(backblazeApiWrapper, authorizeResponse);
             if (!attempt(MAX_RETRY_ATTEMPTS, listBuckets)) {
-                errorMessage = "Failed to list buckets: maximum number of retry attempts reached.";
                 return false;
             }
             listBucketsResponse = listBuckets.getResponse().get();
@@ -72,7 +70,6 @@ public class BackblazeStorage implements Storage {
             bucketId = maybeBucket.get().bucketId;
             final GetUploadUrl getUploadUrl = new GetUploadUrl(backblazeApiWrapper, authorizeResponse, bucketId);
             if (!attempt(MAX_RETRY_ATTEMPTS, getUploadUrl)) {
-                errorMessage = "Failed to get upload url: maximum number of retry attempts reached";
                 return false;
             }
             getUploadUrlResponse = getUploadUrl.getResponse().get();
@@ -92,7 +89,6 @@ public class BackblazeStorage implements Storage {
             Upload upload = new Upload(backblazeApiWrapper, bucketId, workDir, relativeFilePath, destination,
                     authorizeResponse, getUploadUrlResponse);
             if (!attempt(MAX_RETRY_ATTEMPTS, upload)) {
-                errorMessage = "Failed to upload: maximum number of retry attempts reached.";
                 return false;
             }
         } catch (IOException e) {
@@ -115,7 +111,11 @@ public class BackblazeStorage implements Storage {
             notify("Failed to " + action.getName() + ": (" + errorResponse.status + ") " + errorResponse.message);
             notify("Retrying...");
         }
-        return attempt < times;
+        Boolean success = attempt < times;
+        if (!success) {
+            errorMessage = "Failed to " + action.getName() + ": maximum number of retry attempts reached";
+        }
+        return success;
     }
 
     @Override

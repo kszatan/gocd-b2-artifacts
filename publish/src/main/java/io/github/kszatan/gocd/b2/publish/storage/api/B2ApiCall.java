@@ -8,6 +8,7 @@ package io.github.kszatan.gocd.b2.publish.storage.api;
 
 import io.github.kszatan.gocd.b2.publish.storage.ErrorResponse;
 import io.github.kszatan.gocd.b2.publish.storage.StorageException;
+import io.github.kszatan.gocd.b2.publish.storage.UnauthorizedCallException;
 import org.apache.http.HttpStatus;
 
 public abstract class B2ApiCall {
@@ -51,8 +52,7 @@ public abstract class B2ApiCall {
             case HttpStatus.SC_BAD_REQUEST:
                 throw new StorageException("Bad request: " + error.message);
             case HttpStatus.SC_UNAUTHORIZED:
-                // Usually obtain a new auth token and retry
-                break;
+                throw new UnauthorizedCallException("Unauthorized call: " + error.message);
             case HttpStatus.SC_FORBIDDEN:
                 throw new StorageException("Forbidden: " + error.message);
             case HttpStatus.SC_REQUEST_TIMEOUT:
@@ -66,7 +66,7 @@ public abstract class B2ApiCall {
                 // retry
                 break;
             case HttpStatus.SC_SERVICE_UNAVAILABLE:
-                if (error.retryAfter > 0) {
+                if (error.retryAfter != null) {
                     sleep(error.retryAfter);
                 } else {
                     if (backoffSec > MAX_BACKOFF_SEC) {
