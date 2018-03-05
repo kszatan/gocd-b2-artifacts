@@ -100,7 +100,6 @@ public class BackblazeApiWrapper {
             connection.setRequestProperty("Content-Type", "b2/x-auto");
             connection.setRequestProperty("X-Bz-File-Name", Paths.get(destination, filePath).toString());
             connection.setRequestProperty("X-Bz-Content-Sha1", content_sha1);
-//            connection.setRequestProperty("X-Bz-Test-Mode", "fail_some_uploads");
             connection.setDoOutput(true);
             DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
             Files.copy(absoluteFilePath, writer);
@@ -211,6 +210,9 @@ public class BackblazeApiWrapper {
         connection.setConnectTimeout(CONNECTION_TIMEOUT_MS);
         connection.setReadTimeout(READ_TIMEOUT_MS);
         connection.setRequestProperty("User-Agent", userAgentVersion());
+//        connection.setRequestProperty("X-Bz-Test-Mode", "fail_some_uploads");
+//        connection.setRequestProperty("X-Bz-Test-Mode", "expire_some_account_authorization_tokens");
+//        connection.setRequestProperty("X-Bz-Test-Mode", "force_cap_exceeded");
         return connection;
     }
 

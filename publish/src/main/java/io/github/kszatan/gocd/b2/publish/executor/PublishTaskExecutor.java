@@ -12,19 +12,23 @@ import io.github.kszatan.gocd.b2.publish.handlers.bodies.*;
 import io.github.kszatan.gocd.b2.publish.storage.ProgressObserver;
 import io.github.kszatan.gocd.b2.publish.storage.Storage;
 import io.github.kszatan.gocd.b2.publish.storage.StorageException;
+import io.github.kszatan.gocd.b2.publish.storage.UnauthorizedCallException;
 import org.apache.commons.lang3.StringUtils;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.stream.Collectors;
 
 import static io.github.kszatan.gocd.b2.publish.Constants.GO_ARTIFACTS_B2_BUCKET;
 
 public class PublishTaskExecutor implements TaskExecutor, ProgressObserver {
-    public JobConsoleLogger console = new JobConsoleLogger() {};
+    public JobConsoleLogger console = new JobConsoleLogger() {
+    };
     private Logger logger = Logger.getLoggerFor(PublishTaskExecutor.class);
     private final Storage storage;
     private final DirectoryScanner scanner;
@@ -34,7 +38,7 @@ public class PublishTaskExecutor implements TaskExecutor, ProgressObserver {
         this.scanner = scanner;
         storage.addProgressObserver(this);
     }
-    
+
     @Override
     public ExecuteResponse execute(TaskConfiguration configuration, TaskContext context) {
         ExecuteResponse response = ExecuteResponse.success("Success");
@@ -43,18 +47,32 @@ public class PublishTaskExecutor implements TaskExecutor, ProgressObserver {
             if (!errors.isEmpty()) {
                 response = ExecuteResponse.failure("Configuration failure: " + StringUtils.join(errors, "; "));
             } else {
-                if (!storage.authorize(context.getAccountId(), context.getApplicationKey())) {
-                    return ExecuteResponse.failure("Failed to authorize: " + storage.getLastErrorMessage());
-                }
-                List<SourceDestination> expandSources =
-                        expandSources(configuration.getSourceDestinationsAsList(), context.workingDirectory,
+                final int maxAttempts = 5;
+                int nthTry = 0;
+                Queue<SourceDestination> scannedSourcesQueue =
+                        scanSources(configuration.getSourceDestinationsAsList(), context.workingDirectory,
                                 configuration.getDestinationPrefix());
                 Path absoluteWorkDir = Paths.get(context.workingDirectory).toAbsolutePath();
-                for (SourceDestination sd : expandSources) {
-                    storage.upload(absoluteWorkDir, sd.source, sd.destination);
+                while (true) {
+                    try {
+                        if (!storage.authorize(context.getAccountId(), context.getApplicationKey())) {
+                            return ExecuteResponse.failure("Failed to authorize: " + storage.getLastErrorMessage());
+                        }
+                        while (!scannedSourcesQueue.isEmpty()) {
+                            SourceDestination sd = scannedSourcesQueue.poll();
+                            storage.upload(absoluteWorkDir, sd.source, sd.destination);
+                        }
+                        break;
+                    } catch (UnauthorizedCallException e) {
+                        notify(e.getMessage());
+                        nthTry++;
+                        if (nthTry > maxAttempts) {
+                            throw e;
+                        }
+                    }
                 }
             }
-        } catch (GeneralSecurityException | StorageException | RuntimeException e ) {
+        } catch (GeneralSecurityException | StorageException | RuntimeException e) {
             response = ExecuteResponse.failure(e.getMessage());
         }
         return response;
@@ -78,9 +96,9 @@ public class PublishTaskExecutor implements TaskExecutor, ProgressObserver {
         return errors;
     }
 
-    private List<SourceDestination> expandSources(List<SourceDestination> sourceDestinations, String workingDirectory,
-                                                  String destinationPrefix) {
-        List<SourceDestination> expanded = new ArrayList<>();
+    private LinkedList<SourceDestination> scanSources(List<SourceDestination> sourceDestinations, String workingDirectory,
+                                                      String destinationPrefix) {
+        LinkedList<SourceDestination> expanded = new LinkedList<>();
         scanner.setBaseDir(workingDirectory);
         for (SourceDestination sd : sourceDestinations) {
             scanner.scan(sd.source);

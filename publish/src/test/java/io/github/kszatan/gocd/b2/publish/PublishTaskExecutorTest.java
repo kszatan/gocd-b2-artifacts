@@ -79,7 +79,9 @@ public class PublishTaskExecutorTest {
 
     @Test
     public void executeShouldAuthorizeWithGivenCredentials() throws Exception {
+        when(scanner.getIncludedFiles()).thenReturn(Arrays.asList("a/file1", "file2", "b/c/file3"));
         TaskConfiguration configuration = new TaskConfiguration();
+        configuration.setSourceDestinations("[{\"source\": \"**\", \"destination\": \"desti/nation\"}]");
         TaskContext context = new TaskContext();
         context.environmentVariables.put(GO_ARTIFACTS_B2_BUCKET, "bukiet");
         String accountId = "4abcdefgaf77";

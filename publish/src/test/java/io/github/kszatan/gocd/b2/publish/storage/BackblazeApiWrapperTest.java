@@ -22,6 +22,7 @@ import java.nio.file.Paths;
 import java.util.Optional;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.*;
 
@@ -497,7 +498,7 @@ public class BackblazeApiWrapperTest {
     }
 
     @Test
-    public void errorResponseShouldBeMinusOneIfRetryAfterValueNotPresent() throws Exception {
+    public void errorResponseShouldBeNullIfRetryAfterValueNotPresent() throws Exception {
         doReturn(null).when(mockUrlCon).getHeaderField("Retry-After");
         ByteArrayInputStream is = new ByteArrayInputStream(uploadFileResponseJson.getBytes("UTF-8"));
         doReturn(is).when(mockUrlCon).getInputStream();
@@ -511,6 +512,6 @@ public class BackblazeApiWrapperTest {
         String applicationKey = "application_key";
         wrapper.authorize(accountId, applicationKey);
         ErrorResponse error = wrapper.getLastError().get();
-        assertThat(error.retryAfter, equalTo(-1));
+        assertThat(error.retryAfter, nullValue());
     }
 }
