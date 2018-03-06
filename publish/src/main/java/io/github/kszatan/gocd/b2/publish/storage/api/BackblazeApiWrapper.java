@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Optional;
@@ -100,6 +101,9 @@ public class BackblazeApiWrapper {
             connection.setRequestProperty("Content-Type", "b2/x-auto");
             connection.setRequestProperty("X-Bz-File-Name", Paths.get(destination, filePath).toString());
             connection.setRequestProperty("X-Bz-Content-Sha1", content_sha1);
+            BasicFileAttributes attrs = Files.readAttributes(absoluteFilePath, BasicFileAttributes.class);
+            connection.setRequestProperty("X-Bz-Info-src_last_modified_millis",
+                    String.valueOf(attrs.lastModifiedTime().toMillis()));
             connection.setDoOutput(true);
             DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
             Files.copy(absoluteFilePath, writer);
