@@ -28,4 +28,48 @@ public class TaskContextTest {
         assertThat(context.getApplicationKey(), equalTo(applicationKey));
     }
 
+    @Test
+    public void getPipelineName() throws Exception {
+        TaskContext context = new TaskContext();
+        String pipelineName = "pipeline name";
+        context.environmentVariables.put("GO_PIPELINE_NAME", pipelineName);
+        assertThat(context.getPipelineName(), equalTo(pipelineName));
+    }
+
+    @Test
+    public void getStageName() throws Exception {
+        TaskContext context = new TaskContext();
+        String stageName = "stage name";
+        context.environmentVariables.put("GO_STAGE_NAME", stageName);
+        assertThat(context.getStageName(), equalTo(stageName));
+    }
+
+    @Test
+    public void getJobName() throws Exception {
+        TaskContext context = new TaskContext();
+        String jobName = "job name";
+        context.environmentVariables.put("GO_JOB_NAME", jobName);
+        assertThat(context.getJobName(), equalTo(jobName));
+    }
+
+    @Test
+    public void getPipelineCounter() throws Exception {
+        TaskContext context = new TaskContext();
+        String pipelineCounter = "3";
+        context.environmentVariables.put("GO_PIPELINE_COUNTER", pipelineCounter);
+        assertThat(context.getPipelineCounter(), equalTo(pipelineCounter));
+    }
+
+    @Test
+    public void getStageCounter() throws Exception {
+        TaskContext context = new TaskContext();
+        String stageCounter = "10";
+        context.environmentVariables.put("GO_STAGE_COUNTER", stageCounter);
+        assertThat(context.getStageCounter(), equalTo(stageCounter));
+    }
+
+
+
+
+
 }

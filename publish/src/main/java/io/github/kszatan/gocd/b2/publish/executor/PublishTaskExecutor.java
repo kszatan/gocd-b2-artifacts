@@ -47,12 +47,13 @@ public class PublishTaskExecutor implements TaskExecutor, ProgressObserver {
             if (!errors.isEmpty()) {
                 response = ExecuteResponse.failure("Configuration failure: " + StringUtils.join(errors, "; "));
             } else {
-                final int maxAttempts = 5;
-                int nthTry = 0;
+                String destinationPrefix = getPrefix(context, configuration);
                 Queue<SourceDestination> scannedSourcesQueue =
                         scanSources(configuration.getSourceDestinationsAsList(), context.workingDirectory,
-                                configuration.getDestinationPrefix());
+                                destinationPrefix);
                 Path absoluteWorkDir = Paths.get(context.workingDirectory).toAbsolutePath();
+                final int maxAttempts = 5;
+                int nthTry = 0;
                 while (true) {
                     try {
                         if (!storage.authorize(context.getAccountId(), context.getApplicationKey())) {
@@ -102,12 +103,21 @@ public class PublishTaskExecutor implements TaskExecutor, ProgressObserver {
         scanner.setBaseDir(workingDirectory);
         for (SourceDestination sd : sourceDestinations) {
             scanner.scan(sd.source);
-            String destination = sd.destination.isEmpty() ? destinationPrefix : sd.destination;
+            String destination = sd.destination.isEmpty() ? destinationPrefix : destinationPrefix + "/" + sd.destination;
             List<SourceDestination> prefixed_included = scanner.getIncludedFiles().stream()
                     .map(f -> new SourceDestination(f, destination))
                     .collect(Collectors.toList());
             expanded.addAll(prefixed_included);
         }
         return expanded;
+    }
+
+    private String getPrefix(TaskContext context, TaskConfiguration configuration) {
+        String prefix = configuration.getDestinationPrefix();
+        if (prefix.isEmpty()) {
+            prefix = context.getPipelineName() + "/" + context.getStageName() + "/" + context.getJobName() + "/"
+                    + context.getPipelineCounter() + "." + context.getStageCounter();
+        }
+        return prefix;
     }
 }

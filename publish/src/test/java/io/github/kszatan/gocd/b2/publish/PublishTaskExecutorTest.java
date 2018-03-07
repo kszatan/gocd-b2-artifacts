@@ -31,6 +31,12 @@ public class PublishTaskExecutorTest {
     private DirectoryScanner scanner;
     private PublishTaskExecutor executor;
 
+    private final String PIPELINE_NAME = "pipe";
+    private final String STAGE_NAME = "stag";
+    private final String JOB_NAME = "jobjob";
+    private final String PIPELINE_COUNTER = "10";
+    private final String STAGE_COUNTER = "5";
+
     private TaskContext getDefaultTaskContext() {
         TaskContext context = new TaskContext();
         context.environmentVariables.put(GO_ARTIFACTS_B2_BUCKET, "bukiet");
@@ -39,7 +45,16 @@ public class PublishTaskExecutorTest {
         String applicationKey = "caca85ed4e7a3404db0b08bb8256d00d84e247e46";
         context.environmentVariables.put("B2_ACCOUNT_ID", accountId);
         context.environmentVariables.put("B2_APPLICATION_KEY", applicationKey);
+        setDefaultPipelineInfo(context);
         return context;
+    }
+
+    private void setDefaultPipelineInfo(TaskContext context) {
+        context.environmentVariables.put("GO_PIPELINE_NAME", PIPELINE_NAME);
+        context.environmentVariables.put("GO_STAGE_NAME", STAGE_NAME);
+        context.environmentVariables.put("GO_JOB_NAME", JOB_NAME);
+        context.environmentVariables.put("GO_PIPELINE_COUNTER", PIPELINE_COUNTER);
+        context.environmentVariables.put("GO_STAGE_COUNTER", STAGE_COUNTER);
     }
 
     @Before
@@ -102,9 +117,9 @@ public class PublishTaskExecutorTest {
         executor.execute(configuration, context);
         final Path workDirPath = Paths.get(context.workingDirectory).toAbsolutePath();
 
-        verify(storage).upload(workDirPath, "a/file1", "desti/nation");
-        verify(storage).upload(workDirPath, "file2", "desti/nation");
-        verify(storage).upload(workDirPath, "b/c/file3", "desti/nation");
+        verify(storage).upload(workDirPath, "a/file1", "pipe/stag/jobjob/10.5/desti/nation");
+        verify(storage).upload(workDirPath, "file2", "pipe/stag/jobjob/10.5/desti/nation");
+        verify(storage).upload(workDirPath, "b/c/file3", "pipe/stag/jobjob/10.5/desti/nation");
     }
 
     @Test
@@ -130,10 +145,10 @@ public class PublishTaskExecutorTest {
         executor.execute(configuration, context);
         final Path workDirPath = Paths.get(context.workingDirectory).toAbsolutePath();
 
-        verify(storage).upload(workDirPath, "file1", "dest1");
-        verify(storage).upload(workDirPath, "file2", "dest1");
-        verify(storage).upload(workDirPath, "file1", "dest2");
-        verify(storage).upload(workDirPath, "file2", "dest2");
+        verify(storage).upload(workDirPath, "file1", "pipe/stag/jobjob/10.5/dest1");
+        verify(storage).upload(workDirPath, "file2", "pipe/stag/jobjob/10.5/dest1");
+        verify(storage).upload(workDirPath, "file1", "pipe/stag/jobjob/10.5/dest2");
+        verify(storage).upload(workDirPath, "file2", "pipe/stag/jobjob/10.5/dest2");
     }
 
     @Test
@@ -146,5 +161,36 @@ public class PublishTaskExecutorTest {
         executor.execute(configuration, context);
 
         verify(scanner).setBaseDir(workDir);
+    }
+
+    @Test
+    public void executorShouldUploadFilesToPredefinedPathWhenDestinationPrefixIsEmpty() throws Exception {
+        when(storage.authorize(any(), any())).thenReturn(true);
+        when(scanner.getIncludedFiles()).thenReturn(Arrays.asList("file1", "file2"));
+        TaskConfiguration configuration = new TaskConfiguration();
+        configuration.setSourceDestinations("[{\"source\": \"**\", \"destination\": \"\"}]");
+        TaskContext context = getDefaultTaskContext();
+
+        executor.execute(configuration, context);
+        final Path workDirPath = Paths.get(context.workingDirectory).toAbsolutePath();
+
+        verify(storage).upload(workDirPath, "file1", "pipe/stag/jobjob/10.5");
+        verify(storage).upload(workDirPath, "file2", "pipe/stag/jobjob/10.5");
+    }
+
+    @Test
+    public void executorShouldUploadFilesToDestinationPrefixIfNotEmpty() throws Exception {
+        when(storage.authorize(any(), any())).thenReturn(true);
+        when(scanner.getIncludedFiles()).thenReturn(Arrays.asList("file1", "file2"));
+        TaskConfiguration configuration = new TaskConfiguration();
+        configuration.setDestinationPrefix("destination/prefix");
+        configuration.setSourceDestinations("[{\"source\": \"**\", \"destination\": \"dest\"}]");
+        TaskContext context = getDefaultTaskContext();
+
+        executor.execute(configuration, context);
+        final Path workDirPath = Paths.get(context.workingDirectory).toAbsolutePath();
+
+        verify(storage).upload(workDirPath, "file1", "destination/prefix/dest");
+        verify(storage).upload(workDirPath, "file2", "destination/prefix/dest");
     }
 }
