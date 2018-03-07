@@ -10,6 +10,7 @@ import com.thoughtworks.go.plugin.api.AbstractGoPlugin;
 import com.thoughtworks.go.plugin.api.GoPluginIdentifier;
 import com.thoughtworks.go.plugin.api.annotation.Extension;
 import com.thoughtworks.go.plugin.api.exceptions.UnhandledRequestTypeException;
+import com.thoughtworks.go.plugin.api.logging.Logger;
 import com.thoughtworks.go.plugin.api.request.GoPluginApiRequest;
 import com.thoughtworks.go.plugin.api.response.DefaultGoPluginApiResponse;
 import com.thoughtworks.go.plugin.api.response.GoPluginApiResponse;
@@ -26,6 +27,8 @@ public class PublishTaskPlugin extends AbstractGoPlugin {
     private static final List<String> supportedExtensionVersions = Collections.singletonList("1.0");
     private final RequestHandlerFactory requestHandlerFactory;
 
+    private Logger logger = Logger.getLoggerFor(PublishTaskPlugin.class);
+
     public PublishTaskPlugin() {
         requestHandlerFactory = new DefaultRequestHandlerFactory();
     }
@@ -38,6 +41,7 @@ public class PublishTaskPlugin extends AbstractGoPlugin {
     public GoPluginApiResponse handle(GoPluginApiRequest request) {
         GoPluginApiResponse response;
         try {
+            logger.debug(request.requestName() + ": " + request.requestBody());
             RequestHandler requestHandler = requestHandlerFactory.create(request.requestName());
             response = requestHandler.handle(request);
         } catch (UnhandledRequestTypeException e) {
@@ -45,6 +49,7 @@ public class PublishTaskPlugin extends AbstractGoPlugin {
         } catch (Exception e) {
             response = DefaultGoPluginApiResponse.error("Unknown error during request processing: " + e.getMessage());
         }
+        logger.debug(response.responseCode() + ": " + response.responseBody());
         return response;
     }
 
