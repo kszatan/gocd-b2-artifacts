@@ -40,8 +40,7 @@ public class DefaultRequestHandlerFactoryTest {
     @Test
     public void shouldCreateRequestHandlerForCheckConnectionRequest() throws Exception {
         RequestHandler handler = requestHandlerFactory.create(RequestHandlerFactory.EXECUTE);
-        // TODO: Check handler type
-        assertNotNull(handler);
+        assertThat(handler instanceof ExecuteRequestHandler, is(true));
     }
 
     @Test
