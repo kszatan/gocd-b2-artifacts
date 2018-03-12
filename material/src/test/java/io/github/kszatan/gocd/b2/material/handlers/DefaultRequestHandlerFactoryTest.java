@@ -47,7 +47,7 @@ public class DefaultRequestHandlerFactoryTest {
     @Test
     public void shouldCreateRequestHandlerForPackageConfigurationRequest() throws Exception {
         RequestHandler handler = requestHandlerFactory.create(RequestHandlerFactory.PACKAGE_CONFIGURATION);
-        assertNotNull(handler);
+        assertThat(handler, new InstanceOf(PackageConfigurationRequestHandler.class));
     }
 
     @Test

@@ -25,7 +25,7 @@ public class DefaultRequestHandlerFactory implements  RequestHandlerFactory {
 //                handler = new ExecuteRequestHandler();
                 break;
             case PACKAGE_CONFIGURATION:
-//                handler = new PackageConfigurationRequestHandler();
+                handler = new PackageConfigurationRequestHandler();
                 break;
             case REPOSITORY_CONFIGURATION:
                 handler = new RepositoryConfigurationRequestHandler();
