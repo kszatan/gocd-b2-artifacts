@@ -10,7 +10,7 @@ project.ext.pluginDesc = [
     id         : 'io.github.kszatan.gocd.b2.material',
     version    : project.version,
     goCdVersion: project.goCdVersion,
-    name       : 'Backblaze B2 Poller Plugin',
+    name       : 'Backblaze B2 Package Material Plugin',
     description: 'Plugin adding a package material for Backblaze B2.',
     vendorName : 'Krzysztof Szatan',
     vendorUrl  : 'https://github.com/kszatan/gocd-b2-artifacts'
