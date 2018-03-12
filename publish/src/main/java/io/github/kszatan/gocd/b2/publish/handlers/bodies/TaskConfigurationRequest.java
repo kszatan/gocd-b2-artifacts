@@ -6,9 +6,9 @@
 
 package io.github.kszatan.gocd.b2.publish.handlers.bodies;
 
-import io.github.kszatan.gocd.b2.publish.json.GsonService;
-import io.github.kszatan.gocd.b2.publish.json.IncompleteJson;
-import io.github.kszatan.gocd.b2.publish.json.InvalidJson;
+import io.github.kszatan.gocd.b2.utils.json.GsonService;
+import io.github.kszatan.gocd.b2.utils.json.IncompleteJson;
+import io.github.kszatan.gocd.b2.utils.json.InvalidJson;
 
 import java.util.Arrays;
 import java.util.Collection;

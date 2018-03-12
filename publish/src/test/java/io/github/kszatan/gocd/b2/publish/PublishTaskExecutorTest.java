@@ -12,8 +12,8 @@ import io.github.kszatan.gocd.b2.publish.executor.PublishTaskExecutor;
 import io.github.kszatan.gocd.b2.publish.handlers.bodies.ExecuteResponse;
 import io.github.kszatan.gocd.b2.publish.handlers.bodies.TaskConfiguration;
 import io.github.kszatan.gocd.b2.publish.handlers.bodies.TaskContext;
-import io.github.kszatan.gocd.b2.publish.storage.Storage;
-import io.github.kszatan.gocd.b2.publish.storage.StorageException;
+import io.github.kszatan.gocd.b2.utils.storage.Storage;
+import io.github.kszatan.gocd.b2.utils.storage.StorageException;
 import org.junit.Before;
 import org.junit.Test;
 

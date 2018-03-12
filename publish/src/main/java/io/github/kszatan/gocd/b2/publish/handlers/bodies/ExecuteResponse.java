@@ -6,7 +6,7 @@
 
 package io.github.kszatan.gocd.b2.publish.handlers.bodies;
 
-import io.github.kszatan.gocd.b2.publish.json.GsonService;
+import io.github.kszatan.gocd.b2.utils.json.GsonService;
 
 import java.util.Objects;
 

@@ -2,6 +2,10 @@
  * This file is subject to the license terms in the LICENSE file found in the
  * top-level directory of this distribution. */
 
+dependencies {
+    compile project(':utils')
+}
+
 project.ext.pluginDesc = [
     id         : 'io.github.kszatan.gocd.b2.fetch',
     version    : project.version,

@@ -9,10 +9,10 @@ package io.github.kszatan.gocd.b2.publish.executor;
 import com.thoughtworks.go.plugin.api.logging.Logger;
 import com.thoughtworks.go.plugin.api.task.JobConsoleLogger;
 import io.github.kszatan.gocd.b2.publish.handlers.bodies.*;
-import io.github.kszatan.gocd.b2.publish.storage.ProgressObserver;
-import io.github.kszatan.gocd.b2.publish.storage.Storage;
-import io.github.kszatan.gocd.b2.publish.storage.StorageException;
-import io.github.kszatan.gocd.b2.publish.storage.UnauthorizedCallException;
+import io.github.kszatan.gocd.b2.utils.storage.ProgressObserver;
+import io.github.kszatan.gocd.b2.utils.storage.Storage;
+import io.github.kszatan.gocd.b2.utils.storage.StorageException;
+import io.github.kszatan.gocd.b2.utils.storage.UnauthorizedCallException;
 import org.apache.commons.lang3.StringUtils;
 
 import java.nio.file.Path;

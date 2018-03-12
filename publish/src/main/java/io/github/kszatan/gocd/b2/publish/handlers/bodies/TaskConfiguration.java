@@ -7,7 +7,7 @@
 package io.github.kszatan.gocd.b2.publish.handlers.bodies;
 
 import com.google.gson.reflect.TypeToken;
-import io.github.kszatan.gocd.b2.publish.json.GsonService;
+import io.github.kszatan.gocd.b2.utils.json.GsonService;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;

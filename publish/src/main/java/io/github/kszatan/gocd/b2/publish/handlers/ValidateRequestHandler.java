@@ -13,8 +13,8 @@ import io.github.kszatan.gocd.b2.publish.handlers.bodies.ConfigurationValidator;
 import io.github.kszatan.gocd.b2.publish.handlers.bodies.TaskConfiguration;
 import io.github.kszatan.gocd.b2.publish.handlers.bodies.TaskConfigurationRequest;
 import io.github.kszatan.gocd.b2.publish.handlers.bodies.TaskConfigurationValidationResponse;
-import io.github.kszatan.gocd.b2.publish.json.IncompleteJson;
-import io.github.kszatan.gocd.b2.publish.json.InvalidJson;
+import io.github.kszatan.gocd.b2.utils.json.IncompleteJson;
+import io.github.kszatan.gocd.b2.utils.json.InvalidJson;
 
 import java.util.Collections;
 

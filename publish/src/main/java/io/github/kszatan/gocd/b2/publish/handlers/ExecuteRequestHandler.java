@@ -16,10 +16,10 @@ import io.github.kszatan.gocd.b2.publish.handlers.bodies.ExecuteRequest;
 import io.github.kszatan.gocd.b2.publish.handlers.bodies.ExecuteResponse;
 import io.github.kszatan.gocd.b2.publish.handlers.bodies.TaskConfiguration;
 import io.github.kszatan.gocd.b2.publish.handlers.bodies.TaskContext;
-import io.github.kszatan.gocd.b2.publish.json.IncompleteJson;
-import io.github.kszatan.gocd.b2.publish.json.InvalidJson;
-import io.github.kszatan.gocd.b2.publish.storage.BackblazeStorage;
-import io.github.kszatan.gocd.b2.publish.storage.StorageException;
+import io.github.kszatan.gocd.b2.utils.json.IncompleteJson;
+import io.github.kszatan.gocd.b2.utils.json.InvalidJson;
+import io.github.kszatan.gocd.b2.utils.storage.BackblazeStorage;
+import io.github.kszatan.gocd.b2.utils.storage.StorageException;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;

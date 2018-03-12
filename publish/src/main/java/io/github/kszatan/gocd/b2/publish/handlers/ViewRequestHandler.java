@@ -10,7 +10,7 @@ import com.thoughtworks.go.plugin.api.request.GoPluginApiRequest;
 import com.thoughtworks.go.plugin.api.response.DefaultGoPluginApiResponse;
 import com.thoughtworks.go.plugin.api.response.GoPluginApiResponse;
 import io.github.kszatan.gocd.b2.publish.handlers.bodies.TaskConfigurationView;
-import io.github.kszatan.gocd.b2.publish.json.GsonService;
+import io.github.kszatan.gocd.b2.utils.json.GsonService;
 import org.apache.commons.io.IOUtils;
 
 public class ViewRequestHandler implements RequestHandler {

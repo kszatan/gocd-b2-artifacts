@@ -10,7 +10,7 @@ import com.thoughtworks.go.plugin.api.request.GoPluginApiRequest;
 import com.thoughtworks.go.plugin.api.response.DefaultGoPluginApiResponse;
 import com.thoughtworks.go.plugin.api.response.GoPluginApiResponse;
 import io.github.kszatan.gocd.b2.publish.handlers.bodies.ConfigurationDefinition;
-import io.github.kszatan.gocd.b2.publish.json.GsonService;
+import io.github.kszatan.gocd.b2.utils.json.GsonService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
