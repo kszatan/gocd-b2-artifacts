@@ -31,7 +31,7 @@ public class DefaultRequestHandlerFactory implements  RequestHandlerFactory {
                 handler = new RepositoryConfigurationRequestHandler();
                 break;
             case VALIDATE_PACKAGE_CONFIGURATION:
-//                handler = new ValidatePackageConfigurationRequestHandler();
+                handler = new ValidatePackageConfigurationRequestHandler();
                 break;
             case VALIDATE_REPOSITORY_CONFIGURATION:
                 handler = new ValidateRepositoryConfigurationRequestHandler();
