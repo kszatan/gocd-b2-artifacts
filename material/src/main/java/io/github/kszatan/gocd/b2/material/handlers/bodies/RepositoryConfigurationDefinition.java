@@ -21,20 +21,11 @@ public class RepositoryConfigurationDefinition {
         public Boolean partOfIdentity;
     }
 
-    public Field url;
     public Field bucketName;
     public Field accountId;
     public Field applicationKey;
 
     public RepositoryConfigurationDefinition() {
-        url = new Field();
-        url.displayName = "Repository URL";
-        url.displayOrder = "0";
-        url.defaultValue = "";
-        url.required = true;
-        url.secure = true;
-        url.partOfIdentity = true;
-
         bucketName = new Field();
         bucketName.displayName = "Bucket Name";
         bucketName.displayOrder = "1";
@@ -48,7 +39,7 @@ public class RepositoryConfigurationDefinition {
         accountId.defaultValue = "";
         accountId.displayOrder = "2";
         accountId.required = true;
-        accountId.secure = true;
+        accountId.secure = false;
         accountId.partOfIdentity = false;
 
         applicationKey = new Field();

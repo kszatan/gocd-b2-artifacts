@@ -10,24 +10,6 @@ import static org.junit.Assert.*;
 
 public class RepositoryConfigurationValidatorTest {
     private static final String correctRequestJson = "{\n" +
-            "  \"url\": {\n" +
-            "    \"value\": \"https://repository/url\"\n" +
-            "  },\n" +
-            "  \"bucketName\": {\n" +
-            "    \"value\": \"bukhet\"\n" +
-            "  },\n" +
-            "  \"accountId\": {\n" +
-            "    \"value\": \"30f20426f0b1\"\n" +
-            "  },\n" +
-            "  \"applicationKey\": {\n" +
-            "    \"value\": \"caca85ed4e7a3404db0b08bb8256d00d84e247e46\"\n" +
-            "  }\n" +
-            "}";
-
-    private static final String emptyUrlJson = "{\n" +
-            "  \"url\": {\n" +
-            "    \"value\": \"\"\n" +
-            "  },\n" +
             "  \"bucketName\": {\n" +
             "    \"value\": \"bukhet\"\n" +
             "  },\n" +
@@ -40,9 +22,6 @@ public class RepositoryConfigurationValidatorTest {
             "}";
 
     private static final String emptyBucketNameJson = "{\n" +
-            "  \"url\": {\n" +
-            "    \"value\": \"https://repository/url\"\n" +
-            "  },\n" +
             "  \"bucketName\": {\n" +
             "    \"value\": \"\"\n" +
             "  },\n" +
@@ -55,9 +34,6 @@ public class RepositoryConfigurationValidatorTest {
             "}";
 
     private static final String emptyAccountIdJson = "{\n" +
-            "  \"url\": {\n" +
-            "    \"value\": \"https://repository/url\"\n" +
-            "  },\n" +
             "  \"bucketName\": {\n" +
             "    \"value\": \"bukhet\"\n" +
             "  },\n" +
@@ -70,9 +46,6 @@ public class RepositoryConfigurationValidatorTest {
             "}";
 
     private static final String emptyApplicationKeyJson = "{\n" +
-            "  \"url\": {\n" +
-            "    \"value\": \"https://repository/url\"\n" +
-            "  },\n" +
             "  \"bucketName\": {\n" +
             "    \"value\": \"bukhet\"\n" +
             "  },\n" +
@@ -85,9 +58,6 @@ public class RepositoryConfigurationValidatorTest {
             "}";
 
     private static final String allEmptyFieldsJson = "{\n" +
-            "  \"url\": {\n" +
-            "    \"value\": \"\"\n" +
-            "  },\n" +
             "  \"bucketName\": {\n" +
             "    \"value\": \"\"\n" +
             "  },\n" +
@@ -107,14 +77,6 @@ public class RepositoryConfigurationValidatorTest {
         RepositoryConfiguration configuration = GsonService.fromJson(correctRequestJson, RepositoryConfiguration.class);
         ConfigurationValidationResponse response = validator.validate(configuration);
         assertThat(response.errors.size(), equalTo(0));
-    }
-
-    @Test
-    public void validatorShouldReportErrorOnEmptyUrl() throws Exception {
-        RepositoryConfiguration configuration = GsonService.fromJson(emptyUrlJson, RepositoryConfiguration.class);
-        ConfigurationValidationResponse response = validator.validate(configuration);
-        assertThat(response.errors.size(), equalTo(1));
-        assertThat(response.errors.get("url"), equalTo("Empty repository URL"));
     }
 
     @Test
@@ -145,6 +107,6 @@ public class RepositoryConfigurationValidatorTest {
     public void validatorShouldReportErrorsForAllEmptyFields() throws Exception {
         RepositoryConfiguration configuration = GsonService.fromJson(allEmptyFieldsJson, RepositoryConfiguration.class);
         ConfigurationValidationResponse response = validator.validate(configuration);
-        assertThat(response.errors.size(), equalTo(4));
+        assertThat(response.errors.size(), equalTo(3));
     }
 }

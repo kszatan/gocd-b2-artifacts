@@ -12,9 +12,6 @@ import static org.junit.Assert.assertThat;
 public class ValidatePackageConfigurationRequestTest {
     static private final String defaultRequestJson = "{\n" +
             "  \"repository-configuration\": {\n" +
-            "    \"url\": {\n" +
-            "      \"value\": \"https://repository/url\"\n" +
-            "    },\n" +
             "    \"bucketName\": {\n" +
             "      \"value\": \"bukhet\"\n" +
             "    },\n" +
@@ -45,7 +42,6 @@ public class ValidatePackageConfigurationRequestTest {
     public void constructorShouldParseCorrectJsonString() throws Exception {
         ValidatePackageConfigurationRequest request = new ValidatePackageConfigurationRequest(defaultRequestJson);
         RepositoryConfiguration repositoryConf = request.getRepositoryConfiguration();
-        assertThat(repositoryConf.getUrl(), equalTo("https://repository/url"));
         assertThat(repositoryConf.getBucketName(), equalTo("bukhet"));
         assertThat(repositoryConf.getAccountId(), equalTo("30f20426f0b1"));
         assertThat(repositoryConf.getApplicationKey(), equalTo("caca85ed4e7a3404db0b08bb8256d00d84e247e46"));

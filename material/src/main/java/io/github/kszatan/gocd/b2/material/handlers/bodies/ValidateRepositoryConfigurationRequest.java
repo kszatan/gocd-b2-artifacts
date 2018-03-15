@@ -23,7 +23,7 @@ public class ValidateRepositoryConfigurationRequest {
         }
         String configurationJson = GsonService.getField(json, "repository-configuration");
         missing.addAll(GsonService.validate(configurationJson,
-                Arrays.asList("url", "bucketName", "accountId", "applicationKey")));
+                Arrays.asList("bucketName", "accountId", "applicationKey")));
         if (!missing.isEmpty()) {
             throw new IncompleteJson("Missing fields: " + missing.toString());
         }

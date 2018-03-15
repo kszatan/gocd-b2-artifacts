@@ -19,7 +19,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Mockito.mock;
 
-public class RepositoryConfigurationRequestHandlerText {
+public class RepositoryConfigurationRequestHandlerTest {
     private RepositoryConfigurationRequestHandler handler;
     
     @Before
@@ -40,7 +40,6 @@ public class RepositoryConfigurationRequestHandlerText {
         assertThat(definition.accountId, notNullValue());
         assertThat(definition.applicationKey, notNullValue());
         assertThat(definition.bucketName, notNullValue());
-        assertThat(definition.url, notNullValue());
     }
 
 }

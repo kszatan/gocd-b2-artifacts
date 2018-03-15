@@ -7,20 +7,14 @@
 package io.github.kszatan.gocd.b2.material.handlers.bodies;
 
 public class RepositoryConfiguration {
-    private Entry url;
     private Entry bucketName;
     private Entry accountId;
     private Entry applicationKey;
 
     public RepositoryConfiguration() {
-        url = new Entry();
         bucketName = new Entry();
         accountId = new Entry();
         applicationKey = new Entry();
-    }
-
-    public String getUrl() {
-        return url.value;
     }
 
     public String getBucketName() {

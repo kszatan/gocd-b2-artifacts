@@ -6,9 +6,6 @@ import io.github.kszatan.gocd.b2.material.handlers.bodies.RepositoryConfiguratio
 public class RepositoryConfigurationValidator {
     public ConfigurationValidationResponse validate(RepositoryConfiguration configuration) {
         ConfigurationValidationResponse result = new ConfigurationValidationResponse();
-        if (configuration.getUrl().isEmpty()) {
-            result.errors.put("url", "Empty repository URL");
-        }
         if (configuration.getBucketName().isEmpty()) {
             result.errors.put("bucketName", "Empty bucket name");
         }
