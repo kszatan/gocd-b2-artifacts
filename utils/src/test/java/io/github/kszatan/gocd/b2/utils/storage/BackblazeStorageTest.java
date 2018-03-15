@@ -39,6 +39,48 @@ public class BackblazeStorageTest {
     }
 
     @Test
+    public void checkConnectionShouldReturnSuccessResponseWhenSuccessfullyAuthorized() throws Exception {
+        final String accountId = "account_id";
+        final String applicationKey = "application_key";
+        Optional<AuthorizeResponse> authorizeResponse = Optional.of(new AuthorizeResponse());
+        doReturn(authorizeResponse).when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
+
+        Boolean result = storage.checkConnection(accountId, applicationKey);
+        assertThat(result, equalTo(true));
+    }
+
+    @Test
+    public void checkConnectionShouldReturnFailureResponseWhenAuthorizeFails() throws Exception {
+        final String accountId = "account_id";
+        final String applicationKey = "application_key";
+        doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
+        errorResponse.message = "Too many requests";
+        doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
+
+        Boolean result = storage.checkConnection(accountId, applicationKey);
+        assertThat(result, equalTo(false));
+    }
+
+    @Test
+    public void checkConnectionShouldThrowStorageExceptionWhenAuthorizeCallThrowsIoException() throws Exception {
+        final String accountId = "account_id";
+        final String applicationKey = "application_key";
+        doThrow(new IOException("read error"))
+                .when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
+
+        thrown.expect(StorageException.class);
+        thrown.expectCause(IsInstanceOf.instanceOf(IOException.class));
+        storage.checkConnection(accountId, applicationKey);
+    }
+
+    @Test
     public void authorizeShouldReturnTrueWhenAllApiOperationsSucceed() throws Exception {
         final String accountId = "account_id";
         final String applicationKey = "application_key";

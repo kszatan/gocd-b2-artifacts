@@ -10,9 +10,13 @@ import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 
 public interface Storage {
+    void setBucketName(String bucketName);
+
     String getLastErrorMessage();
     
     void addProgressObserver(ProgressObserver observer);
+
+    Boolean checkConnection(String accountId, String applicationKey) throws StorageException;
 
     Boolean authorize(String accountId, String applicationKey) throws StorageException;
 

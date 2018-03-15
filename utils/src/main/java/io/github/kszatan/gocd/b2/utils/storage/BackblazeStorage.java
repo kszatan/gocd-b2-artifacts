@@ -50,6 +50,22 @@ public class BackblazeStorage implements Storage {
     }
 
     @Override
+    public Boolean checkConnection(String accountId, String applicationKey) throws StorageException {
+        try {
+            final Authorize authorize = new Authorize(backblazeApiWrapper, accountId, applicationKey);
+            if (!attempt(MAX_RETRY_ATTEMPTS, authorize)) {
+                return false;
+            }
+        } catch (GeneralSecurityException | IOException e) {
+            authorizeResponse = null;
+            logger.info("authorize error: " + e.getMessage());
+            throw new StorageException("Failed to authorize: " + e.getMessage(), e);
+        }
+        notify("Successfully connected to B2.");
+        return true;
+    }
+
+    @Override
     public Boolean authorize(String accountId, String applicationKey) throws StorageException {
         try {
             final Authorize authorize = new Authorize(backblazeApiWrapper, accountId, applicationKey);
@@ -93,7 +109,7 @@ public class BackblazeStorage implements Storage {
             }
         } catch (IOException e) {
             logger.info("upload error: " + e.getMessage());
-            throw new StorageException("Failed to upload " + relativeFilePath  + ": " + e.getMessage(), e);
+            throw new StorageException("Failed to upload " + relativeFilePath + ": " + e.getMessage(), e);
         }
         notify("Successfully uploaded " + relativeFilePath + " to " + destination + ".");
         return true;
