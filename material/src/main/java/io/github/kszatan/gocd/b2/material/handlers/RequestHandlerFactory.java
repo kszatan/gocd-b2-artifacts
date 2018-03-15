@@ -8,6 +8,8 @@ package io.github.kszatan.gocd.b2.material.handlers;
 
 import com.thoughtworks.go.plugin.api.exceptions.UnhandledRequestTypeException;
 
+import java.io.IOException;
+
 public interface RequestHandlerFactory {
     String REPOSITORY_CONFIGURATION = "repository-configuration";
     String PACKAGE_CONFIGURATION = "package-configuration";
@@ -18,5 +20,5 @@ public interface RequestHandlerFactory {
     String LATEST_REVISION = "latest-revision";
     String LATEST_REVISION_SINCE = "latest-revision-since";
 
-    RequestHandler create(String requestType) throws UnhandledRequestTypeException;
+    RequestHandler create(String requestType) throws UnhandledRequestTypeException, IOException;
 }

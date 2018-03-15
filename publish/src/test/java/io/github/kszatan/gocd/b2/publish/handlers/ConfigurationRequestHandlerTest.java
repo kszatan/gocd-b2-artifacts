@@ -20,7 +20,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Mockito.mock;
 
-public class ConfigurationRequestHandlerText {
+public class ConfigurationRequestHandlerTest {
     private ConfigurationRequestHandler handler;
     @Before
     public void setUp() throws Exception {

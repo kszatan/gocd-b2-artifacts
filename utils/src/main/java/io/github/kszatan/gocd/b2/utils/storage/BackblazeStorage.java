@@ -29,6 +29,10 @@ public class BackblazeStorage implements Storage {
     private ListBucketsResponse listBucketsResponse;
     private List<ProgressObserver> progressObservers = new ArrayList<>();
 
+    public BackblazeStorage() throws IOException {
+        this.backblazeApiWrapper = new BackblazeApiWrapper();
+    }
+
     public BackblazeStorage(String bucketName) throws IOException {
         this.bucketName = bucketName;
         this.backblazeApiWrapper = new BackblazeApiWrapper();
@@ -37,6 +41,16 @@ public class BackblazeStorage implements Storage {
     public BackblazeStorage(String bucketName, BackblazeApiWrapper backblazeApiWrapper) {
         this.bucketName = bucketName;
         this.backblazeApiWrapper = backblazeApiWrapper;
+    }
+
+    @Override
+    public void setBucketName(String bucketName) {
+        this.bucketName = bucketName;
+        this.bucketId = null;
+        this.authorizeResponse = null;
+        this.getUploadUrlResponse = null;
+        this.listBucketsResponse = null;
+        notify("Changing bucket name to '" + bucketName + "'");
     }
 
     @Override
