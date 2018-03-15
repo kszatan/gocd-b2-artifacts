@@ -264,19 +264,19 @@ public class BackblazeApiWrapperTest {
         assertThat(response.buckets.size(), equalTo(3));
         Bucket bucket = response.buckets.get(0);
         assertThat(bucket.accountId, equalTo("30f20426f0b1"));
-        assertThat(bucket.bucketId, equalTo("4a48fe8875c6214145260818"));
-        assertThat(bucket.bucketName, equalTo("Kitten-Videos"));
-        assertThat(bucket.bucketType, equalTo("allPrivate"));
+        assertThat(bucket.id, equalTo("4a48fe8875c6214145260818"));
+        assertThat(bucket.name, equalTo("Kitten-Videos"));
+        assertThat(bucket.type, equalTo("allPrivate"));
         bucket = response.buckets.get(1);
         assertThat(bucket.accountId, equalTo("30f20426f0b1"));
-        assertThat(bucket.bucketId, equalTo("5b232e8875c6214145260818"));
-        assertThat(bucket.bucketName, equalTo("Puppy-Videos"));
-        assertThat(bucket.bucketType, equalTo("allPublic"));
+        assertThat(bucket.id, equalTo("5b232e8875c6214145260818"));
+        assertThat(bucket.name, equalTo("Puppy-Videos"));
+        assertThat(bucket.type, equalTo("allPublic"));
         bucket = response.buckets.get(2);
         assertThat(bucket.accountId, equalTo("30f20426f0b1"));
-        assertThat(bucket.bucketId, equalTo("87ba238875c6214145260818"));
-        assertThat(bucket.bucketName, equalTo("Vacation-Pictures"));
-        assertThat(bucket.bucketType, equalTo("allPrivate"));
+        assertThat(bucket.id, equalTo("87ba238875c6214145260818"));
+        assertThat(bucket.name, equalTo("Vacation-Pictures"));
+        assertThat(bucket.type, equalTo("allPrivate"));
     }
 
     @Test

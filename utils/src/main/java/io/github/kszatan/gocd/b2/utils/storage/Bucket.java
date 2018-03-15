@@ -6,14 +6,20 @@
 
 package io.github.kszatan.gocd.b2.utils.storage;
 
+import com.google.gson.annotations.SerializedName;
+
 import java.util.List;
 
 public class Bucket {
     public String accountId;
-    public String bucketId;
-    public Object bucketInfo;
-    public String bucketName;
-    public String bucketType;
+    @SerializedName("bucketId")
+    public String id;
+    @SerializedName("bucketInfo")
+    public Object info;
+    @SerializedName("bucketName")
+    public String name;
+    @SerializedName("bucketType")
+    public String type;
     public List<String> corsRules;
     public List<String> lifecycleRules;
     public Integer revision;

@@ -70,10 +70,20 @@ public class BackblazeStorage implements Storage {
             if (!attempt(MAX_RETRY_ATTEMPTS, authorize)) {
                 return false;
             }
+            AuthorizeResponse authorizeResponse = authorize.getResponse().get();
+            final ListBuckets listBuckets = new ListBuckets(backblazeApiWrapper, authorizeResponse);
+            if (!attempt(MAX_RETRY_ATTEMPTS, listBuckets)) {
+                return false;
+            }
+            ListBucketsResponse listBucketsResponse = listBuckets.getResponse().get();
+            Optional<Bucket> maybeBucket = getBucketId(listBucketsResponse, bucketName);
+            if (!maybeBucket.isPresent()) {
+                errorMessage = "Bucket '" + bucketName + "' doesn't exist";
+                return false;
+            }
         } catch (GeneralSecurityException | IOException e) {
-            authorizeResponse = null;
-            logger.info("authorize error: " + e.getMessage());
-            throw new StorageException("Failed to authorize: " + e.getMessage(), e);
+            logger.info("checkConnection error: " + e.getMessage());
+            throw new StorageException("Failed to check connection: " + e.getMessage(), e);
         }
         notify("Successfully connected to B2.");
         return true;
@@ -92,12 +102,12 @@ public class BackblazeStorage implements Storage {
                 return false;
             }
             listBucketsResponse = listBuckets.getResponse().get();
-            Optional<Bucket> maybeBucket = getBucketId(bucketName);
+            Optional<Bucket> maybeBucket = getBucketId(listBucketsResponse, bucketName);
             if (!maybeBucket.isPresent()) {
                 errorMessage = "Bucket '" + bucketName + "' doesn't exist";
                 return false;
             }
-            bucketId = maybeBucket.get().bucketId;
+            bucketId = maybeBucket.get().id;
             final GetUploadUrl getUploadUrl = new GetUploadUrl(backblazeApiWrapper, authorizeResponse, bucketId);
             if (!attempt(MAX_RETRY_ATTEMPTS, getUploadUrl)) {
                 return false;
@@ -153,8 +163,8 @@ public class BackblazeStorage implements Storage {
 
     }
 
-    private Optional<Bucket> getBucketId(String bucketName) {
-        return listBucketsResponse.buckets.stream().filter(b -> b.bucketName.equals(bucketName)).findFirst();
+    private Optional<Bucket> getBucketId(ListBucketsResponse listBucketsResponse, String bucketName) {
+        return listBucketsResponse.buckets.stream().filter(b -> b.name.equals(bucketName)).findFirst();
     }
 
     private void notify(String notification) {

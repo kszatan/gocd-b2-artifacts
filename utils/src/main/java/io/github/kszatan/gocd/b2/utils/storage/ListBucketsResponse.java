@@ -6,8 +6,9 @@
 
 package io.github.kszatan.gocd.b2.utils.storage;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ListBucketsResponse {
-    public List<Bucket> buckets;
+    public List<Bucket> buckets = new ArrayList<>();
 }

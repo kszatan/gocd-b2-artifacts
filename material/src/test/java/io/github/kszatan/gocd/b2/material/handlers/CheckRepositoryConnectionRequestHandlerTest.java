@@ -22,7 +22,7 @@ import static org.mockito.Mockito.mock;
 public class CheckRepositoryConnectionRequestHandlerTest {
     static private final String defaultRequestJson = "{\n" +
             "  \"repository-configuration\": {\n" +
-            "    \"bucketName\": {\n" +
+            "    \"name\": {\n" +
             "      \"value\": \"bukhet\"\n" +
             "    },\n" +
             "    \"accountId\": {\n" +

@@ -37,6 +37,7 @@ public class CheckRepositoryConnectionRequestHandler implements RequestHandler {
             CheckRepositoryConnectionRequest checkRepositoryConnectionRequest =
                     new CheckRepositoryConnectionRequest(request.requestBody());
             RepositoryConfiguration configuration = checkRepositoryConnectionRequest.getConfiguration();
+            storage.setBucketName(configuration.getBucketName());
             storage.checkConnection(configuration.getAccountId(), configuration.getApplicationKey());
             CheckConnectionResponse checkConnectionResponse =
                     CheckConnectionResponse.success(Arrays.asList("Successfully connected to B2."));

@@ -44,9 +44,33 @@ public class BackblazeStorageTest {
         final String applicationKey = "application_key";
         Optional<AuthorizeResponse> authorizeResponse = Optional.of(new AuthorizeResponse());
         doReturn(authorizeResponse).when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
+        ListBucketsResponse listBucketsResponse = new ListBucketsResponse();
+        Bucket bucket = new Bucket();
+        bucket.name = bucketName;
+        listBucketsResponse.buckets.add(bucket);
+        Optional<ListBucketsResponse> maybeListBucketsResponse = Optional.of(listBucketsResponse);
+        doReturn(maybeListBucketsResponse).when(backblazeApiWrapperMock).listBuckets(authorizeResponse.get());
 
         Boolean result = storage.checkConnection(accountId, applicationKey);
         assertThat(result, equalTo(true));
+    }
+
+    @Test
+    public void checkConnectionShouldReturnFailureResponseWhenBucketNotFound() throws Exception {
+        final String accountId = "account_id";
+        final String applicationKey = "application_key";
+        Optional<AuthorizeResponse> authorizeResponse = Optional.of(new AuthorizeResponse());
+        doReturn(authorizeResponse).when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
+        ListBucketsResponse listBucketsResponse = new ListBucketsResponse();
+        Bucket bucket = new Bucket();
+        bucket.name = "different bucket name";
+        listBucketsResponse.buckets.add(bucket);
+        Optional<ListBucketsResponse> maybeListBucketsResponse = Optional.of(listBucketsResponse);
+        doReturn(maybeListBucketsResponse).when(backblazeApiWrapperMock).listBuckets(authorizeResponse.get());
+
+        Boolean result = storage.checkConnection(accountId, applicationKey);
+        assertThat(result, equalTo(false));
+        assertThat(storage.getLastErrorMessage(), equalTo("Bucket 'bucket_name' doesn't exist"));
     }
 
     @Test
@@ -88,15 +112,15 @@ public class BackblazeStorageTest {
         doReturn(authorizeResponse).when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
         Bucket bucket = new Bucket();
         bucket.accountId = accountId;
-        bucket.bucketId = "bucket_id";
-        bucket.bucketName = bucketName;
+        bucket.id = "bucket_id";
+        bucket.name = bucketName;
         ListBucketsResponse bucketList = new ListBucketsResponse();
         bucketList.buckets = new ArrayList<>();
         bucketList.buckets.add(bucket);
         Optional<ListBucketsResponse> listBucketResponse = Optional.of(bucketList);
         doReturn(listBucketResponse).when(backblazeApiWrapperMock).listBuckets(authorizeResponse.get());
         Optional<GetUploadUrlResponse> getUploadUrlResponse = Optional.of(new GetUploadUrlResponse());
-        doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(authorizeResponse.get(), bucket.bucketId);
+        doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(authorizeResponse.get(), bucket.id);
 
         Boolean result = storage.authorize(accountId, applicationKey);
         assertThat(result, equalTo(true));
@@ -118,15 +142,15 @@ public class BackblazeStorageTest {
                 .doReturn(authorizeResponse).when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
         Bucket bucket = new Bucket();
         bucket.accountId = accountId;
-        bucket.bucketId = "bucket_id";
-        bucket.bucketName = bucketName;
+        bucket.id = "bucket_id";
+        bucket.name = bucketName;
         ListBucketsResponse bucketList = new ListBucketsResponse();
         bucketList.buckets = new ArrayList<>();
         bucketList.buckets.add(bucket);
         Optional<ListBucketsResponse> listBucketResponse = Optional.of(bucketList);
         doReturn(listBucketResponse).when(backblazeApiWrapperMock).listBuckets(authorizeResponse.get());
         Optional<GetUploadUrlResponse> getUploadUrlResponse = Optional.of(new GetUploadUrlResponse());
-        doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(authorizeResponse.get(), bucket.bucketId);
+        doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(authorizeResponse.get(), bucket.id);
 
         Boolean result = storage.authorize(accountId, applicationKey);
         assertThat(result, equalTo(true));
@@ -163,8 +187,8 @@ public class BackblazeStorageTest {
         doReturn(authorizeResponse).when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
         Bucket bucket = new Bucket();
         bucket.accountId = accountId;
-        bucket.bucketId = "bucket_id";
-        bucket.bucketName = bucketName;
+        bucket.id = "bucket_id";
+        bucket.name = bucketName;
         ListBucketsResponse bucketList = new ListBucketsResponse();
         bucketList.buckets = new ArrayList<>();
         bucketList.buckets.add(bucket);
@@ -175,7 +199,7 @@ public class BackblazeStorageTest {
                 .doReturn(Optional.empty())
                 .doReturn(Optional.empty())
                 .doReturn(Optional.empty())
-                .when(backblazeApiWrapperMock).getUploadUrl(authorizeResponse.get(), bucket.bucketId);
+                .when(backblazeApiWrapperMock).getUploadUrl(authorizeResponse.get(), bucket.id);
 
         Boolean result = storage.authorize(accountId, applicationKey);
         assertThat(result, equalTo(false));
@@ -263,15 +287,15 @@ public class BackblazeStorageTest {
         doReturn(authorizeResponse).when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
         Bucket bucket = new Bucket();
         bucket.accountId = accountId;
-        bucket.bucketId = "bucket_id";
-        bucket.bucketName = bucketName;
+        bucket.id = "bucket_id";
+        bucket.name = bucketName;
         ListBucketsResponse bucketList = new ListBucketsResponse();
         bucketList.buckets = new ArrayList<>();
         bucketList.buckets.add(bucket);
         Optional<ListBucketsResponse> listBucketResponse = Optional.of(bucketList);
         doReturn(listBucketResponse).when(backblazeApiWrapperMock).listBuckets(authorizeResponse.get());
         Optional<GetUploadUrlResponse> getUploadUrlResponse = Optional.of(new GetUploadUrlResponse());
-        doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(authorizeResponse.get(), bucket.bucketId);
+        doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(authorizeResponse.get(), bucket.id);
         storage.authorize(accountId, applicationKey);
         reset(backblazeApiWrapperMock);
 
