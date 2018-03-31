@@ -70,9 +70,8 @@ public class BackblazeApiWrapper {
         try {
             connection = newHttpConnection(B2_API_URL, AUTHORIZE_ACCOUNT_CMD, "GET");
             connection.setRequestProperty("Authorization", headerForAuthorizeAccount);
-            InputStream in = new BufferedInputStream(connection.getInputStream());
             if (connection.getResponseCode() == HttpStatus.SC_OK) {
-                jsonResponse = myStreamReader(in);
+                jsonResponse = myStreamReader(connection.getInputStream());
             } else {
                 parseErrorResponse(connection);
                 return Optional.empty();
@@ -247,6 +246,6 @@ public class BackblazeApiWrapper {
     }
 
     private String userAgentVersion() {
-        return "gocd-b2-artifacts/publish-" + properties.getProperty("version");
+        return "gocd-b2-artifacts-" + properties.getProperty("version");
     }
 }

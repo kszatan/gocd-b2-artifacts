@@ -11,6 +11,7 @@ import com.thoughtworks.go.plugin.api.response.DefaultGoPluginApiResponse;
 import com.thoughtworks.go.plugin.api.response.GoPluginApiResponse;
 import io.github.kszatan.gocd.b2.material.handlers.bodies.CheckConnectionResponse;
 import io.github.kszatan.gocd.b2.utils.json.GsonService;
+import io.github.kszatan.gocd.b2.utils.storage.BackblazeStorage;
 import io.github.kszatan.gocd.b2.utils.storage.Storage;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,7 +23,7 @@ import static org.mockito.Mockito.mock;
 public class CheckRepositoryConnectionRequestHandlerTest {
     static private final String defaultRequestJson = "{\n" +
             "  \"repository-configuration\": {\n" +
-            "    \"name\": {\n" +
+            "    \"bucketName\": {\n" +
             "      \"value\": \"bukhet\"\n" +
             "    },\n" +
             "    \"accountId\": {\n" +
