@@ -135,7 +135,7 @@ public class ValidatePackageConfigurationRequestHandlerTest {
         GoPluginApiResponse response = handler.handle(request);
         assertThat(response.responseCode(), equalTo(DefaultGoPluginApiResponse.SUCCESS_RESPONSE_CODE));
         ConfigurationValidationResponse validation =
-                GsonService.fromJson(response.responseBody(), ConfigurationValidationResponse.class);
+                ConfigurationValidationResponse.fromJson(response.responseBody());
         assertThat(validation.errors.size(), equalTo(1));
     }
 
@@ -145,7 +145,7 @@ public class ValidatePackageConfigurationRequestHandlerTest {
         GoPluginApiResponse response = handler.handle(request);
         assertThat(response.responseCode(), equalTo(DefaultGoPluginApiResponse.SUCCESS_RESPONSE_CODE));
         ConfigurationValidationResponse validation =
-                GsonService.fromJson(response.responseBody(), ConfigurationValidationResponse.class);
+                ConfigurationValidationResponse.fromJson(response.responseBody());
         assertThat(validation.errors.size(), equalTo(1));
     }
 
@@ -155,7 +155,7 @@ public class ValidatePackageConfigurationRequestHandlerTest {
         GoPluginApiResponse response = handler.handle(request);
         assertThat(response.responseCode(), equalTo(DefaultGoPluginApiResponse.SUCCESS_RESPONSE_CODE));
         ConfigurationValidationResponse validation =
-                GsonService.fromJson(response.responseBody(), ConfigurationValidationResponse.class);
+                ConfigurationValidationResponse.fromJson(response.responseBody());
         assertThat(validation.errors.size(), equalTo(1));
     }
 

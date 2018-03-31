@@ -6,17 +6,26 @@
 
 package io.github.kszatan.gocd.b2.material.handlers.bodies;
 
+import com.google.gson.reflect.TypeToken;
 import io.github.kszatan.gocd.b2.utils.json.GsonService;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class ConfigurationValidationResponse {
-    public Map<String, String> errors = new HashMap<>();
+    public List<ConfigurationValidationError> errors = new ArrayList<>();
+
+    static public ConfigurationValidationResponse fromJson(String json) {
+        ConfigurationValidationResponse response = new ConfigurationValidationResponse();
+        Type type = new TypeToken<List<ConfigurationValidationError>>() {}.getType();
+        response.errors = GsonService.fromJson(json, type);
+        return response;
+    }
 
     public String toJson() {
-        return GsonService.toJson(this);
+        return GsonService.toJson(errors);
     }
 
     @Override

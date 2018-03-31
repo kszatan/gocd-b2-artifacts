@@ -1,5 +1,6 @@
 package io.github.kszatan.gocd.b2.material.handlers;
 
+import io.github.kszatan.gocd.b2.material.handlers.bodies.ConfigurationValidationError;
 import io.github.kszatan.gocd.b2.material.handlers.bodies.ConfigurationValidationResponse;
 import io.github.kszatan.gocd.b2.material.handlers.bodies.RepositoryConfiguration;
 import io.github.kszatan.gocd.b2.utils.json.GsonService;
@@ -84,7 +85,9 @@ public class RepositoryConfigurationValidatorTest {
         RepositoryConfiguration configuration = GsonService.fromJson(emptyBucketNameJson, RepositoryConfiguration.class);
         ConfigurationValidationResponse response = validator.validate(configuration);
         assertThat(response.errors.size(), equalTo(1));
-        assertThat(response.errors.get("bucketName"), equalTo("Empty bucket name"));
+        ConfigurationValidationError error = response.errors.get(0);
+        assertThat(error.key, equalTo("bucketName"));
+        assertThat(error.message, equalTo("Empty bucket name"));
     }
 
     @Test
@@ -92,7 +95,9 @@ public class RepositoryConfigurationValidatorTest {
         RepositoryConfiguration configuration = GsonService.fromJson(emptyAccountIdJson, RepositoryConfiguration.class);
         ConfigurationValidationResponse response = validator.validate(configuration);
         assertThat(response.errors.size(), equalTo(1));
-        assertThat(response.errors.get("accountId"), equalTo("Empty account ID"));
+        ConfigurationValidationError error = response.errors.get(0);
+        assertThat(error.key, equalTo("accountId"));
+        assertThat(error.message, equalTo("Empty account ID"));
     }
 
     @Test
@@ -100,7 +105,9 @@ public class RepositoryConfigurationValidatorTest {
         RepositoryConfiguration configuration = GsonService.fromJson(emptyApplicationKeyJson, RepositoryConfiguration.class);
         ConfigurationValidationResponse response = validator.validate(configuration);
         assertThat(response.errors.size(), equalTo(1));
-        assertThat(response.errors.get("applicationKey"), equalTo("Empty application key"));
+        ConfigurationValidationError error = response.errors.get(0);
+        assertThat(error.key, equalTo("applicationKey"));
+        assertThat(error.message, equalTo("Empty application key"));
     }
 
     @Test

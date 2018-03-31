@@ -1,5 +1,6 @@
 package io.github.kszatan.gocd.b2.material.handlers;
 
+import io.github.kszatan.gocd.b2.material.handlers.bodies.ConfigurationValidationError;
 import io.github.kszatan.gocd.b2.material.handlers.bodies.ConfigurationValidationResponse;
 import io.github.kszatan.gocd.b2.material.handlers.bodies.PackageConfiguration;
 import io.github.kszatan.gocd.b2.utils.json.GsonService;
@@ -83,7 +84,9 @@ public class PackageConfigurationValidatorTest {
         PackageConfiguration configuration = GsonService.fromJson(emptyPipelineRequestJson, PackageConfiguration.class);
         ConfigurationValidationResponse response = validator.validate(configuration);
         assertThat(response.errors.size(), equalTo(1));
-        assertThat(response.errors.get("pipelineName"), equalTo("Empty pipeline name"));
+        ConfigurationValidationError error = response.errors.get(0);
+        assertThat(error.key, equalTo("pipelineName"));
+        assertThat(error.message, equalTo("Empty pipeline name"));
     }
 
     @Test
@@ -91,7 +94,9 @@ public class PackageConfigurationValidatorTest {
         PackageConfiguration configuration = GsonService.fromJson(emptyStageRequestJson, PackageConfiguration.class);
         ConfigurationValidationResponse response = validator.validate(configuration);
         assertThat(response.errors.size(), equalTo(1));
-        assertThat(response.errors.get("stageName"), equalTo("Empty stage name"));
+        ConfigurationValidationError error = response.errors.get(0);
+        assertThat(error.key, equalTo("stageName"));
+        assertThat(error.message, equalTo("Empty stage name"));
     }
 
     @Test
@@ -99,7 +104,9 @@ public class PackageConfigurationValidatorTest {
         PackageConfiguration configuration = GsonService.fromJson(emptyJobRequestJson, PackageConfiguration.class);
         ConfigurationValidationResponse response = validator.validate(configuration);
         assertThat(response.errors.size(), equalTo(1));
-        assertThat(response.errors.get("jobName"), equalTo("Empty job name"));
+        ConfigurationValidationError error = response.errors.get(0);
+        assertThat(error.key, equalTo("jobName"));
+        assertThat(error.message, equalTo("Empty job name"));
     }
 
     @Test
