@@ -38,9 +38,14 @@ public class CheckRepositoryConnectionRequestHandler implements RequestHandler {
                     new CheckRepositoryConnectionRequest(request.requestBody());
             RepositoryConfiguration configuration = checkRepositoryConnectionRequest.getConfiguration();
             storage.setBucketName(configuration.getBucketName());
-            storage.checkConnection(configuration.getAccountId(), configuration.getApplicationKey());
-            CheckConnectionResponse checkConnectionResponse =
-                    CheckConnectionResponse.success(Arrays.asList("Successfully connected to B2."));
+            CheckConnectionResponse checkConnectionResponse;
+            if (storage.checkConnection(configuration.getAccountId(), configuration.getApplicationKey())) {
+                checkConnectionResponse =
+                        CheckConnectionResponse.success(Arrays.asList("Successfully connected to B2."));
+            } else {
+                checkConnectionResponse =
+                        CheckConnectionResponse.failure(Arrays.asList(storage.getLastErrorMessage()));
+            }
             response = DefaultGoPluginApiResponse.success(checkConnectionResponse.toJson());
         } catch (StorageException | InvalidJson e) {
             CheckConnectionResponse checkConnectionResponse =

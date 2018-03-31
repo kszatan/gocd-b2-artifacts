@@ -78,7 +78,7 @@ public class BackblazeStorage implements Storage {
             ListBucketsResponse listBucketsResponse = listBuckets.getResponse().get();
             Optional<Bucket> maybeBucket = getBucketId(listBucketsResponse, bucketName);
             if (!maybeBucket.isPresent()) {
-                errorMessage = "Bucket '" + bucketName + "' doesn't exist";
+                errorMessage = "Bucket '" + bucketName + "' not found";
                 return false;
             }
         } catch (GeneralSecurityException | IOException e) {

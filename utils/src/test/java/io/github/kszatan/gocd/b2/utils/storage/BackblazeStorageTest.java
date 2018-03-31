@@ -70,7 +70,7 @@ public class BackblazeStorageTest {
 
         Boolean result = storage.checkConnection(accountId, applicationKey);
         assertThat(result, equalTo(false));
-        assertThat(storage.getLastErrorMessage(), equalTo("Bucket 'bucket_name' doesn't exist"));
+        assertThat(storage.getLastErrorMessage(), equalTo("Bucket 'bucket_name' not found"));
     }
 
     @Test
