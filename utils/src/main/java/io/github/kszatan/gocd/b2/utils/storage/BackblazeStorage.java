@@ -124,19 +124,40 @@ public class BackblazeStorage implements Storage {
 
     @Override
     public Boolean upload(Path workDir, String relativeFilePath, String destination)
-            throws StorageException, GeneralSecurityException {
+            throws StorageException {
         try {
             Upload upload = new Upload(backblazeApiWrapper, bucketId, workDir, relativeFilePath, destination,
                     authorizeResponse, getUploadUrlResponse);
             if (!attempt(MAX_RETRY_ATTEMPTS, upload)) {
                 return false;
             }
-        } catch (IOException e) {
+        } catch (GeneralSecurityException | IOException e) {
             logger.info("upload error: " + e.getMessage());
             throw new StorageException("Failed to upload " + relativeFilePath + ": " + e.getMessage(), e);
         }
         notify("Successfully uploaded " + relativeFilePath + " to " + destination + ".");
         return true;
+    }
+
+    @Override
+    public Optional<ListFileNamesResponse> listFiles(String startFileName, String prefix, String delimiter) throws StorageException {
+        if (authorizeResponse == null) {
+            errorMessage = "Unauthorized";
+            return Optional.empty();
+        }
+        Optional<ListFileNamesResponse> response;
+        try {
+            ListFileNames listFileNames = new ListFileNames(backblazeApiWrapper, authorizeResponse, bucketId, startFileName, prefix, delimiter);
+            if (!attempt(MAX_RETRY_ATTEMPTS, listFileNames)) {
+                response = Optional.empty();
+            } else {
+                response = listFileNames.getResponse();
+            }
+        } catch (GeneralSecurityException | IOException e) {
+            logger.info("listFiles error: " + e.getMessage());
+            throw new StorageException("Failed to list files: " + e.getMessage(), e);
+        }
+        return response;
     }
 
     private Boolean attempt(final Integer times, final B2ApiCall action) throws IOException, StorageException, GeneralSecurityException {

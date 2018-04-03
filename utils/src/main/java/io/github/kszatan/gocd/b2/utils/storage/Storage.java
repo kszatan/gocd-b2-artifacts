@@ -8,6 +8,8 @@ package io.github.kszatan.gocd.b2.utils.storage;
 
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
+import java.util.List;
+import java.util.Optional;
 
 public interface Storage {
     void setBucketName(String bucketName);
@@ -19,6 +21,8 @@ public interface Storage {
     Boolean checkConnection(String accountId, String applicationKey) throws StorageException;
 
     Boolean authorize(String accountId, String applicationKey) throws StorageException;
+
+    Optional<ListFileNamesResponse> listFiles(String startFileName, String prefix, String delimiter) throws StorageException;
 
     Boolean upload(Path workDir, String relativeFilePath, String destination) throws StorageException, GeneralSecurityException;
 
