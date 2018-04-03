@@ -6,10 +6,13 @@
 
 package io.github.kszatan.gocd.b2.utils.storage;
 
+import com.google.gson.annotations.SerializedName;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class ListFileNamesResponse {
+    @SerializedName("files")
     public List<FileName> fileNames = new ArrayList<>();
     public String nextFileName;
 }

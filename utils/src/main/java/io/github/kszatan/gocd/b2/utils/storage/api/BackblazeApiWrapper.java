@@ -28,8 +28,9 @@ import java.util.Properties;
 public class BackblazeApiWrapper {
     private static final String B2_API_URL = "https://api.backblazeb2.com";
     private static final String AUTHORIZE_ACCOUNT_CMD = "/b2api/v1/b2_authorize_account";
-    private static final String LIST_BUCKETS_CMD = "/b2api/v1/b2_list_buckets";
     private static final String GET_UPLOAD_URL_CMD = "/b2api/v1/b2_get_upload_url";
+    private static final String LIST_BUCKETS_CMD = "/b2api/v1/b2_list_buckets";
+    private static final String LIST_FILE_NAMES_CMD = "/b2api/v1/b2_list_file_names";
     private static final Integer CONNECTION_TIMEOUT_MS = 60 * 1000;
     private static final Integer READ_TIMEOUT_MS = 120 * 1000;
 
@@ -192,6 +193,48 @@ public class BackblazeApiWrapper {
             }
         }
         return Optional.of(GsonService.fromJson(jsonResponse, GetUploadUrlResponse.class));
+    }
+
+    public Optional<ListFileNamesResponse> listFileNames(AuthorizeResponse authorizeResponse, String bucketId) throws IOException {
+        return listFileNames(authorizeResponse, bucketId, "", "", "");
+    }
+
+    public Optional<ListFileNamesResponse> listFileNames(AuthorizeResponse authorizeResponse, String bucketId,
+                                                         String startFileName, String prefix, String delimiter) throws IOException {
+        String apiUrl = authorizeResponse.apiUrl;
+        String accountAuthorizationToken = authorizeResponse.authorizationToken;
+        HttpURLConnection connection = null;
+        String postParams = "{\"bucketId\":\"" + bucketId + "\", " +
+                "\"startFileName\":\"" + startFileName + "\"," +
+                "\"prefix\":\"" + prefix + "\"," +
+                "\"delimiter\":\"" + delimiter + "\"," +
+                "\"maxFileCount\": 1000}";
+        String jsonResponse = "";
+        byte postData[] = postParams.getBytes(StandardCharsets.UTF_8);
+        try {
+            connection = newHttpConnection(apiUrl, LIST_FILE_NAMES_CMD, "POST");
+            connection.setRequestProperty("Authorization", accountAuthorizationToken);
+            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            connection.setRequestProperty("charset", "utf-8");
+            connection.setRequestProperty("Content-Length", Integer.toString(postData.length));
+            connection.setDoOutput(true);
+            DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
+            writer.write(postData);
+            if (connection.getResponseCode() == HttpStatus.SC_OK) {
+                jsonResponse = myStreamReader(connection.getInputStream());
+            } else {
+                parseErrorResponse(connection);
+                return Optional.empty();
+            }
+        } catch (SocketTimeoutException e) {
+            setRequestTimeoutError(e);
+            return Optional.empty();
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+        return Optional.of(GsonService.fromJson(jsonResponse, ListFileNamesResponse.class));
     }
 
     static private String myStreamReader(InputStream in) throws IOException {

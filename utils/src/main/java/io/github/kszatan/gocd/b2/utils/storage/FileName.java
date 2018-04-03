@@ -12,7 +12,7 @@ public class FileName {
     public String action;
     public Integer contentLength;
     public Integer size;
-    public Integer uploadTimestamp;
+    public Long uploadTimestamp;
     public String contentType;
     public String contentSha1;
     public String fileInfo;

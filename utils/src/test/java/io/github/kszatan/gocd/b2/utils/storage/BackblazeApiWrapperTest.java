@@ -92,6 +92,27 @@ public class BackblazeApiWrapperTest {
             "       \"author\" : \"unknown\"\n" +
             "    }\n" +
             "}";
+    private String listFileNamesResponseJson = "{\n" +
+            "  \"files\": [\n" +
+            "    {\n" +
+            "      \"action\": \"upload\",\n" +
+            "      \"contentLength\": 6,\n" +
+            "      \"fileId\": \"4_z27c88f1d182b150646ff0b16_f1004ba650fe24e6b_d20150809_m012853_c100_v0009990_t0000\",\n" +
+            "      \"fileName\": \"files/hello.txt\",\n" +
+            "      \"size\": 6,\n" +
+            "      \"uploadTimestamp\": 1439083733000\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"action\": \"upload\",\n" +
+            "      \"contentLength\": 6,\n" +
+            "      \"fileId\": \"4_z27c88f1d182b150646ff0b16_f1004ba650fe24e6c_d20150809_m012854_c100_v0009990_t0000\",\n" +
+            "      \"fileName\": \"files/world.txt\",\n" +
+            "      \"size\": 6,\n" +
+            "      \"uploadTimestamp\": 1439083734000\n" +
+            "    }\n" +
+            "  ],\n" +
+            "  \"nextFileName\": null\n" +
+            "}";
     private String errorResponseJson = "{\n" +
             "    \"status\" : 400,\n" +
             "    \"code\" : \"invalid_bucket_name\",\n" +
@@ -513,5 +534,92 @@ public class BackblazeApiWrapperTest {
         wrapper.authorize(accountId, applicationKey);
         ErrorResponse error = wrapper.getLastError().get();
         assertThat(error.retryAfter, nullValue());
+    }
+
+    @Test
+    public void exceptionDuringOpeningConnectionOnListFileNamesShouldCloseConnection() throws Exception {
+        doThrow(new IOException("Bad")).when(mockUrlCon).getInputStream();
+
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                return mockUrlCon;
+            }
+        };
+
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
+
+        try {
+            wrapper.listFileNames(GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class), "bucketId");
+        } catch (Exception e) {
+        }
+        verify(mockUrlCon).disconnect();
+    }
+
+    @Test
+    public void exceptionDuringOpeningConnectionOnListFileNamesShouldNotResultInAttemptToCloseConnection() throws Exception {
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                throw new IOException("Bad, bad connection");
+            }
+        };
+
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
+
+        try {
+            wrapper.listFileNames(GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class), "bucketId");
+        } catch (Exception e) {
+        }
+        verify(mockUrlCon, times(0)).disconnect();
+    }
+
+    @Test
+    public void requestTimeoutDuringConnectionOnListFileNamesShouldResultInCorrectlySetErrorAndEmptyReturn() throws Exception {
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                throw new SocketTimeoutException("Request timeout");
+            }
+        };
+
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
+
+        AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
+        Optional<ListFileNamesResponse> response = wrapper.listFileNames(authorizeResponse, "bucketId");
+        assertThat(response, equalTo(Optional.empty()));
+        ErrorResponse error = wrapper.getLastError().get();
+        assertThat(error.status, equalTo(HttpStatus.SC_REQUEST_TIMEOUT));
+        assertThat(error.message, equalTo("Request timeout"));
+        assertThat(error.code, equalTo("request_timeout"));
+        verify(mockUrlCon, times(0)).disconnect();
+    }
+
+    @Test
+    public void successfulListFileNamesCallShouldResultInCorrectlyPopulatedResponseFields() throws Exception {
+        ByteArrayInputStream is = new ByteArrayInputStream(listFileNamesResponseJson.getBytes("UTF-8"));
+        doReturn(is).when(mockUrlCon).getInputStream();
+        doReturn(HttpStatus.SC_OK).when(mockUrlCon).getResponseCode();
+        doReturn(mock(OutputStream.class)).when(mockUrlCon).getOutputStream();
+
+        AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
+        ListFileNamesResponse response = wrapper.listFileNames(authorizeResponse, "bucketId").get();
+        verify(mockUrlCon).disconnect();
+        assertThat(response.fileNames.size(), equalTo(2));
+        FileName fileName = response.fileNames.get(0);
+        assertThat(fileName.action, equalTo("upload"));
+        assertThat(fileName.contentLength, equalTo(6));
+        assertThat(fileName.fileId, equalTo("4_z27c88f1d182b150646ff0b16_f1004ba650fe24e6b_d20150809_m012853_c100_v0009990_t0000"));
+        assertThat(fileName.fileName, equalTo("files/hello.txt"));
+        assertThat(fileName.size, equalTo(6));
+        assertThat(fileName.uploadTimestamp, equalTo(1439083733000L));
+        fileName = response.fileNames.get(1);
+        assertThat(fileName.action, equalTo("upload"));
+        assertThat(fileName.contentLength, equalTo(6));
+        assertThat(fileName.fileId, equalTo("4_z27c88f1d182b150646ff0b16_f1004ba650fe24e6c_d20150809_m012854_c100_v0009990_t0000"));
+        assertThat(fileName.fileName, equalTo("files/world.txt"));
+        assertThat(fileName.size, equalTo(6));
+        assertThat(fileName.uploadTimestamp, equalTo(1439083734000L));
+        assertThat(response.nextFileName, nullValue());
     }
 }
