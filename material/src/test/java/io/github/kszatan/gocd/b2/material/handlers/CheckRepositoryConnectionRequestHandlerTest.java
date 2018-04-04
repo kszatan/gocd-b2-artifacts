@@ -9,9 +9,8 @@ package io.github.kszatan.gocd.b2.material.handlers;
 import com.thoughtworks.go.plugin.api.request.DefaultGoPluginApiRequest;
 import com.thoughtworks.go.plugin.api.response.DefaultGoPluginApiResponse;
 import com.thoughtworks.go.plugin.api.response.GoPluginApiResponse;
-import io.github.kszatan.gocd.b2.material.handlers.bodies.CheckConnectionResponse;
+import io.github.kszatan.gocd.b2.material.handlers.bodies.StatusMessagesResponse;
 import io.github.kszatan.gocd.b2.utils.json.GsonService;
-import io.github.kszatan.gocd.b2.utils.storage.BackblazeStorage;
 import io.github.kszatan.gocd.b2.utils.storage.Storage;
 import org.junit.Before;
 import org.junit.Test;
@@ -65,9 +64,9 @@ public class CheckRepositoryConnectionRequestHandlerTest {
         request.setRequestBody("Invalid JSON");
         GoPluginApiResponse response = handler.handle(request);
         assertThat(response.responseCode(), equalTo(DefaultGoPluginApiResponse.SUCCESS_RESPONSE_CODE));
-        CheckConnectionResponse CheckConnectionResponse = GsonService.fromJson(response.responseBody(), CheckConnectionResponse.class);
-        assertThat(CheckConnectionResponse.status, equalTo("failure"));
-        assertThat(CheckConnectionResponse.messages.size(), equalTo(1));
-        assertThat(CheckConnectionResponse.messages.iterator().next(), equalTo("Malformed JSON: Invalid JSON"));
+        StatusMessagesResponse StatusMessagesResponse = GsonService.fromJson(response.responseBody(), StatusMessagesResponse.class);
+        assertThat(StatusMessagesResponse.status, equalTo("failure"));
+        assertThat(StatusMessagesResponse.messages.size(), equalTo(1));
+        assertThat(StatusMessagesResponse.messages.iterator().next(), equalTo("Malformed JSON: Invalid JSON"));
     }
 }

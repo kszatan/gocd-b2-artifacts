@@ -11,35 +11,35 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.*;
 
-public class CheckConnectionResponseTest {
+public class StatusMessagesResponseTest {
     @Test
     public void successShouldReturnScmConnectionResultInstance() throws Exception {
-        assertThat(CheckConnectionResponse.success(Collections.singletonList("")),
-                instanceOf(CheckConnectionResponse.class));
+        assertThat(StatusMessagesResponse.success(Collections.singletonList("")),
+                instanceOf(StatusMessagesResponse.class));
     }
 
     @Test
     public void successShouldSetCorrectStatus() throws Exception {
-        CheckConnectionResponse result = CheckConnectionResponse.success(Collections.singletonList(""));
+        StatusMessagesResponse result = StatusMessagesResponse.success(Collections.singletonList(""));
         assertThat(result.status, equalTo("success"));
     }
 
     @Test
     public void successShouldSetCorrectMessagesList() throws Exception {
         List<String> messages = Arrays.asList("first", "second");
-        CheckConnectionResponse result = CheckConnectionResponse.success(messages);
+        StatusMessagesResponse result = StatusMessagesResponse.success(messages);
         assertThat(result.messages, equalTo(messages));
     }
 
     @Test
     public void failureShouldReturnScmConnectionResultInstance() throws Exception {
-        assertThat(CheckConnectionResponse.failure(Collections.singletonList("")),
-                instanceOf(CheckConnectionResponse.class));
+        assertThat(StatusMessagesResponse.failure(Collections.singletonList("")),
+                instanceOf(StatusMessagesResponse.class));
     }
 
     @Test
     public void failureShouldSetCorrectStatus() throws Exception {
-        CheckConnectionResponse result = CheckConnectionResponse.failure(Collections.singletonList(""));
+        StatusMessagesResponse result = StatusMessagesResponse.failure(Collections.singletonList(""));
         assertThat(result.status, equalTo("failure"));
     }
 
@@ -47,16 +47,16 @@ public class CheckConnectionResponseTest {
     @Test
     public void failureShouldSetCorrectMessagesList() throws Exception {
         List<String> messages = Arrays.asList("first", "second");
-        CheckConnectionResponse result = CheckConnectionResponse.failure(messages);
+        StatusMessagesResponse result = StatusMessagesResponse.failure(messages);
         assertThat(result.messages, equalTo(messages));
     }
 
     @Test
     public void toJsonShouldIncludeStatusAndMessages() throws Exception {
         List<String> messages = Arrays.asList("first", "second");
-        CheckConnectionResponse result = CheckConnectionResponse.failure(messages);
+        StatusMessagesResponse result = StatusMessagesResponse.failure(messages);
         String json = result.toJson();
-        CheckConnectionResponse resultFromJson = GsonService.fromJson(json, CheckConnectionResponse.class);
+        StatusMessagesResponse resultFromJson = GsonService.fromJson(json, StatusMessagesResponse.class);
         assertThat(resultFromJson, equalTo(result));
     }
 

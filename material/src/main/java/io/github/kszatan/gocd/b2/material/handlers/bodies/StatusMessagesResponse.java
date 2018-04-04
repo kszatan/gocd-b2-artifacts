@@ -5,20 +5,20 @@ import io.github.kszatan.gocd.b2.utils.json.GsonService;
 import java.util.Collection;
 import java.util.Objects;
 
-public class CheckConnectionResponse {
+public class StatusMessagesResponse {
     public String status;
     public Collection<String> messages;
 
-    public static CheckConnectionResponse success(Collection<String> messages) {
+    public static StatusMessagesResponse success(Collection<String> messages) {
         return create("success", messages);
     }
 
-    public static CheckConnectionResponse failure(Collection<String> messages) {
+    public static StatusMessagesResponse failure(Collection<String> messages) {
         return create("failure", messages);
     }
 
-    private static CheckConnectionResponse create(String status, Collection<String> messages) {
-        CheckConnectionResponse result = new CheckConnectionResponse();
+    private static StatusMessagesResponse create(String status, Collection<String> messages) {
+        StatusMessagesResponse result = new StatusMessagesResponse();
         result.status = status;
         result.messages = messages;
         return result;
@@ -32,7 +32,7 @@ public class CheckConnectionResponse {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        CheckConnectionResponse that = (CheckConnectionResponse) o;
+        StatusMessagesResponse that = (StatusMessagesResponse) o;
         return Objects.equals(status, that.status) &&
                 Objects.equals(messages, that.messages);
     }

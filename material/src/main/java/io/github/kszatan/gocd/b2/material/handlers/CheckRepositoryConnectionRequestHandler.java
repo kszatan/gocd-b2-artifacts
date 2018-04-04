@@ -38,19 +38,19 @@ public class CheckRepositoryConnectionRequestHandler implements RequestHandler {
                     new CheckRepositoryConnectionRequest(request.requestBody());
             RepositoryConfiguration configuration = checkRepositoryConnectionRequest.getConfiguration();
             storage.setBucketName(configuration.getBucketName());
-            CheckConnectionResponse checkConnectionResponse;
+            StatusMessagesResponse statusMessagesResponse;
             if (storage.checkConnection(configuration.getAccountId(), configuration.getApplicationKey())) {
-                checkConnectionResponse =
-                        CheckConnectionResponse.success(Arrays.asList("Successfully connected to B2."));
+                statusMessagesResponse =
+                        StatusMessagesResponse.success(Arrays.asList("Successfully connected to B2."));
             } else {
-                checkConnectionResponse =
-                        CheckConnectionResponse.failure(Arrays.asList(storage.getLastErrorMessage()));
+                statusMessagesResponse =
+                        StatusMessagesResponse.failure(Arrays.asList(storage.getLastErrorMessage()));
             }
-            response = DefaultGoPluginApiResponse.success(checkConnectionResponse.toJson());
+            response = DefaultGoPluginApiResponse.success(statusMessagesResponse.toJson());
         } catch (StorageException | InvalidJson e) {
-            CheckConnectionResponse checkConnectionResponse =
-                    CheckConnectionResponse.failure(Arrays.asList(e.getMessage()));
-            response = DefaultGoPluginApiResponse.success(checkConnectionResponse.toJson());
+            StatusMessagesResponse statusMessagesResponse =
+                    StatusMessagesResponse.failure(Arrays.asList(e.getMessage()));
+            response = DefaultGoPluginApiResponse.success(statusMessagesResponse.toJson());
         } catch (IncompleteJson e) {
             response = DefaultGoPluginApiResponse.incompleteRequest(e.getMessage());
         }

@@ -6,6 +6,7 @@
 
 package io.github.kszatan.gocd.b2.material.handlers;
 
+import io.github.kszatan.gocd.b2.material.handlers.bodies.CheckRepositoryConnectionRequest;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.internal.matchers.InstanceOf;
@@ -15,11 +16,11 @@ import static org.junit.Assert.*;
 
 public class DefaultRequestHandlerFactoryTest {
     private RequestHandlerFactory requestHandlerFactory;
+
     @Before
     public void setUp() {
         requestHandlerFactory = new DefaultRequestHandlerFactory();
     }
-
 
     @Test
     public void shouldCreateRequestHandlerForCheckPackageConnectionRequest() throws Exception {
