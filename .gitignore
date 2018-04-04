@@ -7,3 +7,7 @@
 .gradle
 *.iml
 classes
+fetch/out/
+material/out/
+publish/out/
+utils/out/
