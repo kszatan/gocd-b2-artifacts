@@ -7,6 +7,7 @@
 package io.github.kszatan.gocd.b2.utils.storage.api;
 
 import io.github.kszatan.gocd.b2.utils.storage.AuthorizeResponse;
+import io.github.kszatan.gocd.b2.utils.storage.ListFileNamesParams;
 import io.github.kszatan.gocd.b2.utils.storage.ListFileNamesResponse;
 import org.junit.Before;
 import org.junit.Test;
@@ -15,6 +16,8 @@ import java.util.Optional;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
@@ -41,14 +44,14 @@ public class ListFileNamesTest {
     @Test
     public void callShouldReturnTrueOnSuccess() throws Exception {
         ListFileNamesResponse response = new ListFileNamesResponse();
-        doReturn(Optional.of(response)).when(mockApiWrapper).listFileNames(authorizeResponse, bucketId, "", "", "");
+        doReturn(Optional.of(response)).when(mockApiWrapper).listFileNames(eq(authorizeResponse), any(ListFileNamesParams.class));
         Boolean result = listFileNames.call();
         assertThat(result, equalTo(true));
     }
 
     @Test
     public void callShouldReturnFalseOnFailure() throws Exception {
-        doReturn(Optional.empty()).when(mockApiWrapper).listFileNames(authorizeResponse, bucketId, "", "", "");
+        doReturn(Optional.empty()).when(mockApiWrapper).listFileNames(eq(authorizeResponse), any(ListFileNamesParams.class));
         Boolean result = listFileNames.call();
         assertThat(result, equalTo(false));
     }

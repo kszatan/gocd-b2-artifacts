@@ -6,21 +6,15 @@
 
 package io.github.kszatan.gocd.b2.utils.storage.api;
 
-import io.github.kszatan.gocd.b2.utils.storage.AuthorizeResponse;
-import io.github.kszatan.gocd.b2.utils.storage.ErrorResponse;
-import io.github.kszatan.gocd.b2.utils.storage.ListFileNamesResponse;
-import io.github.kszatan.gocd.b2.utils.storage.StorageException;
+import io.github.kszatan.gocd.b2.utils.storage.*;
 
 import java.io.IOException;
 import java.util.Optional;
 
 public class ListFileNames extends B2ApiCall {
     private final AuthorizeResponse authorizeResponse;
-    private ListFileNamesResponse listFileNamesResponse;
-    private String bucketId;
-    private String startFileName;
-    private String prefix;
-    private String delimiter;
+    private ListFileNamesResponse response;
+    private ListFileNamesParams params;
 
     public ListFileNames(BackblazeApiWrapper backblazeApiWrapper, AuthorizeResponse authorizeResponse, String bucketId) {
         this(backblazeApiWrapper, authorizeResponse, bucketId, "", "", "");
@@ -30,25 +24,26 @@ public class ListFileNames extends B2ApiCall {
                          String startFileName, String prefix, String delimiter) {
         super("list file names", backblazeApiWrapper);
         this.authorizeResponse = authorizeResponse;
-        this.bucketId = bucketId;
-        this.startFileName = startFileName;
-        this.prefix = prefix;
-        this.delimiter = delimiter;
+        this.params = new ListFileNamesParams();
+        this.params.bucketId = bucketId;
+        this.params.startFileName = startFileName;
+        this.params.prefix = prefix;
+        this.params.delimiter = delimiter;
+        this.params.maxFileCount = 1000;
     }
 
     public Optional<ListFileNamesResponse> getResponse() {
-        return Optional.of(listFileNamesResponse);
+        return Optional.of(response);
     }
 
     @Override
     public Boolean call() throws StorageException {
         try {
-            listFileNamesResponse = backblazeApiWrapper.listFileNames(
-                    authorizeResponse, bucketId, startFileName, prefix, delimiter).orElse(null);
+            response = backblazeApiWrapper.listFileNames(authorizeResponse, params).orElse(null);
         } catch (IOException e) {
             throw new StorageException(e);
         }
-        return listFileNamesResponse != null;
+        return response != null;
     }
 
     @Override

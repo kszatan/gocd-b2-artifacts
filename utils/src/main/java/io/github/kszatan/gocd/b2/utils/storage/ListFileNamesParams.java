@@ -11,5 +11,5 @@ public class ListFileNamesParams {
     public String startFileName;
     public String prefix;
     public String delimiter;
-    public Integer maxFileCount;
+    public Integer maxFileCount = 1000;
 }

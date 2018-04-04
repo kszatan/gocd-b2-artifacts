@@ -196,22 +196,19 @@ public class BackblazeApiWrapper {
     }
 
     public Optional<ListFileNamesResponse> listFileNames(AuthorizeResponse authorizeResponse, String bucketId) throws IOException {
-        return listFileNames(authorizeResponse, bucketId, "", "", "");
+        ListFileNamesParams postParams = new ListFileNamesParams();
+        postParams.bucketId = bucketId;
+        postParams.prefix = "";
+        postParams.maxFileCount = 1000;
+        return listFileNames(authorizeResponse, postParams);
     }
 
-    public Optional<ListFileNamesResponse> listFileNames(AuthorizeResponse authorizeResponse, String bucketId,
-                                                         String startFileName, String prefix, String delimiter) throws IOException {
+    public Optional<ListFileNamesResponse> listFileNames(AuthorizeResponse authorizeResponse, ListFileNamesParams params) throws IOException {
         String apiUrl = authorizeResponse.apiUrl;
         String accountAuthorizationToken = authorizeResponse.authorizationToken;
         HttpURLConnection connection = null;
-        ListFileNamesParams postParams = new ListFileNamesParams();
-        postParams.bucketId = bucketId;
-        postParams.startFileName = startFileName;
-        postParams.prefix = prefix;
-        postParams.delimiter = delimiter;
-        postParams.maxFileCount = 1000;
         String jsonResponse = "";
-        byte postData[] = GsonService.toJson(postParams).getBytes(StandardCharsets.UTF_8);
+        byte postData[] = GsonService.toJson(params).getBytes(StandardCharsets.UTF_8);
         try {
             connection = newHttpConnection(apiUrl, LIST_FILE_NAMES_CMD, "POST");
             connection.setRequestProperty("Authorization", accountAuthorizationToken);

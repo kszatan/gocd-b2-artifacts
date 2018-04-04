@@ -42,9 +42,11 @@ public class BackblazeStorageTest {
 
     @Test
     public void listFilesShouldReturnNonEmptyResponseWhenNoErrors() throws Exception {
-        final String startFileName = "files/hello.txt";
-        final String prefix = "files/";
-        final String delimiter = "/";
+        ListFileNamesParams params = new ListFileNamesParams();
+        params.startFileName = "files/hello.txt";
+        params.prefix = "files/";
+        params.delimiter = "/";
+        params.maxFileCount = 1000;
 
         ListFileNamesResponse listFileNamesResponse = new ListFileNamesResponse();
         FileName fileName = new FileName();
@@ -58,10 +60,10 @@ public class BackblazeStorageTest {
         Optional<ListFileNamesResponse> maybeListFileNamesResponse = Optional.of(listFileNamesResponse);
         AuthorizeResponse authorizeResponse = new AuthorizeResponse();
         doReturn(maybeListFileNamesResponse).when(backblazeApiWrapperMock).listFileNames(
-                eq(authorizeResponse), anyString(), eq(startFileName), eq(prefix), eq(delimiter));
+                eq(authorizeResponse), any(ListFileNamesParams.class));
 
         authorize(authorizeResponse);
-        Optional<ListFileNamesResponse> maybeResponse = storage.listFiles(startFileName, prefix, delimiter);
+        Optional<ListFileNamesResponse> maybeResponse = storage.listFiles(params.startFileName, params.prefix, params.delimiter);
 
         assertThat(maybeResponse.isPresent(), equalTo(true));
         ListFileNamesResponse response = maybeResponse.get();
@@ -89,7 +91,7 @@ public class BackblazeStorageTest {
         final String delimiter = "/";
 
         doThrow(new IOException("read error"))
-                .when(backblazeApiWrapperMock).listFileNames(any(), any(), any(), any(), any());
+                .when(backblazeApiWrapperMock).listFileNames(any(), any(ListFileNamesParams.class));
         thrown.expect(StorageException.class);
         thrown.expectCause(IsInstanceOf.instanceOf(IOException.class));
 
