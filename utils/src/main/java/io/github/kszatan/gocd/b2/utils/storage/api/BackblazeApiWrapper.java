@@ -204,13 +204,14 @@ public class BackblazeApiWrapper {
         String apiUrl = authorizeResponse.apiUrl;
         String accountAuthorizationToken = authorizeResponse.authorizationToken;
         HttpURLConnection connection = null;
-        String postParams = "{\"bucketId\":\"" + bucketId + "\", " +
-                "\"startFileName\":\"" + startFileName + "\"," +
-                "\"prefix\":\"" + prefix + "\"," +
-                "\"delimiter\":\"" + delimiter + "\"," +
-                "\"maxFileCount\": 1000}";
+        ListFileNamesParams postParams = new ListFileNamesParams();
+        postParams.bucketId = bucketId;
+        postParams.startFileName = startFileName;
+        postParams.prefix = prefix;
+        postParams.delimiter = delimiter;
+        postParams.maxFileCount = 1000;
         String jsonResponse = "";
-        byte postData[] = postParams.getBytes(StandardCharsets.UTF_8);
+        byte postData[] = GsonService.toJson(postParams).getBytes(StandardCharsets.UTF_8);
         try {
             connection = newHttpConnection(apiUrl, LIST_FILE_NAMES_CMD, "POST");
             connection.setRequestProperty("Authorization", accountAuthorizationToken);
