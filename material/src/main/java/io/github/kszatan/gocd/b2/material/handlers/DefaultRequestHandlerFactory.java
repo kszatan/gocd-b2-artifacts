@@ -15,7 +15,7 @@ public class DefaultRequestHandlerFactory implements  RequestHandlerFactory {
         RequestHandler handler = null;
         switch (requestType) {
             case CHECK_PACKAGE_CONNECTION:
-//                handler = new ConfigurationRequestHandler();
+                handler = new CheckPackageConnectionRequestHandler();
                 break;
             case CHECK_REPOSITORY_CONNECTION:
                 handler = new CheckRepositoryConnectionRequestHandler();
