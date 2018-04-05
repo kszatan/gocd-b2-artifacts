@@ -51,9 +51,9 @@ public class CheckPackageConnectionRequestHandler implements RequestHandler {
             } else {
                 PackageConfiguration packageConfiguration = checkRepositoryConnectionRequest.getPackageConfiguration();
                 if (packageExistsInRepository(packageConfiguration)) {
-                    statusMessagesResponse = StatusMessagesResponse.success(Arrays.asList("OK. Package found."));
+                    statusMessagesResponse = StatusMessagesResponse.success(Arrays.asList("Package found."));
                 } else {
-                    statusMessagesResponse = StatusMessagesResponse.failure(Arrays.asList("Package not found"));
+                    statusMessagesResponse = StatusMessagesResponse.failure(Arrays.asList("Package not found."));
                 }
             }
             response = DefaultGoPluginApiResponse.success(statusMessagesResponse.toJson());
@@ -70,7 +70,7 @@ public class CheckPackageConnectionRequestHandler implements RequestHandler {
     private Boolean packageExistsInRepository(PackageConfiguration packageConfiguration) throws StorageException {
         final String prefix = packageConfiguration.getPipelineName() + "/" +
                 packageConfiguration.getStageName() + "/" +
-                packageConfiguration.getJobName();
+                packageConfiguration.getJobName() + "/";
         Optional<ListFileNamesResponse> response = storage.listFiles(null, prefix, "/");
         return response.orElse(new ListFileNamesResponse()).fileNames.size() > 0;
     }

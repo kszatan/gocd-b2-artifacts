@@ -17,6 +17,7 @@ import io.github.kszatan.gocd.b2.utils.storage.Storage;
 import io.github.kszatan.gocd.b2.utils.storage.StorageException;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 public class CheckRepositoryConnectionRequestHandler implements RequestHandler {
@@ -41,7 +42,7 @@ public class CheckRepositoryConnectionRequestHandler implements RequestHandler {
             StatusMessagesResponse statusMessagesResponse;
             if (storage.checkConnection(configuration.getAccountId(), configuration.getApplicationKey())) {
                 statusMessagesResponse =
-                        StatusMessagesResponse.success(Arrays.asList("Successfully connected to B2."));
+                        StatusMessagesResponse.success(new ArrayList<>());
             } else {
                 statusMessagesResponse =
                         StatusMessagesResponse.failure(Arrays.asList(storage.getLastErrorMessage()));
