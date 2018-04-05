@@ -21,7 +21,7 @@ public class DefaultRequestHandlerFactory implements  RequestHandlerFactory {
                 handler = new CheckRepositoryConnectionRequestHandler();
                 break;
             case LATEST_REVISION:
-//                handler = new ValidateRequestHandler();
+                handler = new LatestRevisionRequestHandler();
                 break;
             case LATEST_REVISION_SINCE:
 //                handler = new ExecuteRequestHandler();
