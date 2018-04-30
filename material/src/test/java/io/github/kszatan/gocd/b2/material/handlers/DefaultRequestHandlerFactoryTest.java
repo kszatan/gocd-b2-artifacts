@@ -35,13 +35,13 @@ public class DefaultRequestHandlerFactoryTest {
     @Test
     public void shouldCreateRequestHandlerForLatestRevisionRequest() throws Exception {
         RequestHandler handler = requestHandlerFactory.create(RequestHandlerFactory.LATEST_REVISION);
-        assertNotNull(handler);
+        assertThat(handler, new InstanceOf(LatestRevisionRequestHandler.class));
     }
 
     @Test
     public void shouldCreateRequestHandlerForLatestRevisionSinceRequest() throws Exception {
         RequestHandler handler = requestHandlerFactory.create(RequestHandlerFactory.LATEST_REVISION_SINCE);
-        assertNotNull(handler);
+        assertThat(handler, new InstanceOf(LatestRevisionSinceRequestHandler.class));
     }
 
     @Test

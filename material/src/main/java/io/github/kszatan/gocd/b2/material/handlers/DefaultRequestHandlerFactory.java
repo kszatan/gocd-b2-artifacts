@@ -12,7 +12,7 @@ import java.io.IOException;
 
 public class DefaultRequestHandlerFactory implements  RequestHandlerFactory {
     public RequestHandler create(String requestType) throws UnhandledRequestTypeException, IOException {
-        RequestHandler handler = null;
+        RequestHandler handler;
         switch (requestType) {
             case CHECK_PACKAGE_CONNECTION:
                 handler = new CheckPackageConnectionRequestHandler();
@@ -24,7 +24,7 @@ public class DefaultRequestHandlerFactory implements  RequestHandlerFactory {
                 handler = new LatestRevisionRequestHandler();
                 break;
             case LATEST_REVISION_SINCE:
-//                handler = new ExecuteRequestHandler();
+                handler = new LatestRevisionSinceRequestHandler();
                 break;
             case PACKAGE_CONFIGURATION:
                 handler = new PackageConfigurationRequestHandler();
