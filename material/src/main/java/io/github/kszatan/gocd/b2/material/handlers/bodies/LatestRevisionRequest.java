@@ -6,12 +6,8 @@
 
 package io.github.kszatan.gocd.b2.material.handlers.bodies;
 
-import io.github.kszatan.gocd.b2.utils.json.GsonService;
 import io.github.kszatan.gocd.b2.utils.json.IncompleteJson;
 import io.github.kszatan.gocd.b2.utils.json.InvalidJson;
-
-import java.util.Arrays;
-import java.util.Collection;
 
 public class LatestRevisionRequest {
     private final PackageConfiguration packageConfiguration;
