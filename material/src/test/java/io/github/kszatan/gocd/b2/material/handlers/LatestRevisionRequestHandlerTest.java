@@ -110,7 +110,7 @@ public class LatestRevisionRequestHandlerTest {
 
     @Test
     public void handleShouldReturnSuccessResponseWithLatestRevisionIfAnyFound() throws Exception {
-        List<String> fileNames = Arrays.asList("up42/up42_stage/up42_job/23.1/",
+        List<String> fileNames = Arrays.asList("up42/up42_stage/up42_job/9.1/",
                 "up42/up42_stage/up42_job/24.1/",
                 "up42/up42_stage/up42_job/25.1/",
                 "up42/up42_stage/up42_job/27.1/",

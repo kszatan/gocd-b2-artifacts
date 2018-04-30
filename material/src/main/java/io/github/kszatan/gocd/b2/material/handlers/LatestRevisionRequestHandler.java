@@ -20,6 +20,7 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -71,7 +72,7 @@ public class LatestRevisionRequestHandler implements RequestHandler {
         if (maybeResponse.isPresent()) {
             ListFileNamesResponse response = maybeResponse.get();
             Optional<FileName> maybeFirstPackage = response.fileNames.stream()
-                    .sorted((o1, o2) -> o2.fileName.compareTo(o1.fileName))
+                    .sorted((f1, f2) -> fileNameRevisionComparator(f2, f1))
                     .findFirst();
             if (maybeFirstPackage.isPresent()) {
                 FileName firstPackage = maybeFirstPackage.get();
@@ -82,5 +83,18 @@ public class LatestRevisionRequestHandler implements RequestHandler {
             }
         }
         return maybeLatestRevision;
+    }
+
+    static private int fileNameRevisionComparator(FileName f1, FileName f2) {
+        Path path = Paths.get(f1.fileName);
+        String f1Revision = path.getName(path.getNameCount() - 1).toString();
+        path = Paths.get(f2.fileName);
+        String f2Revision = path.getName(path.getNameCount() - 1).toString();
+        float result = Float.parseFloat(f1Revision) - Float.parseFloat(f2Revision);
+        if (result > 0)
+            return 1;
+        else if (result < 0)
+            return -1;
+        return 0;
     }
 }
