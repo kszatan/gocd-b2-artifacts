@@ -13,7 +13,7 @@ public class DefaultRequestHandlerFactory implements  RequestHandlerFactory {
         RequestHandler handler = null;
         switch (requestType) {
             case CONFIGURATION:
-//                handler = new ConfigurationRequestHandler();
+                handler = new ConfigurationRequestHandler();
                 break;
             case VIEW:
 //                handler = new ViewRequestHandler();
