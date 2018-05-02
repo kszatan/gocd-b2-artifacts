@@ -1,6 +1,8 @@
+<div class="contextual_help has_go_tip_right" title='Source field accepts wildcards. Please consult <a href="https://maven.apache.org/shared/maven-shared-utils/apidocs/org/apache/maven/shared/utils/io/DirectoryScanner.html">org.apache.maven.shared.utils.io.DirectoryScanner</a> documentation for details.'>
+</div>
+<div style="clear: both"></div>
 <div class="form_item_block">
     <table>
-        <small>Source field accepts wildcards. Please consult <a href="https://maven.apache.org/shared/maven-shared-utils/apidocs/org/apache/maven/shared/utils/io/DirectoryScanner.html">org.apache.maven.shared.utils.io.DirectoryScanner</a> documentation for details.</small>
         <thead>
         <tr>
             <th><label>Source</label></th>
@@ -32,11 +34,10 @@
     <span class="form_error" ng-show="GOINPUTNAME[destinationPrefix].$error.server">
         {{ GOINPUTNAME[destinationPrefix].$error.server }}
     </span>
+    <div class="contextual_help has_go_tip_right" title="By default all files are going to be prefixed with PIPELINE_NAME/STAGE_NAME/JOB_NAME/PIPELINE_COUNTER.STAGE_COUNTER prefix. If you intend to download the artifacts with B2 fetch/material plugin, leave this field empty.">
+    </div>
 </div>
-<div>
-    <small>By default all files are going to be prefixed with <pre>PIPELINE_NAME/STAGE_NAME/JOB_NAME/PIPELINE_COUNTER.STAGE_COUNTER</pre> prefix.
-        If you intend to download the artifacts with B2 fetch/material plugin, leave this field empty.</small>
-</div>
+
 <br/>
 <div class="form_item_block">
     <label>Bucket name</label>
