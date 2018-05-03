@@ -1,0 +1,21 @@
+<div class="form_item_block">
+    <label>Repository Name</label>
+    <input type="text" ng-model="repositoryName"/>
+    <span class="form_error" ng-show="GOINPUTNAME[repositoryName].$error.server">
+        {{ GOINPUTNAME[repositoryName].$error.server }}
+    </span>
+</div>
+<div class="form_item_block">
+    <label>Package Name</label>
+    <input type="text" ng-model="packageName"/>
+    <span class="form_error" ng-show="GOINPUTNAME[packageName].$error.server">
+        {{ GOINPUTNAME[packageName].$error.server }}
+    </span>
+</div>
+<div class="form_item_block">
+    <label>Destination</label>
+    <input type="text" ng-model="destination"/>
+    <span class="form_error" ng-show="GOINPUTNAME[destination].$error.server">
+        {{ GOINPUTNAME[destination].$error.server }}
+    </span>
+</div>

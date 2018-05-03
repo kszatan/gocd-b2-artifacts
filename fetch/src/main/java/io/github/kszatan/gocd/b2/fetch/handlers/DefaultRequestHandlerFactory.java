@@ -16,7 +16,7 @@ public class DefaultRequestHandlerFactory implements  RequestHandlerFactory {
                 handler = new ConfigurationRequestHandler();
                 break;
             case VIEW:
-//                handler = new ViewRequestHandler();
+                handler = new ViewRequestHandler();
                 break;
             case VALIDATE:
 //                handler = new ValidateRequestHandler();
