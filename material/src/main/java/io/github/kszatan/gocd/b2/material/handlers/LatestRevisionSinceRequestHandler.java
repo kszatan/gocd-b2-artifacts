@@ -18,6 +18,7 @@ import io.github.kszatan.gocd.b2.utils.storage.*;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Date;
 import java.util.Optional;
 
 public class LatestRevisionSinceRequestHandler implements RequestHandler {
@@ -78,6 +79,7 @@ public class LatestRevisionSinceRequestHandler implements RequestHandler {
                 LatestRevisionSinceResponse latestRevisionSince = new LatestRevisionSinceResponse();
                 Path lastRevisionPath = Paths.get(firstPackage.fileName);
                 latestRevisionSince.revision = lastRevisionPath.getName(lastRevisionPath.getNameCount() - 1).toString();
+                latestRevisionSince.timestamp = getUploadedTime(prefix + latestRevisionSince.revision);
                 latestRevisionSince.data = new RevisionData(packageConfiguration.getPipelineName(),
                         packageConfiguration.getStageName(),
                         packageConfiguration.getJobName(),
@@ -86,6 +88,23 @@ public class LatestRevisionSinceRequestHandler implements RequestHandler {
             }
         }
         return maybeLatestRevision;
+    }
+
+    private Date getUploadedTime(String path) throws StorageException {
+        Date uploadedTime = new Date();
+        Optional<ListFileNamesResponse> maybeResponse = storage.listFiles(null, path, "*");
+        if (maybeResponse.isPresent()) {
+            ListFileNamesResponse response = maybeResponse.get();
+            Optional<FileName> maybeFileName = response.fileNames.stream()
+                    .sorted((f1, f2) -> f2.uploadTimestamp.compareTo(f1.uploadTimestamp))
+                    .findFirst();
+            if (maybeFileName.isPresent()) {
+                uploadedTime.setTime(maybeFileName.get().uploadTimestamp);
+            }
+        } else {
+            uploadedTime.setTime(0);
+        }
+        return uploadedTime;
     }
 
     private Boolean isFileNameRevisionGreater(String fileName, String revision) {

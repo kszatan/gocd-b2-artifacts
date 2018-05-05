@@ -123,18 +123,29 @@ public class LatestRevisionRequestHandlerTest {
                 "up42/up42_stage/up42_job/55.1/",
                 "up42/up42_stage/up42_job/57.1/",
                 "up42/up42_stage/up42_job/57.2/");
+        List<Long> timesSinceEpoch = Arrays.asList(525510976000L,
+                1525540976000L,
+                2525590976000L);
         request.setRequestBody(defaultRequestJson);
         doReturn(true).when(storage).authorize(any(), any());
-        ListFileNamesResponse listFileNamesResponse = new ListFileNamesResponse();
-        listFileNamesResponse.fileNames = fileNames.stream().map(name -> {
+        ListFileNamesResponse firstListFileNamesResponse = new ListFileNamesResponse();
+        firstListFileNamesResponse.fileNames = fileNames.stream().map(name -> {
             FileName fileName = new FileName();
             fileName.fileName = name;
             return fileName;
         }).collect(Collectors.toList());
-        doReturn(Optional.of(listFileNamesResponse)).when(storage).listFiles(any(), any(), any());
+        ListFileNamesResponse secondListFileNamesResponse = new ListFileNamesResponse();
+        secondListFileNamesResponse.fileNames = timesSinceEpoch.stream().map(timestamp -> {
+            FileName fileName = new FileName();
+            fileName.fileName = "file";
+            fileName.uploadTimestamp = timestamp;
+            return fileName;
+        }).collect(Collectors.toList());
+        doReturn(Optional.of(firstListFileNamesResponse))
+                .doReturn(Optional.of(secondListFileNamesResponse))
+                .when(storage).listFiles(any(), any(), any());
         GoPluginApiResponse response = handler.handle(request);
         assertThat(response.responseCode(), equalTo(DefaultGoPluginApiResponse.SUCCESS_RESPONSE_CODE));
-        assertThat(response.responseBody(), equalTo("{\"revision\":\"57.2\"}"));
-        assertThat(response.responseBody(), equalTo("{\"revision\":\"57.2\",\"data\":{\"pipelineName\":\"up42\",\"stageName\":\"up42_stage\",\"jobName\":\"up42_job\",\"label\":\"57.2\"}}"));
+        assertThat(response.responseBody(), equalTo("{\"revision\":\"57.2\",\"timestamp\":\"2050-01-12T10:02:56.000Z\",\"data\":{\"pipelineName\":\"up42\",\"stageName\":\"up42_stage\",\"jobName\":\"up42_job\",\"label\":\"57.2\"}}"));
     }
 }

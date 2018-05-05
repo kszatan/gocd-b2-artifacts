@@ -80,6 +80,7 @@ public class LatestRevisionRequestHandler implements RequestHandler {
                 LatestRevisionResponse latestRevision = new LatestRevisionResponse();
                 Path lastRevisionPath = Paths.get(firstPackage.fileName);
                 latestRevision.revision = lastRevisionPath.getName(lastRevisionPath.getNameCount() - 1).toString();
+                latestRevision.timestamp = getUploadedTime(prefix + latestRevision.revision);
                 latestRevision.data = new RevisionData(packageConfiguration.getPipelineName(),
                         packageConfiguration.getStageName(),
                         packageConfiguration.getJobName(),
@@ -88,6 +89,23 @@ public class LatestRevisionRequestHandler implements RequestHandler {
             }
         }
         return maybeLatestRevision;
+    }
+
+    private Date getUploadedTime(String path) throws StorageException {
+        Date uploadedTime = new Date();
+        Optional<ListFileNamesResponse> maybeResponse = storage.listFiles(null, path, "*");
+        if (maybeResponse.isPresent()) {
+            ListFileNamesResponse response = maybeResponse.get();
+            Optional<FileName> maybeFileName = response.fileNames.stream()
+                    .sorted((f1, f2) -> f2.uploadTimestamp.compareTo(f1.uploadTimestamp))
+                    .findFirst();
+            if (maybeFileName.isPresent()) {
+                uploadedTime.setTime(maybeFileName.get().uploadTimestamp);
+            }
+        } else {
+            uploadedTime.setTime(0);
+        }
+        return uploadedTime;
     }
 
     static private int fileNameRevisionComparator(FileName f1, FileName f2) {
