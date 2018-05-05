@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -79,6 +80,10 @@ public class LatestRevisionRequestHandler implements RequestHandler {
                 LatestRevisionResponse latestRevision = new LatestRevisionResponse();
                 Path lastRevisionPath = Paths.get(firstPackage.fileName);
                 latestRevision.revision = lastRevisionPath.getName(lastRevisionPath.getNameCount() - 1).toString();
+                latestRevision.data = new RevisionData(packageConfiguration.getPipelineName(),
+                        packageConfiguration.getStageName(),
+                        packageConfiguration.getJobName(),
+                        latestRevision.revision);
                 maybeLatestRevision = Optional.of(latestRevision);
             }
         }

@@ -137,7 +137,7 @@ public class LatestRevisionSinceRequestHandlerTest {
         doReturn(Optional.of(listFileNamesResponse)).when(storage).listFiles(any(), any(), any());
         GoPluginApiResponse response = handler.handle(request);
         assertThat(response.responseCode(), equalTo(DefaultGoPluginApiResponse.SUCCESS_RESPONSE_CODE));
-        assertThat(response.responseBody(), equalTo("{\"revision\":\"57.2\"}"));
+        assertThat(response.responseBody(), equalTo("{\"revision\":\"57.2\",\"data\":{\"pipelineName\":\"up42\",\"stageName\":\"up42_stage\",\"jobName\":\"up42_job\",\"label\":\"57.2\"}}"));
     }
 
     @Test

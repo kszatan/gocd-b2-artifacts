@@ -78,6 +78,10 @@ public class LatestRevisionSinceRequestHandler implements RequestHandler {
                 LatestRevisionSinceResponse latestRevisionSince = new LatestRevisionSinceResponse();
                 Path lastRevisionPath = Paths.get(firstPackage.fileName);
                 latestRevisionSince.revision = lastRevisionPath.getName(lastRevisionPath.getNameCount() - 1).toString();
+                latestRevisionSince.data = new RevisionData(packageConfiguration.getPipelineName(),
+                        packageConfiguration.getStageName(),
+                        packageConfiguration.getJobName(),
+                        latestRevisionSince.revision);
                 maybeLatestRevision = Optional.of(latestRevisionSince);
             }
         }
