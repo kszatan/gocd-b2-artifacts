@@ -6,13 +6,6 @@
 
 package io.github.kszatan.gocd.b2.fetch.handlers.bodies;
 
-import com.google.gson.reflect.TypeToken;
-import io.github.kszatan.gocd.b2.utils.json.GsonService;
-
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.List;
-
 public class TaskConfiguration {
     private Entry repositoryName;
     private Entry packageName;
