@@ -12,7 +12,6 @@ import io.github.kszatan.gocd.b2.utils.storage.GetUploadUrlResponse;
 import io.github.kszatan.gocd.b2.utils.storage.StorageException;
 
 import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.util.Optional;
 
 public class GetUploadUrl extends B2ApiCall {

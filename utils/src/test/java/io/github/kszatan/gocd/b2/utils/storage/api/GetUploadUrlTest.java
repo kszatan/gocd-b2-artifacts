@@ -22,7 +22,7 @@ public class GetUploadUrlTest {
     private GetUploadUrl getUploadUrl;
     private BackblazeApiWrapper mockApiWrapper;
     private AuthorizeResponse authorizeResponse;
-    private String bucketId = "bukhet";
+    private String bucketId = "4a48fe8875c6214145260818";
 
     @Before
     public void setUp() {
