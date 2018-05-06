@@ -17,6 +17,7 @@ import java.net.HttpURLConnection;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.URLStreamHandler;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Optional;
@@ -621,5 +622,97 @@ public class BackblazeApiWrapperTest {
         assertThat(fileName.size, equalTo(6));
         assertThat(fileName.uploadTimestamp, equalTo(1439083734000L));
         assertThat(response.nextFileName, nullValue());
+    }
+
+    @Test
+    public void exceptionDuringOpeningConnectionOnDownloadFileShouldCloseConnection() throws Exception {
+        doThrow(new IOException("Bad")).when(mockUrlCon).getInputStream();
+
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                return mockUrlCon;
+            }
+        };
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
+        AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
+        try {
+            wrapper.downloadFileByName("bukhet", "file", Paths.get(""), authorizeResponse);
+        } catch (Exception e) {
+        }
+        verify(mockUrlCon).disconnect();
+    }
+
+    @Test
+    public void exceptionDuringOpeningConnectionOnDownloadFileShouldNotResultInAttemptToCloseConnection() throws Exception {
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                throw new IOException("Bad, bad connection");
+            }
+        };
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
+        AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
+        try {
+            wrapper.downloadFileByName("bukhet", "file", Paths.get(""), authorizeResponse);
+        } catch (Exception e) {
+        }
+        verify(mockUrlCon, times(0)).disconnect();
+    }
+
+    @Test
+    public void requestTimeoutDuringConnectionOnDownloadFileShouldResultInCorrectlySetErrorAndEmptyReturn() throws Exception {
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                throw new SocketTimeoutException("Request timeout");
+            }
+        };
+
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
+
+        AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
+        Optional<DownloadFileResponse> response = wrapper.downloadFileByName("bukhet", "file", Paths.get(""), authorizeResponse);
+        assertThat(response, equalTo(Optional.empty()));
+        ErrorResponse error = wrapper.getLastError().get();
+        assertThat(error.status, equalTo(HttpStatus.SC_REQUEST_TIMEOUT));
+        assertThat(error.message, equalTo("Request timeout"));
+        assertThat(error.code, equalTo("request_timeout"));
+        verify(mockUrlCon, times(0)).disconnect();
+    }
+
+    @Test
+    public void downloadFileShouldSendConnectionOutputStreamToDesignatedFileAndReturnProperlyFilledResponse() throws Exception {
+        String filePath = this.getClass().getResource("UploadFileTest.txt").getPath();
+        final byte[] fileBytes = Files.readAllBytes(Paths.get(filePath));
+        ByteArrayInputStream is = new ByteArrayInputStream(fileBytes);
+        doReturn(is).when(mockUrlCon).getInputStream();
+        doReturn(HttpStatus.SC_OK).when(mockUrlCon).getResponseCode();
+        final String fileId = "4_h4a48fe8875c6214145260818_f000000000000472a_d20140104_m032022_c001_v0000123_t0104";
+        doReturn(fileId).when(mockUrlCon).getHeaderField("X-Bz-File-Id");
+        final String fileName = "dir1/dir2/fileName.txt";
+        doReturn(fileName).when(mockUrlCon).getHeaderField("X-Bz-File-Name");
+        final String contentSha1 = "bae5ed658ab3546aee12f23f36392f35dba1ebdd";
+        doReturn(contentSha1).when(mockUrlCon).getHeaderField("X-Bz-Content-Sha1");
+
+        FileOutputStream mockFos = mock(FileOutputStream.class);
+        doReturn(mock(FileChannel.class)).when(mockFos).getChannel();
+        BackblazeApiWrapper.FileOutputStreamFactory mockFosFactory = mock(BackblazeApiWrapper.FileOutputStreamFactory.class);
+        doReturn(mockFos).when(mockFosFactory).create(any());
+        wrapper = new BackblazeApiWrapper(stubUrlHandler, mockFosFactory);
+
+        AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
+        final String bucketName = "bukhet";
+        final String destination = "/path/to/dest";
+        Optional<DownloadFileResponse> maybeResponse =
+                wrapper.downloadFileByName(bucketName, fileName, Paths.get(destination), authorizeResponse);
+
+        verify(mockFosFactory).create("/path/to/dest/dir1/dir2/fileName.txt");
+        verify(mockFos).close();
+        assertThat(maybeResponse.isPresent(), equalTo(true));
+        DownloadFileResponse response = maybeResponse.get();
+        assertThat(response.fileId, equalTo(fileId));
+        assertThat(response.fileName, equalTo(fileName));
+        assertThat(response.contentSha1, equalTo(contentSha1));
     }
 }
