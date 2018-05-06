@@ -60,8 +60,9 @@ public class PublishTaskExecutor implements TaskExecutor, ProgressObserver {
                             return ExecuteResponse.failure("Failed to authorize: " + storage.getLastErrorMessage());
                         }
                         while (!scannedSourcesQueue.isEmpty()) {
-                            SourceDestination sd = scannedSourcesQueue.poll();
+                            SourceDestination sd = scannedSourcesQueue.peek();
                             storage.upload(absoluteWorkDir, sd.source, sd.destination);
+                            scannedSourcesQueue.remove();
                         }
                         break;
                     } catch (UnauthorizedCallException e) {
