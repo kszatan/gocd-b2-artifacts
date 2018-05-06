@@ -10,7 +10,7 @@ import com.thoughtworks.go.plugin.api.exceptions.UnhandledRequestTypeException;
 
 public class DefaultRequestHandlerFactory implements  RequestHandlerFactory {
     public RequestHandler create(String requestType) throws UnhandledRequestTypeException {
-        RequestHandler handler = null;
+        RequestHandler handler;
         switch (requestType) {
             case CONFIGURATION:
                 handler = new ConfigurationRequestHandler();
@@ -22,7 +22,7 @@ public class DefaultRequestHandlerFactory implements  RequestHandlerFactory {
                 handler = new ValidateRequestHandler();
                 break;
             case EXECUTE:
-//                handler = new ExecuteRequestHandler();
+                handler = new ExecuteRequestHandler();
                 break;
             default:
                 throw new UnhandledRequestTypeException(requestType);
