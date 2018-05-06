@@ -387,6 +387,33 @@ public class BackblazeStorageTest {
         storage.upload(Paths.get(""), "relative/file", "dest");
     }
 
+    @Test
+    public void downloadShouldReturnFalseAfterFiveUnsuccessfulUploadFileAttempts() throws Exception {
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
+        errorResponse.message = "Internal Error";
+        doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
+        doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .when(backblazeApiWrapperMock).downloadFileByName(any(), any(), any(), any());
+
+        Boolean result = storage.download("dir1/fileName.txt", Paths.get(System.getProperty("java.io.tmpdir")));
+        assertThat(result, equalTo(false));
+    }
+
+    @Test
+    public void downloadShouldThrowStorageExceptionWhenUploadFileCallThrowsIoException() throws Exception {
+        doThrow(new IOException("read error"))
+                .when(backblazeApiWrapperMock).downloadFileByName(any(), any(), any(), any());
+
+        thrown.expect(StorageException.class);
+        thrown.expectCause(IsInstanceOf.instanceOf(IOException.class));
+        storage.download("dir1/fileName.txt", Paths.get(System.getProperty("java.io.tmpdir")));
+    }
+
     private void authorize(AuthorizeResponse authorizeResponse) throws Exception {
         final String accountId = "account_id";
         final String applicationKey = "application_key";

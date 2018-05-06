@@ -26,5 +26,5 @@ public interface Storage {
 
     Boolean upload(Path workDir, String relativeFilePath, String destination) throws StorageException, GeneralSecurityException;
 
-    void download(String filename);
+    Boolean download(String fileName, Path destination) throws StorageException;
 }

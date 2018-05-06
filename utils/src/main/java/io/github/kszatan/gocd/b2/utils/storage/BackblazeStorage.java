@@ -160,6 +160,21 @@ public class BackblazeStorage implements Storage {
         return response;
     }
 
+    @Override
+    public Boolean download(String fileName, Path destination) throws StorageException {
+        try {
+            Download download = new Download(backblazeApiWrapper, bucketName, fileName, destination, authorizeResponse);
+            if (!attempt(MAX_RETRY_ATTEMPTS, download)) {
+                return false;
+            }
+        } catch (GeneralSecurityException | IOException e) {
+            logger.info("download error: " + e.getMessage());
+            throw new StorageException("Failed to download " + fileName + ": " + e.getMessage(), e);
+        }
+        notify("Successfully downloaded " + fileName + " to " + destination + ".");
+        return true;
+    }
+
     private Boolean attempt(final Integer times, final B2ApiCall action) throws IOException, StorageException, GeneralSecurityException {
         int attempt;
         for (attempt = 0; attempt < times; attempt++) {
@@ -177,11 +192,6 @@ public class BackblazeStorage implements Storage {
             errorMessage = "Failed to " + action.getName() + ": maximum number of retry attempts reached";
         }
         return success;
-    }
-
-    @Override
-    public void download(String filename) {
-
     }
 
     private Optional<Bucket> getBucketId(ListBucketsResponse listBucketsResponse, String bucketName) {

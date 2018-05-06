@@ -11,6 +11,7 @@ import org.apache.http.HttpStatus;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 
@@ -52,8 +53,8 @@ public class Download extends B2ApiCall {
     @Override
     public Boolean call() throws StorageException {
         try {
-            final String absoluteDestFilePath = destination.resolve(fileName).getParent().toString();
-            if (!mkdirsProvider.mkdirs(absoluteDestFilePath)) {
+            final Path absoluteDestFilePath = destination.resolve(fileName).getParent();
+            if (Files.notExists(absoluteDestFilePath) && !mkdirsProvider.mkdirs(absoluteDestFilePath.toString())) {
                 throw new IOException("Unable to create directories on path " + absoluteDestFilePath);
             }
             downloadFileResponse = backblazeApiWrapper.downloadFileByName(
