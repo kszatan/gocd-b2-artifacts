@@ -399,22 +399,6 @@ public class BackblazeApiWrapperTest {
     }
 
     @Test
-    public void uploadFileShouldReturnEmptyOptionalAndSetErrorOnSocketTimeout() throws Exception {
-        ByteArrayInputStream is = new ByteArrayInputStream(uploadFileResponseJson.getBytes("UTF-8"));
-        doReturn(is).when(mockUrlCon).getInputStream();
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        doReturn(os).when(mockUrlCon).getOutputStream();
-        doReturn(HttpStatus.SC_OK).when(mockUrlCon).getResponseCode();
-
-        String filePath = this.getClass().getResource("UploadFileTest.txt").getPath();
-        GetUploadUrlResponse uploadUrlResponse = GsonService.fromJson(getUploadUrlResponseJson, GetUploadUrlResponse.class);
-
-        wrapper.uploadFile(Paths.get(""), filePath, "", uploadUrlResponse);
-
-        verify(mockUrlCon).disconnect();
-    }
-
-    @Test
     public void exceptionDuringOpeningConnectionOnGetUploadUrlShouldCloseConnection() throws Exception {
         doThrow(new IOException("Bad")).when(mockUrlCon).getInputStream();
 
