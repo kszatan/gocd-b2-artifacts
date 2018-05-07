@@ -22,7 +22,26 @@ public class ExecuteRequestTest {
 
     @Test
     public void constructorShouldParseCorrectJsonString() throws Exception {
-        String json = "{\"config\": {\"sourceDestinations\":{\"value\":\"[{\\\"source\\\":\\\"asdf\\\", \\\"destination\\\":\\\"fdsa\\\"}]\"},\"destinationPrefix\":{\"value\":\"destination/prefix\"},\"bucketName\":{\"value\":\"kszatan-bucket\"}}, \"context\": { \"workingDirectory\": \"working-dir\", \"environmentVariables\": { \"ENV1\":\"VAL1\", \"ENV2\": \"VAL2\" }}}";
+        final String json = "{\n" +
+                "  \"config\": {\n" +
+                "    \"sourceDestinations\": {\n" +
+                "      \"value\": \"[{\\\"source\\\":\\\"asdf\\\", \\\"destination\\\":\\\"fdsa\\\"}]\"\n" +
+                "    },\n" +
+                "    \"destinationPrefix\": {\n" +
+                "      \"value\": \"destination/prefix\"\n" +
+                "    },\n" +
+                "    \"bucketName\": {\n" +
+                "      \"value\": \"kszatan-bucket\"\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"context\": {\n" +
+                "    \"workingDirectory\": \"working-dir\",\n" +
+                "    \"environmentVariables\": {\n" +
+                "      \"ENV1\": \"VAL1\",\n" +
+                "      \"ENV2\": \"VAL2\"\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
         ExecuteRequest request = ExecuteRequest.create(json);
         TaskConfiguration configuration = request.getTaskConfiguration();
         assertThat(configuration.getSourceDestinations(), Matchers.equalTo("[{\"source\":\"asdf\", \"destination\":\"fdsa\"}]"));
@@ -43,7 +62,18 @@ public class ExecuteRequestTest {
     public void constructorShouldThrowWhenDestinationFolderFieldIsMissing() throws Exception {
         thrown.expect(IncompleteJson.class);
         thrown.expectMessage("Missing fields: ");
-        String json = "{\"scm-configuration\":{\"url\":{\"value\":\"https://github.com/kszatan/gocd-phabricator-staging-material.git\"}},\"revision\": {\"revision\": \"revision-1\",\"timestamp\": \"2011-07-14T19:43:37.100Z\",\"data\":{}}}";
+        String json = "{\n" +
+                "  \"scm-configuration\": {\n" +
+                "    \"url\": {\n" +
+                "      \"value\": \"https://github.com/kszatan/gocd-phabricator-staging-material.git\"\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"revision\": {\n" +
+                "    \"revision\": \"revision-1\",\n" +
+                "    \"timestamp\": \"2011-07-14T19:43:37.100Z\",\n" +
+                "    \"data\": {}\n" +
+                "  }\n" +
+                "}";
         ExecuteRequest.create(json);;
     }
 
@@ -51,7 +81,14 @@ public class ExecuteRequestTest {
     public void constructorShouldThrowWhenRevisionFieldIsMissing() throws Exception {
         thrown.expect(IncompleteJson.class);
         thrown.expectMessage("Missing fields: ");
-        String json = "{\"scm-configuration\":{\"url\":{\"value\":\"https://github.com/kszatan/gocd-phabricator-staging-material.git\"}},\"destination-folder\":\"/var/lib/go-agent/pipelines/pipeline-name/destination\"}";
+        String json = "{\n" +
+                "  \"scm-configuration\": {\n" +
+                "    \"url\": {\n" +
+                "      \"value\": \"https://github.com/kszatan/gocd-phabricator-staging-material.git\"\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"destination-folder\": \"/var/lib/go-agent/pipelines/pipeline-name/destination\"\n" +
+                "}";
         ExecuteRequest.create(json);
     }
 
@@ -59,7 +96,14 @@ public class ExecuteRequestTest {
     public void constructorShouldThrowWhenScmConfigurationFieldIsMissing() throws Exception {
         thrown.expect(IncompleteJson.class);
         thrown.expectMessage("Missing fields: ");
-        String json = "{\"destination-folder\":\"/var/lib/go-agent/pipelines/pipeline-name/destination\",\"revision\": {\"revision\": \"revision-1\",\"timestamp\": \"2011-07-14T19:43:37.100Z\",\"data\":{}}}";
+        String json = "{\n" +
+                "  \"destination-folder\": \"/var/lib/go-agent/pipelines/pipeline-name/destination\",\n" +
+                "  \"revision\": {\n" +
+                "    \"revision\": \"revision-1\",\n" +
+                "    \"timestamp\": \"2011-07-14T19:43:37.100Z\",\n" +
+                "    \"data\": {}\n" +
+                "  }\n" +
+                "}";
         ExecuteRequest.create(json);
     }
 

@@ -21,7 +21,17 @@ public class TaskConfigurationRequestTest {
 
     @Test
     public void constructorShouldParseCorrectJsonString() throws Exception {
-        String json = "{\"sourceDestinations\":{\"value\":\"[{\\\"source\\\":\\\"asdf\\\", \\\"destination\\\":\\\"fdsa\\\"}]\"},\"destinationPrefix\":{\"value\":\"destination/prefix\"},\"bucketName\":{\"value\":\"kszatan-bucket\"}}";
+        final String json = "{\n" +
+                "  \"sourceDestinations\": {\n" +
+                "    \"value\": \"[{\\\"source\\\":\\\"asdf\\\", \\\"destination\\\":\\\"fdsa\\\"}]\"\n" +
+                "  },\n" +
+                "  \"destinationPrefix\": {\n" +
+                "    \"value\": \"destination/prefix\"\n" +
+                "  },\n" +
+                "  \"bucketName\": {\n" +
+                "    \"value\": \"kszatan-bucket\"\n" +
+                "  }\n" +
+                "}";
         TaskConfigurationRequest request = new TaskConfigurationRequest(json);
         TaskConfiguration configuration = request.getConfiguration();
         assertThat(configuration.getSourceDestinations(), equalTo("[{\"source\":\"asdf\", \"destination\":\"fdsa\"}]"));

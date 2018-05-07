@@ -22,7 +22,43 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class ExecuteRequestHandlerTest {
-    static private final String validRequestBody = "{\"context\":{\"workingDirectory\":\"pipelines/pipeline_name\",\"environmentVariables\":{\"GO_FROM_REVISION_MATERIAL\":\"743f18f79c3ce6d765159f02f26c65d57062436c\",\"GO_SERVER_URL\":\"https://localhost:8154/go\",\"GO_PIPELINE_LABEL\":\"10\",\"GO_STAGE_NAME\":\"stage_name\",\"GO_PIPELINE_NAME\":\"pipeline_name\",\"GO_STAGE_COUNTER\":\"1\",\"GO_PIPELINE_COUNTER\":\"10\",\"GO_JOB_NAME\":\"good_job\",\"B2_ACCOUNT_ID\":\"4abcdefgaf77\",\"GO_TRIGGER_USER\":\"changes\",\"GO_REVISION_ASDF\":\"743f18f79c3ce6d765159f02f26c65d57062436c\",\"GO_TO_REVISION_MATERIAL\":\"743f18f79c3ce6d765159f02f26c65d57062436c\",\"B2_APPLICATION_KEY\":\"caca85ed4e7a3404db0b08bb8256d00d84e247e46\"}},\"config\":{\"sourceDestinations\":{\"secure\":false,\"value\":\"[{\\\"source\\\": \\\"**/file*\\\", \\\"destination\\\": \\\"desti/nation\\\"}, {\\\"source\\\": \\\"**\\\", \\\"destination\\\": \\\"\\\"}]\",\"required\":false},\"destinationPrefix\":{\"secure\":false,\"value\":\"OTHERS\",\"required\":false},\"bucketName\":{\"secure\":false,\"value\":\"bukhet\",\"required\":false}}}";
+    static private final String validRequestBody = "{\n" +
+            "  \"context\": {\n" +
+            "    \"workingDirectory\": \"pipelines/pipeline_name\",\n" +
+            "    \"environmentVariables\": {\n" +
+            "      \"GO_FROM_REVISION_MATERIAL\": \"743f18f79c3ce6d765159f02f26c65d57062436c\",\n" +
+            "      \"GO_SERVER_URL\": \"https://localhost:8154/go\",\n" +
+            "      \"GO_PIPELINE_LABEL\": \"10\",\n" +
+            "      \"GO_STAGE_NAME\": \"stage_name\",\n" +
+            "      \"GO_PIPELINE_NAME\": \"pipeline_name\",\n" +
+            "      \"GO_STAGE_COUNTER\": \"1\",\n" +
+            "      \"GO_PIPELINE_COUNTER\": \"10\",\n" +
+            "      \"GO_JOB_NAME\": \"good_job\",\n" +
+            "      \"B2_ACCOUNT_ID\": \"4abcdefgaf77\",\n" +
+            "      \"GO_TRIGGER_USER\": \"changes\",\n" +
+            "      \"GO_REVISION_ASDF\": \"743f18f79c3ce6d765159f02f26c65d57062436c\",\n" +
+            "      \"GO_TO_REVISION_MATERIAL\": \"743f18f79c3ce6d765159f02f26c65d57062436c\",\n" +
+            "      \"B2_APPLICATION_KEY\": \"caca85ed4e7a3404db0b08bb8256d00d84e247e46\"\n" +
+            "    }\n" +
+            "  },\n" +
+            "  \"config\": {\n" +
+            "    \"sourceDestinations\": {\n" +
+            "      \"secure\": false,\n" +
+            "      \"value\": \"[{\\\"source\\\": \\\"**/file*\\\", \\\"destination\\\": \\\"desti/nation\\\"}, {\\\"source\\\": \\\"**\\\", \\\"destination\\\": \\\"\\\"}]\",\n" +
+            "      \"required\": false\n" +
+            "    },\n" +
+            "    \"destinationPrefix\": {\n" +
+            "      \"secure\": false,\n" +
+            "      \"value\": \"OTHERS\",\n" +
+            "      \"required\": false\n" +
+            "    },\n" +
+            "    \"bucketName\": {\n" +
+            "      \"secure\": false,\n" +
+            "      \"value\": \"bukhet\",\n" +
+            "      \"required\": false\n" +
+            "    }\n" +
+            "  }\n" +
+            "}";
     static private final DefaultGoPluginApiRequest validRequest = new DefaultGoPluginApiRequest("task", "1.0", "execute");
     private ExecuteRequestHandler handler;
     private TaskExecutor executor;
@@ -69,7 +105,38 @@ public class ExecuteRequestHandlerTest {
     
     @Test
     public void handleShouldReturnErrorResponseForMissingBucketName() {
-        final String bodyWithMissingBucketName = "{\"context\":{\"workingDirectory\":\"pipelines/pipeline_name\",\"environmentVariables\":{\"GO_FROM_REVISION_MATERIAL\":\"743f18f79c3ce6d765159f02f26c65d57062436c\",\"GO_SERVER_URL\":\"https://localhost:8154/go\",\"GO_PIPELINE_LABEL\":\"10\",\"GO_STAGE_NAME\":\"stage_name\",\"GO_PIPELINE_NAME\":\"pipeline_name\",\"GO_STAGE_COUNTER\":\"1\",\"GO_PIPELINE_COUNTER\":\"10\",\"GO_JOB_NAME\":\"good_job\",\"B2_ACCOUNT_ID\":\"4abcdefgaf77\",\"GO_TRIGGER_USER\":\"changes\",\"GO_REVISION_ASDF\":\"743f18f79c3ce6d765159f02f26c65d57062436c\",\"GO_TO_REVISION_MATERIAL\":\"743f18f79c3ce6d765159f02f26c65d57062436c\",\"B2_APPLICATION_KEY\":\"caca85ed4e7a3404db0b08bb8256d00d84e247e46\"}},\"config\":{\"sourceDestinations\":{\"secure\":false,\"value\":\"[{\\\"source\\\": \\\"**/file*\\\", \\\"destination\\\": \\\"desti/nation\\\"}, {\\\"source\\\": \\\"**\\\", \\\"destination\\\": \\\"\\\"}]\",\"required\":false},\"destinationPrefix\":{\"secure\":false,\"value\":\"OTHERS\",\"required\":false}}}";
+        final String bodyWithMissingBucketName = "{\n" +
+                "  \"context\": {\n" +
+                "    \"workingDirectory\": \"pipelines/pipeline_name\",\n" +
+                "    \"environmentVariables\": {\n" +
+                "      \"GO_FROM_REVISION_MATERIAL\": \"743f18f79c3ce6d765159f02f26c65d57062436c\",\n" +
+                "      \"GO_SERVER_URL\": \"https://localhost:8154/go\",\n" +
+                "      \"GO_PIPELINE_LABEL\": \"10\",\n" +
+                "      \"GO_STAGE_NAME\": \"stage_name\",\n" +
+                "      \"GO_PIPELINE_NAME\": \"pipeline_name\",\n" +
+                "      \"GO_STAGE_COUNTER\": \"1\",\n" +
+                "      \"GO_PIPELINE_COUNTER\": \"10\",\n" +
+                "      \"GO_JOB_NAME\": \"good_job\",\n" +
+                "      \"B2_ACCOUNT_ID\": \"4abcdefgaf77\",\n" +
+                "      \"GO_TRIGGER_USER\": \"changes\",\n" +
+                "      \"GO_REVISION_ASDF\": \"743f18f79c3ce6d765159f02f26c65d57062436c\",\n" +
+                "      \"GO_TO_REVISION_MATERIAL\": \"743f18f79c3ce6d765159f02f26c65d57062436c\",\n" +
+                "      \"B2_APPLICATION_KEY\": \"caca85ed4e7a3404db0b08bb8256d00d84e247e46\"\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"config\": {\n" +
+                "    \"sourceDestinations\": {\n" +
+                "      \"secure\": false,\n" +
+                "      \"value\": \"[{\\\"source\\\": \\\"**/file*\\\", \\\"destination\\\": \\\"desti/nation\\\"}, {\\\"source\\\": \\\"**\\\", \\\"destination\\\": \\\"\\\"}]\",\n" +
+                "      \"required\": false\n" +
+                "    },\n" +
+                "    \"destinationPrefix\": {\n" +
+                "      \"secure\": false,\n" +
+                "      \"value\": \"OTHERS\",\n" +
+                "      \"required\": false\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
         DefaultGoPluginApiRequest request = new DefaultGoPluginApiRequest("task", "1.0", "execute");
         request.setRequestBody(bodyWithMissingBucketName);
         handler.setExecutor(null);

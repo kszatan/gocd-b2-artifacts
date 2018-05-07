@@ -18,37 +18,68 @@ import static org.junit.Assert.*;
 
 public class ValidateRequestHandlerTest {
     private ValidateRequestHandler handler;
+    private DefaultGoPluginApiRequest request = new DefaultGoPluginApiRequest("task", "1.0", "validate");
+    
     @Before
     public void setUp() throws Exception {
         handler = new ValidateRequestHandler();
     }
 
     @Test
-    public void handleShouldReturnNonNullResponseForValidateConfigurationRequest() throws UnhandledRequestTypeException {
-        DefaultGoPluginApiRequest request = new DefaultGoPluginApiRequest("task", "1.0", "validate");
-        request.setRequestBody("{\"sourceDestinations\":{\"value\":\"[{\\\"source\\\":\\\"asdf\\\", \\\"destination\\\":\\\"fdsa\\\"}]\"},\"destinationPrefix\":{\"value\":\"destination/prefix\"},\"bucketName\":{\"value\":\"kszatan-bucket\"}}");
+    public void handleShouldReturnNonNullResponseForValidateConfigurationRequest() throws Exception {
+        final String requestBody = "{\n" +
+                "  \"sourceDestinations\": {\n" +
+                "    \"value\": \"[{\\\"source\\\":\\\"asdf\\\", \\\"destination\\\":\\\"fdsa\\\"}]\"\n" +
+                "  },\n" +
+                "  \"destinationPrefix\": {\n" +
+                "    \"value\": \"destination/prefix\"\n" +
+                "  },\n" +
+                "  \"bucketName\": {\n" +
+                "    \"value\": \"kszatan-bucket\"\n" +
+                "  }\n" +
+                "}";
+        request.setRequestBody(requestBody);
         assertNotNull(handler.handle(request));
     }
 
     @Test
-    public void handleShouldReturnErrorResponseForInvalidBucketName() throws UnhandledRequestTypeException {
-        DefaultGoPluginApiRequest request = new DefaultGoPluginApiRequest("task", "1.0", "validate");
-        request.setRequestBody("{\"sourceDestinations\":{\"value\":\"[{\\\"source\\\":\\\"asdf\\\", \\\"destination\\\":\\\"fdsa\\\"}]\"},\"destination-prefix\":{\"value\":\"destination-prefix\"},\"bucket-id\":{\"value\":\"b2-bucket\"}}");
+    public void handleShouldReturnErrorResponseForInvalidBucketName() throws Exception {
+        final String requestBody = "{\n" +
+                "  \"sourceDestinations\": {\n" +
+                "    \"value\": \"[{\\\"source\\\":\\\"asdf\\\", \\\"destination\\\":\\\"fdsa\\\"}]\"\n" +
+                "  },\n" +
+                "  \"destination-prefix\": {\n" +
+                "    \"value\": \"destination-prefix\"\n" +
+                "  },\n" +
+                "  \"bucket-id\": {\n" +
+                "    \"value\": \"b2-bucket\"\n" +
+                "  }\n" +
+                "}";
+        request.setRequestBody(requestBody);
         GoPluginApiResponse response = handler.handle(request);
         assertThat(response.responseCode(), equalTo(DefaultGoPluginApiResponse.VALIDATION_FAILED));
     }
     
     @Test
-    public void handleShouldReturnErrorResponseForEmptySourceDestinations() throws UnhandledRequestTypeException {
-        DefaultGoPluginApiRequest request = new DefaultGoPluginApiRequest("task", "1.0", "validate");
-        request.setRequestBody("{\"sourceDestinations\":{\"value\":\"[]\"},\"destination-prefix\":{\"value\":\"destination-prefix\"},\"bucket-id\":{\"value\":\"b2-bucket\"}}");
+    public void handleShouldReturnErrorResponseForEmptySourceDestinations() throws Exception {
+        final String requestBody = "{\n" +
+                "  \"sourceDestinations\": {\n" +
+                "    \"value\": \"[]\"\n" +
+                "  },\n" +
+                "  \"destination-prefix\": {\n" +
+                "    \"value\": \"destination-prefix\"\n" +
+                "  },\n" +
+                "  \"bucket-id\": {\n" +
+                "    \"value\": \"b2-bucket\"\n" +
+                "  }\n" +
+                "}";
+        request.setRequestBody(requestBody);
         GoPluginApiResponse response = handler.handle(request);
         assertThat(response.responseCode(), equalTo(DefaultGoPluginApiResponse.VALIDATION_FAILED));
     }
 
     @Test
     public void handleShouldReturnErrorResponseWhenGivenInvalidJson() {
-        DefaultGoPluginApiRequest request = new DefaultGoPluginApiRequest("task", "1.0", "validate");
         request.setRequestBody("Invalid JSON");
         GoPluginApiResponse response = handler.handle(request);
         assertThat(response.responseCode(), equalTo(DefaultGoPluginApiResponse.INTERNAL_ERROR));
