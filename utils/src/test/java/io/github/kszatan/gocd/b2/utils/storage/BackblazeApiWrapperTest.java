@@ -699,4 +699,61 @@ public class BackblazeApiWrapperTest {
         assertThat(response.fileName, equalTo(fileName));
         assertThat(response.contentSha1, equalTo(contentSha1));
     }
+
+    @Test
+    public void exceptionDuringOpeningConnectionOnStartLargeFileShouldCloseConnection() throws Exception {
+        doThrow(new IOException("Bad")).when(mockUrlCon).getInputStream();
+
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                return mockUrlCon;
+            }
+        };
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
+        AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
+        try {
+            wrapper.startLargeFile(authorizeResponse,"relative/path/to/file.txt", "4a48fe8875c6214145260818");
+        } catch (Exception e) {
+        }
+        verify(mockUrlCon).disconnect();
+    }
+
+    @Test
+    public void exceptionDuringOpeningConnectionOnStartLargeFileShouldNotResultInAttemptToCloseConnection() throws Exception {
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                throw new IOException("Bad, bad connection");
+            }
+        };
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
+        AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
+        try {
+            wrapper.startLargeFile(authorizeResponse,"relative/path/to/file.txt", "4a48fe8875c6214145260818");
+        } catch (Exception e) {
+        }
+        verify(mockUrlCon, times(0)).disconnect();
+    }
+
+    @Test
+    public void requestTimeoutDuringConnectionOnStartLargeFileShouldResultInCorrectlySetErrorAndEmptyReturn() throws Exception {
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                throw new SocketTimeoutException("Request timeout");
+            }
+        };
+
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
+
+        AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
+        Optional<StartLargeFileResponse> response = wrapper.startLargeFile(authorizeResponse,"relative/path/to/file.txt", "4a48fe8875c6214145260818");
+        assertThat(response, equalTo(Optional.empty()));
+        ErrorResponse error = wrapper.getLastError().get();
+        assertThat(error.status, equalTo(HttpStatus.SC_REQUEST_TIMEOUT));
+        assertThat(error.message, equalTo("Request timeout"));
+        assertThat(error.code, equalTo("request_timeout"));
+        verify(mockUrlCon, times(0)).disconnect();
+    }
 }
