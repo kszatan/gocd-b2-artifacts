@@ -31,4 +31,16 @@ public class Sha1FileHash implements FileHash {
             return formatter.toString();
         }
     }
+
+    @Override
+    public String getHashValue(byte[] buffer, int length) throws NoSuchAlgorithmException {
+        final MessageDigest digest = MessageDigest.getInstance("SHA-1");
+        digest.update(buffer, 0, length);
+        try (Formatter formatter = new Formatter()) {
+            for (final byte b : digest.digest()) {
+                formatter.format("%02x", b);
+            }
+            return formatter.toString();
+        }
+    }
 }

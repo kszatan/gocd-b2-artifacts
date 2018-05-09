@@ -12,4 +12,5 @@ import java.security.NoSuchAlgorithmException;
 
 public interface FileHash {
     String getHashValue(Path filePath) throws IOException, NoSuchAlgorithmException;
+    String getHashValue(byte[] buffer, int length) throws IOException, NoSuchAlgorithmException;
 }
