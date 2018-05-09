@@ -98,6 +98,12 @@ public class BackblazeApiWrapperTest {
             "       \"author\" : \"unknown\"\n" +
             "    }\n" +
             "}";
+    private final String uploadPartResponseJson = "{\n" +
+            "  \"contentLength\": 100000000,\n" +
+            "  \"contentSha1\": \"062685a84ab248d2488f02f6b01b948de2514ad8\",\n" +
+            "  \"fileId\": \"4_ze73ede9c9c8412db49f60715_f100b4e93fbae6252_d20150824_m224353_c900_v8881000_t0001\",\n" +
+            "  \"partNumber\": 1\n" +
+            "}";
     private final String listFileNamesResponseJson = "{\n" +
             "  \"files\": [\n" +
             "    {\n" +
@@ -858,5 +864,129 @@ public class BackblazeApiWrapperTest {
         assertThat(response.fileId, equalTo("4_ze73ede9c9c8412db49f60715_f100b4e93fbae6252_d20150824_m224353_c900_v8881000_t0001"));
         assertThat(response.authorizationToken, equalTo("3_20160409004829_42b8f80ba60fb4323dcaad98_ec81302316fccc2260201cbf17813247f312cf3b_000_uplg"));
         assertThat(response.uploadUrl, equalTo("https://pod-000-1016-09.backblaze.com/b2api/v1/b2_upload_part/4_ze73ede9c9c8412db49f60715_f100b4e93fbae6252_d20150824_m224353_c900_v8881000_t0001/0037"));
+    }
+
+    @Test
+    public void exceptionDuringOpeningConnectionOnUploadPartShouldCloseConnection() throws Exception {
+        doThrow(new IOException("Bad")).when(mockUrlCon).getInputStream();
+
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                return mockUrlCon;
+            }
+        };
+        doReturn("hash").when(mockFileHash).getHashValue(any());
+
+        wrapper = new BackblazeApiWrapper(stubUrlHandler, mockFileHash);
+
+        GetUploadPartUrlResponse uploadPartUrlResponse = GsonService.fromJson(getUploadPartUrlResponseJson, GetUploadPartUrlResponse.class);
+        try {
+            wrapper.uploadPart(new byte[10], 10, 1, uploadPartUrlResponse);
+        } catch (Exception e) {
+        }
+        verify(mockUrlCon).disconnect();
+    }
+
+    @Test
+    public void exceptionDuringOpeningConnectionOnUploadPartShouldNotResultInAttemptToCloseConnection() throws Exception {
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                throw new IOException("Bad, bad connection");
+            }
+        };
+
+        wrapper = new BackblazeApiWrapper(stubUrlHandler, mockFileHash);
+
+        GetUploadPartUrlResponse uploadPartUrlResponse = GsonService.fromJson(getUploadPartUrlResponseJson, GetUploadPartUrlResponse.class);
+        try {
+            wrapper.uploadPart(new byte[10], 10, 1, uploadPartUrlResponse);
+        } catch (Exception e) {
+        }
+        verify(mockUrlCon, times(0)).disconnect();
+    }
+
+    @Test
+    public void requestTimeoutDuringConnectionOnUploadPartShouldResultInCorrectlySetErrorAndEmptyReturn() throws Exception {
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                throw new SocketTimeoutException("Request timeout");
+            }
+        };
+
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
+
+        GetUploadPartUrlResponse uploadPartUrlResponse = GsonService.fromJson(getUploadPartUrlResponseJson, GetUploadPartUrlResponse.class);
+        Optional<UploadPartResponse> response = wrapper.uploadPart(new byte[10], 10, 1, uploadPartUrlResponse);
+        assertThat(response, equalTo(Optional.empty()));
+        ErrorResponse error = wrapper.getLastError().get();
+        assertThat(error.status, equalTo(HttpStatus.SC_REQUEST_TIMEOUT));
+        assertThat(error.message, equalTo("Request timeout"));
+        assertThat(error.code, equalTo("request_timeout"));
+        verify(mockUrlCon, times(0)).disconnect();
+    }
+    
+    @Test
+    public void uploadPartShouldUploadAllFileContents() throws Exception {
+        ByteArrayInputStream is = new ByteArrayInputStream(uploadPartResponseJson.getBytes("UTF-8"));
+        doReturn(is).when(mockUrlCon).getInputStream();
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        doReturn(os).when(mockUrlCon).getOutputStream();
+        doReturn(HttpStatus.SC_OK).when(mockUrlCon).getResponseCode();
+
+        String filePath = this.getClass().getResource("UploadFileTest.txt").getPath();
+        int length = (int) Files.size(Paths.get(filePath));
+        byte[] buf = new byte[length];
+        FileInputStream fis = new FileInputStream(filePath);
+        fis.read(buf, 0, length);
+        fis.close();
+
+        GetUploadPartUrlResponse uploadPartUrlResponse = GsonService.fromJson(getUploadPartUrlResponseJson, GetUploadPartUrlResponse.class);
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
+        wrapper.uploadPart(buf, length,1, uploadPartUrlResponse);
+
+        byte[] fileBytes = Files.readAllBytes(Paths.get(filePath));
+        String fileContents = new String(fileBytes);
+        assertThat(os.toString(), equalTo(fileContents));
+    }
+
+    @Test
+    public void successfulUploadPartCallShouldResultInCorrectlyPopulatedResponseFields() throws Exception {
+        ByteArrayInputStream is = new ByteArrayInputStream(uploadPartResponseJson.getBytes("UTF-8"));
+        doReturn(is).when(mockUrlCon).getInputStream();
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        doReturn(os).when(mockUrlCon).getOutputStream();
+        doReturn(HttpStatus.SC_OK).when(mockUrlCon).getResponseCode();
+
+        String filePath = this.getClass().getResource("UploadFileTest.txt").getPath();
+        int length = (int) Files.size(Paths.get(filePath));
+        byte[] buf = new byte[length];
+        FileInputStream fis = new FileInputStream(filePath);
+        fis.read(buf, 0, length);
+        fis.close();
+
+        GetUploadPartUrlResponse uploadPartUrlResponse = GsonService.fromJson(getUploadPartUrlResponseJson, GetUploadPartUrlResponse.class);
+        UploadPartResponse response = wrapper.uploadPart(buf, length,1, uploadPartUrlResponse).get();
+
+        assertThat(response.fileId, equalTo("4_ze73ede9c9c8412db49f60715_f100b4e93fbae6252_d20150824_m224353_c900_v8881000_t0001"));
+        assertThat(response.contentSha1, equalTo("062685a84ab248d2488f02f6b01b948de2514ad8"));
+        assertThat(response.contentLength, equalTo(100000000));
+        assertThat(response.partNumber, equalTo(1));
+    }
+
+    @Test
+    public void uploadPartShouldCloseConnectionAfterSuccessfulUpload() throws Exception {
+        ByteArrayInputStream is = new ByteArrayInputStream(uploadPartResponseJson.getBytes("UTF-8"));
+        doReturn(is).when(mockUrlCon).getInputStream();
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        doReturn(os).when(mockUrlCon).getOutputStream();
+        doReturn(HttpStatus.SC_OK).when(mockUrlCon).getResponseCode();
+
+        GetUploadPartUrlResponse uploadPartUrlResponse = GsonService.fromJson(getUploadPartUrlResponseJson, GetUploadPartUrlResponse.class);
+        wrapper.uploadPart(new byte[10], 10, 1, uploadPartUrlResponse);
+
+        verify(mockUrlCon).disconnect();
     }
 }

@@ -144,6 +144,38 @@ public class BackblazeApiWrapper {
         return Optional.of(GsonService.fromJson(jsonResponse, UploadFileResponse.class));
     }
 
+    public Optional<UploadPartResponse> uploadPart(byte[] filePart, int length, Integer partNumber, GetUploadPartUrlResponse getUploadPartUrlResponse)
+            throws NoSuchAlgorithmException, IOException {
+        String content_sha1 = fileHash.getHashValue(filePart, length);
+        HttpURLConnection connection = null;
+        String jsonResponse;
+        try {
+            connection = newHttpConnection(getUploadPartUrlResponse.uploadUrl, "", "POST");
+            connection.setRequestProperty("Authorization", getUploadPartUrlResponse.authorizationToken);
+            connection.setRequestProperty("Content-Length", String.valueOf(length));
+            connection.setRequestProperty("X-Bz-Part-Number", String.valueOf(partNumber));
+            connection.setRequestProperty("X-Bz-Content-Sha1", content_sha1);
+            connection.setDoOutput(true);
+            DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
+            writer.write(filePart, 0, length);
+            writer.close();
+            if (connection.getResponseCode() == HttpStatus.SC_OK) {
+                jsonResponse = myStreamReader(connection.getInputStream());
+            } else {
+                parseErrorResponse(connection);
+                return Optional.empty();
+            }
+        } catch (SocketTimeoutException e) {
+            setRequestTimeoutError(e);
+            return Optional.empty();
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+        return Optional.of(GsonService.fromJson(jsonResponse, UploadPartResponse.class));
+    }
+
     public Optional<DownloadFileResponse> downloadFileByName(String bucketName, String fileName, Path destination,
                                                              AuthorizeResponse authorizeResponse) throws IOException {
         HttpURLConnection connection = null;
