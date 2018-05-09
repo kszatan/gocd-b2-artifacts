@@ -48,6 +48,11 @@ public class BackblazeApiWrapperTest {
             "  \"uploadUrl\" : \"https://pod-000-1005-03.backblaze.com/b2api/v1/b2_upload_file?cvt=c001_v0001005_t0027&bucket=4a48fe8875c6214145260818\",\n" +
             "  \"authorizationToken\" : \"2_20151009170037_f504a0f39a0f4e657337e624_9754dde94359bd7b8f1445c8f4cc1a231a33f714_upld\"\n" +
             "}";
+    private final String getUploadPartUrlResponseJson = "{\n" +
+            "  \"authorizationToken\": \"3_20160409004829_42b8f80ba60fb4323dcaad98_ec81302316fccc2260201cbf17813247f312cf3b_000_uplg\",\n" +
+            "  \"fileId\": \"4_ze73ede9c9c8412db49f60715_f100b4e93fbae6252_d20150824_m224353_c900_v8881000_t0001\",\n" +
+            "  \"uploadUrl\": \"https://pod-000-1016-09.backblaze.com/b2api/v1/b2_upload_part/4_ze73ede9c9c8412db49f60715_f100b4e93fbae6252_d20150824_m224353_c900_v8881000_t0001/0037\"\n" +
+            "}";
     private final String listBucketsResponseJson = "{\n" +
             "    \"buckets\": [\n" +
             "    {\n" +
@@ -81,7 +86,7 @@ public class BackblazeApiWrapperTest {
             "        \"revision\": 1\n" +
             "    } ]\n" +
             "}";
-    private String uploadFileResponseJson = "{\n" +
+    private final String uploadFileResponseJson = "{\n" +
             "    \"fileId\" : \"4_h4a48fe8875c6214145260818_f000000000000472a_d20140104_m032022_c001_v0000123_t0104\",\n" +
             "    \"fileName\" : \"typing_test.txt\",\n" +
             "    \"accountId\" : \"d522aa47a10f\",\n" +
@@ -93,7 +98,7 @@ public class BackblazeApiWrapperTest {
             "       \"author\" : \"unknown\"\n" +
             "    }\n" +
             "}";
-    private String listFileNamesResponseJson = "{\n" +
+    private final String listFileNamesResponseJson = "{\n" +
             "  \"files\": [\n" +
             "    {\n" +
             "      \"action\": \"upload\",\n" +
@@ -113,6 +118,15 @@ public class BackblazeApiWrapperTest {
             "    }\n" +
             "  ],\n" +
             "  \"nextFileName\": null\n" +
+            "}";
+    private final String startLargeFileResponseJson = "{\n"+
+            "  \"accountId\": \"d522aa47a10f\",\n"+
+            "  \"bucketId\": \"e73ede9c9c8412db49f60715\",\n"+
+            "  \"contentType\": \"b2/x-auto\",\n"+
+            "  \"fileId\": \"4_za71f544e781e6891531b001a_f200ec353a2184825_d20160409_m004829_c000_v0001016_t0028\",\n"+
+            "  \"fileInfo\": {},\n"+
+            "  \"fileName\": \"bigfile.dat\",\n"+
+            "  \"uploadTimestamp\": 1460162909000\n"+
             "}";
     private String errorResponseJson = "{\n" +
             "    \"status\" : 400,\n" +
@@ -755,5 +769,94 @@ public class BackblazeApiWrapperTest {
         assertThat(error.message, equalTo("Request timeout"));
         assertThat(error.code, equalTo("request_timeout"));
         verify(mockUrlCon, times(0)).disconnect();
+    }
+
+    @Test
+    public void successfulStartLargeFileCallShouldResultInCorrectlyPopulatedResponseFields() throws Exception {
+        ByteArrayInputStream is = new ByteArrayInputStream(startLargeFileResponseJson.getBytes("UTF-8"));
+        doReturn(is).when(mockUrlCon).getInputStream();
+        doReturn(mock(OutputStream.class)).when(mockUrlCon).getOutputStream();
+        doReturn(HttpStatus.SC_OK).when(mockUrlCon).getResponseCode();
+
+        StartLargeFileResponse response = wrapper.startLargeFile(defAuthResponse,"relative/path/to/file.txt", "4a48fe8875c6214145260818").get();
+        verify(mockUrlCon).disconnect();
+        assertThat(response.accountId , equalTo("d522aa47a10f"));
+        assertThat(response.bucketId , equalTo("e73ede9c9c8412db49f60715"));
+        assertThat(response.contentType , equalTo("b2/x-auto"));
+        assertThat(response.fileId, equalTo("4_za71f544e781e6891531b001a_f200ec353a2184825_d20160409_m004829_c000_v0001016_t0028"));
+        assertThat(GsonService.toJson(response.fileInfo) , equalTo("{}"));
+        assertThat(response.fileName , equalTo("bigfile.dat"));
+        assertThat(response.uploadTimestamp , equalTo(1460162909000L));
+    }
+    
+    @Test
+    public void exceptionDuringOpeningConnectionOnGetUploadPartUrlShouldCloseConnection() throws Exception {
+        doThrow(new IOException("Bad")).when(mockUrlCon).getInputStream();
+
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                return mockUrlCon;
+            }
+        };
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
+        AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
+        try {
+            wrapper.getUploadPartUrl(authorizeResponse,"4_h4a48fe8875c6214145260818_f000000000000472a_d20140104_m032022_c001_v0000123_t0104");
+        } catch (Exception e) {
+        }
+        verify(mockUrlCon).disconnect();
+    }
+
+    @Test
+    public void exceptionDuringOpeningConnectionOnGetUploadPartUrlShouldNotResultInAttemptToCloseConnection() throws Exception {
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                throw new IOException("Bad, bad connection");
+            }
+        };
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
+        AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
+        try {
+            wrapper.getUploadPartUrl(authorizeResponse,"4_h4a48fe8875c6214145260818_f000000000000472a_d20140104_m032022_c001_v0000123_t0104");
+        } catch (Exception e) {
+        }
+        verify(mockUrlCon, times(0)).disconnect();
+    }
+
+    @Test
+    public void requestTimeoutDuringConnectionOnGetUploadPartUrlShouldResultInCorrectlySetErrorAndEmptyReturn() throws Exception {
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                throw new SocketTimeoutException("Request timeout");
+            }
+        };
+
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
+
+        AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
+        Optional<GetUploadPartUrlResponse> response = wrapper.getUploadPartUrl(authorizeResponse,"4_h4a48fe8875c6214145260818_f000000000000472a_d20140104_m032022_c001_v0000123_t0104");
+        assertThat(response, equalTo(Optional.empty()));
+        ErrorResponse error = wrapper.getLastError().get();
+        assertThat(error.status, equalTo(HttpStatus.SC_REQUEST_TIMEOUT));
+        assertThat(error.message, equalTo("Request timeout"));
+        assertThat(error.code, equalTo("request_timeout"));
+        verify(mockUrlCon, times(0)).disconnect();
+    }
+    
+    @Test
+    public void successfulGetUploadPartUrlCallShouldResultInCorrectlyPopulatedResponseFields() throws Exception {
+        ByteArrayInputStream is = new ByteArrayInputStream(getUploadPartUrlResponseJson.getBytes("UTF-8"));
+        doReturn(is).when(mockUrlCon).getInputStream();
+        doReturn(mock(OutputStream.class)).when(mockUrlCon).getOutputStream();
+        doReturn(HttpStatus.SC_OK).when(mockUrlCon).getResponseCode();
+
+        GetUploadPartUrlResponse response = wrapper.getUploadPartUrl(defAuthResponse,"4_h4a48fe8875c6214145260818_f000000000000472a_d20140104_m032022_c001_v0000123_t0104").get();
+        verify(mockUrlCon).disconnect();
+        assertThat(response.fileId, equalTo("4_ze73ede9c9c8412db49f60715_f100b4e93fbae6252_d20150824_m224353_c900_v8881000_t0001"));
+        assertThat(response.authorizationToken, equalTo("3_20160409004829_42b8f80ba60fb4323dcaad98_ec81302316fccc2260201cbf17813247f312cf3b_000_uplg"));
+        assertThat(response.uploadUrl, equalTo("https://pod-000-1016-09.backblaze.com/b2api/v1/b2_upload_part/4_ze73ede9c9c8412db49f60715_f100b4e93fbae6252_d20150824_m224353_c900_v8881000_t0001/0037"));
     }
 }
