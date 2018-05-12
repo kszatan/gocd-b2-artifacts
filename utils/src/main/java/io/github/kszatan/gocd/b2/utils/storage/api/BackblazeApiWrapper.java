@@ -144,20 +144,20 @@ public class BackblazeApiWrapper {
         return Optional.of(GsonService.fromJson(jsonResponse, UploadFileResponse.class));
     }
 
-    public Optional<UploadPartResponse> uploadPart(byte[] filePart, int length, Integer partNumber, GetUploadPartUrlResponse getUploadPartUrlResponse)
+    public Optional<UploadPartResponse> uploadPart(byte[] filePart, Integer partLength, Integer partNumber, GetUploadPartUrlResponse getUploadPartUrlResponse)
             throws NoSuchAlgorithmException, IOException {
-        String content_sha1 = fileHash.getHashValue(filePart, length);
+        String content_sha1 = fileHash.getHashValue(filePart, partLength);
         HttpURLConnection connection = null;
         String jsonResponse;
         try {
             connection = newHttpConnection(getUploadPartUrlResponse.uploadUrl, "", "POST");
             connection.setRequestProperty("Authorization", getUploadPartUrlResponse.authorizationToken);
-            connection.setRequestProperty("Content-Length", String.valueOf(length));
+            connection.setRequestProperty("Content-Length", String.valueOf(partLength));
             connection.setRequestProperty("X-Bz-Part-Number", String.valueOf(partNumber));
             connection.setRequestProperty("X-Bz-Content-Sha1", content_sha1);
             connection.setDoOutput(true);
             DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
-            writer.write(filePart, 0, length);
+            writer.write(filePart, 0, partLength);
             writer.close();
             if (connection.getResponseCode() == HttpStatus.SC_OK) {
                 jsonResponse = myStreamReader(connection.getInputStream());
@@ -219,7 +219,7 @@ public class BackblazeApiWrapper {
             connection = newHttpConnection(apiUrl, LIST_BUCKETS_CMD, "POST");
             connection.setRequestProperty("Authorization", accountAuthorizationToken);
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-            connection.setRequestProperty("charset", "utf-8");
+            connection.setRequestProperty("Charset", "utf-8");
             connection.setRequestProperty("Content-Length", Integer.toString(postData.length));
             connection.setDoOutput(true);
             DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
@@ -252,7 +252,7 @@ public class BackblazeApiWrapper {
             connection = newHttpConnection(apiUrl, GET_UPLOAD_URL_CMD, "POST");
             connection.setRequestProperty("Authorization", accountAuthorizationToken);
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-            connection.setRequestProperty("charset", "utf-8");
+            connection.setRequestProperty("Charset", "utf-8");
             connection.setRequestProperty("Content-Length", Integer.toString(postData.length));
             connection.setDoOutput(true);
             DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
@@ -285,7 +285,7 @@ public class BackblazeApiWrapper {
             connection = newHttpConnection(apiUrl, GET_UPLOAD_PART_URL_CMD, "POST");
             connection.setRequestProperty("Authorization", accountAuthorizationToken);
             connection.setRequestProperty("Content-Type", "application/json");
-            connection.setRequestProperty("charset", "utf-8");
+            connection.setRequestProperty("Charset", "utf-8");
             connection.setRequestProperty("Content-Length", Integer.toString(postData.length));
             connection.setDoOutput(true);
             DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
@@ -325,7 +325,7 @@ public class BackblazeApiWrapper {
             connection = newHttpConnection(apiUrl, LIST_FILE_NAMES_CMD, "POST");
             connection.setRequestProperty("Authorization", accountAuthorizationToken);
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-            connection.setRequestProperty("charset", "utf-8");
+            connection.setRequestProperty("Charset", "utf-8");
             connection.setRequestProperty("Content-Length", Integer.toString(postData.length));
             connection.setDoOutput(true);
             DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
@@ -359,7 +359,7 @@ public class BackblazeApiWrapper {
             connection = newHttpConnection(apiUrl, START_LARGE_FILE_CMD, "POST");
             connection.setRequestProperty("Authorization", accountAuthorizationToken);
             connection.setRequestProperty("Content-Type", "application/json");
-            connection.setRequestProperty("charset", "utf-8");
+            connection.setRequestProperty("Charset", "utf-8");
             connection.setRequestProperty("Content-Length", Integer.toString(postData.length));
             connection.setDoOutput(true);
             DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
