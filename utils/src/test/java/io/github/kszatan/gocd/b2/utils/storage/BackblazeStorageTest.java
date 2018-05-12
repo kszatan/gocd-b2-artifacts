@@ -452,7 +452,10 @@ public class BackblazeStorageTest {
         errorResponse.message = "Internal Error";
         doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
 
-        doReturn(Optional.of(new StartLargeFileResponse()))
+        final String fileId = "file_id";
+        StartLargeFileResponse startLargeFileResponse = new StartLargeFileResponse();
+        startLargeFileResponse.fileId = fileId;
+        doReturn(Optional.of(startLargeFileResponse))
                 .when(backblazeApiWrapperMock).startLargeFile(any(), any(), any());
         doReturn(Optional.empty())
                 .doReturn(Optional.empty())
@@ -460,9 +463,12 @@ public class BackblazeStorageTest {
                 .doReturn(Optional.empty())
                 .doReturn(Optional.empty())
                 .when(backblazeApiWrapperMock).getUploadPartUrl(any(), any());
+        doReturn(Optional.of(new CancelLargeFileResponse())).
+                when(backblazeApiWrapperMock).cancelLargeFile(any(), eq(fileId));
 
         thrown.expect(StorageException.class);
         storage.upload(Paths.get(""), testFilePath, "dest");
+        verify(backblazeApiWrapperMock).cancelLargeFile(any(), eq(fileId));
     }
 
     @Test
@@ -476,7 +482,10 @@ public class BackblazeStorageTest {
         errorResponse.message = "Internal Error";
         doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
 
-        doReturn(Optional.of(new StartLargeFileResponse()))
+        final String fileId = "file_id";
+        StartLargeFileResponse startLargeFileResponse = new StartLargeFileResponse();
+        startLargeFileResponse.fileId = fileId;
+        doReturn(Optional.of(startLargeFileResponse))
                 .when(backblazeApiWrapperMock).startLargeFile(any(), any(), any());
         doReturn(Optional.of(new GetUploadPartUrlResponse()))
                 .when(backblazeApiWrapperMock).getUploadPartUrl(any(), any());
@@ -486,9 +495,12 @@ public class BackblazeStorageTest {
                 .doReturn(Optional.empty())
                 .doReturn(Optional.empty())
                 .when(backblazeApiWrapperMock).uploadPart(any(), any(), any(), any());
+        doReturn(Optional.of(new CancelLargeFileResponse())).
+                when(backblazeApiWrapperMock).cancelLargeFile(any(), eq(fileId));
 
         thrown.expect(StorageException.class);
         storage.upload(Paths.get(""), testFilePath, "dest");
+        verify(backblazeApiWrapperMock).cancelLargeFile(any(), eq(fileId));
     }
 
     @Test
@@ -502,7 +514,10 @@ public class BackblazeStorageTest {
         errorResponse.message = "Internal Error";
         doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
 
-        doReturn(Optional.of(new StartLargeFileResponse()))
+        final String fileId = "file_id";
+        StartLargeFileResponse startLargeFileResponse = new StartLargeFileResponse();
+        startLargeFileResponse.fileId = fileId;
+        doReturn(Optional.of(startLargeFileResponse))
                 .when(backblazeApiWrapperMock).startLargeFile(any(), any(), any());
         doReturn(Optional.of(new GetUploadPartUrlResponse()))
                 .when(backblazeApiWrapperMock).getUploadPartUrl(any(), any());
@@ -514,9 +529,12 @@ public class BackblazeStorageTest {
                 .doReturn(Optional.empty())
                 .doReturn(Optional.empty())
                 .when(backblazeApiWrapperMock).finishLargeFile(any(), any(), any());
+        doReturn(Optional.of(new CancelLargeFileResponse())).
+                when(backblazeApiWrapperMock).cancelLargeFile(any(), eq(fileId));
 
         thrown.expect(StorageException.class);
         storage.upload(Paths.get(""), testFilePath, "dest");
+        verify(backblazeApiWrapperMock).cancelLargeFile(any(), eq(fileId));
     }
 
     @Test

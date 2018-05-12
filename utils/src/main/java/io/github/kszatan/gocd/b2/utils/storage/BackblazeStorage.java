@@ -85,9 +85,9 @@ public class BackblazeStorage implements Storage {
                 errorMessage = "Bucket '" + bucketName + "' not found";
                 return false;
             }
-        } catch (GeneralSecurityException | IOException e) {
+        } catch (StorageException e) {
             logger.info("checkConnection error: " + e.getMessage());
-            throw new StorageException("Failed to check connection: " + e.getMessage(), e);
+            throw new StorageException("Failed to check connection: " + e.getMessage(), e.getCause());
         }
         notify("Successfully connected to B2.");
         return true;
@@ -117,10 +117,10 @@ public class BackblazeStorage implements Storage {
                 return false;
             }
             getUploadUrlResponse = getUploadUrl.getResponse().get();
-        } catch (GeneralSecurityException | IOException e) {
+        } catch (StorageException  e) {
             authorizeResponse = null;
             logger.info("authorize error: " + e.getMessage());
-            throw new StorageException("Failed to authorize: " + e.getMessage(), e);
+            throw new StorageException("Failed to authorize: " + e.getMessage(), e.getCause());
         }
         notify("Successfully authorized with B2.");
         return true;
@@ -130,11 +130,16 @@ public class BackblazeStorage implements Storage {
     public void upload(Path workDir, String relativeFilePath, String destination)
             throws StorageException {
         try {
-            long fileSize = Files.size(workDir.resolve(relativeFilePath));
-            if (fileSize > authorizeResponse.recommendedPartSize) {
-                uploadLargeFile(workDir, relativeFilePath, destination);
-            } else {
-                uploadSmallFile(workDir, relativeFilePath, destination);
+            try {
+                long fileSize = Files.size(workDir.resolve(relativeFilePath));
+                if (fileSize > authorizeResponse.recommendedPartSize) {
+                    uploadLargeFile(workDir, relativeFilePath, destination);
+                } else {
+                    uploadSmallFile(workDir, relativeFilePath, destination);
+                }
+            } catch (LargeFileUploadException e) {
+                cancelLargeFileUpload(e.getFileId());
+                throw new StorageException(e);
             }
         } catch (GeneralSecurityException | IOException e) {
             logger.info("upload error: " + e.getMessage());
@@ -144,7 +149,7 @@ public class BackblazeStorage implements Storage {
     }
 
     private void uploadSmallFile(Path workDir, String relativeFilePath, String destination)
-            throws IOException, GeneralSecurityException, StorageException {
+            throws StorageException {
         Upload upload = new Upload(backblazeApiWrapper, bucketId, workDir, relativeFilePath, destination,
                 authorizeResponse, getUploadUrlResponse);
         if (!attempt(MAX_RETRY_ATTEMPTS, upload)) {
@@ -152,7 +157,7 @@ public class BackblazeStorage implements Storage {
         }
     }
 
-    private Optional<StartLargeFileResponse> startLargeFile(String fileName) throws StorageException, IOException, GeneralSecurityException {
+    private Optional<StartLargeFileResponse> startLargeFile(String fileName) throws StorageException {
         StartLargeFile startLargeFile = new StartLargeFile(backblazeApiWrapper, authorizeResponse, fileName, bucketId);
         if (!attempt(MAX_RETRY_ATTEMPTS, startLargeFile)) {
             return Optional.empty();
@@ -160,7 +165,7 @@ public class BackblazeStorage implements Storage {
         return startLargeFile.getResponse();
     }
 
-    private Optional<GetUploadPartUrlResponse> getUploadPartUrl(String fileId) throws StorageException, IOException, GeneralSecurityException {
+    private Optional<GetUploadPartUrlResponse> getUploadPartUrl(String fileId) throws StorageException {
         GetUploadPartUrl getUploadPartUrl = new GetUploadPartUrl(backblazeApiWrapper, authorizeResponse, fileId);
         if (!attempt(MAX_RETRY_ATTEMPTS, getUploadPartUrl)) {
             return Optional.empty();
@@ -168,7 +173,7 @@ public class BackblazeStorage implements Storage {
         return getUploadPartUrl.getResponse();
     }
 
-    private Optional<FinishLargeFileResponse> finishLargeFile(String fileId, List<String> partSha1Array) throws StorageException, IOException, GeneralSecurityException {
+    private Optional<FinishLargeFileResponse> finishLargeFile(String fileId, List<String> partSha1Array) throws StorageException {
         FinishLargeFile finishLargeFile = new FinishLargeFile(backblazeApiWrapper, authorizeResponse, fileId, partSha1Array);
         if (!attempt(MAX_RETRY_ATTEMPTS, finishLargeFile)) {
             return Optional.empty();
@@ -177,7 +182,7 @@ public class BackblazeStorage implements Storage {
     }
 
     private Optional<UploadPartResponse> uploadPart(GetUploadPartUrlResponse getUploadPartUrlResponse, int partLength,
-                                                    byte[] buf, int partNumber) throws IOException, StorageException, GeneralSecurityException {
+                                                    byte[] buf, int partNumber) throws StorageException {
         UploadPart uploadPart = new UploadPart(backblazeApiWrapper, buf, partLength, partNumber,
                 authorizeResponse, getUploadPartUrlResponse);
         if (!attempt(MAX_RETRY_ATTEMPTS, uploadPart)) {
@@ -187,21 +192,25 @@ public class BackblazeStorage implements Storage {
     }
 
     private void uploadLargeFile(Path workDir, String relativeFilePath, String destination)
-            throws IOException, GeneralSecurityException, StorageException {
+            throws StorageException, LargeFileUploadException {
         final String fileId = startLargeFile(Paths.get(destination, relativeFilePath).toString()).orElseThrow(
                 () -> new StorageException("Failed to start large file upload")
         ).fileId;
-        GetUploadPartUrlResponse getUploadPartUrlResponse = getUploadPartUrl(fileId).orElseThrow(
-                () -> new StorageException("Failed to get upload part URL")
-        );
-        ArrayList<String> partSha1Array = doUpload(workDir, relativeFilePath, getUploadPartUrlResponse);
-        finishLargeFile(fileId, partSha1Array).orElseThrow(
-                () -> new StorageException("Failed to finish large file")
-        );
+        try {
+            GetUploadPartUrlResponse getUploadPartUrlResponse = getUploadPartUrl(fileId).orElseThrow(
+                    () -> new StorageException("Failed to get upload part URL")
+            );
+            ArrayList<String> partSha1Array = doUpload(workDir, relativeFilePath, getUploadPartUrlResponse);
+            finishLargeFile(fileId, partSha1Array).orElseThrow(
+                    () -> new StorageException("Failed to finish large file")
+            );
+        } catch (IOException | StorageException e) {
+            throw new LargeFileUploadException(e.getMessage(), fileId);
+        }
     }
 
     private ArrayList<String> doUpload(Path workDir, String relativeFilePath, GetUploadPartUrlResponse getUploadPartUrlResponse)
-            throws StorageException, IOException, GeneralSecurityException {
+            throws StorageException, IOException {
         File file = new File(workDir.resolve(relativeFilePath).toString());
         final long fileSize = file.length();
         long totalBytesSent = 0;
@@ -232,6 +241,14 @@ public class BackblazeStorage implements Storage {
         fileInputStream.close();
     }
 
+    private Optional<CancelLargeFileResponse> cancelLargeFileUpload(String fileId) throws StorageException, IOException, GeneralSecurityException {
+        CancelLargeFile cancelLargeFile = new CancelLargeFile(backblazeApiWrapper, authorizeResponse, fileId);
+        if (!attempt(MAX_RETRY_ATTEMPTS, cancelLargeFile)) {
+            return Optional.empty();
+        }
+        return cancelLargeFile.getResponse();
+    }
+
     @Override
     public Optional<ListFileNamesResponse> listFiles(String startFileName, String prefix, String delimiter) throws StorageException {
         if (authorizeResponse == null) {
@@ -246,9 +263,9 @@ public class BackblazeStorage implements Storage {
             } else {
                 response = listFileNames.getResponse();
             }
-        } catch (GeneralSecurityException | IOException e) {
+        } catch (StorageException e) {
             logger.info("listFiles error: " + e.getMessage());
-            throw new StorageException("Failed to list files: " + e.getMessage(), e);
+            throw new StorageException("Failed to list files: " + e.getMessage(), e.getCause());
         }
         return response;
     }
@@ -260,15 +277,15 @@ public class BackblazeStorage implements Storage {
             if (!attempt(MAX_RETRY_ATTEMPTS, download)) {
                 return false;
             }
-        } catch (GeneralSecurityException | IOException e) {
+        } catch (StorageException  e) {
             logger.info("download error: " + e.getMessage());
-            throw new StorageException("Failed to download " + fileName + ": " + e.getMessage(), e);
+            throw new StorageException("Failed to download " + fileName + ": " + e.getMessage(), e.getCause());
         }
         notify("Successfully downloaded " + fileName + " to " + destination + ".");
         return true;
     }
 
-    private Boolean attempt(final Integer times, final B2ApiCall action) throws IOException, StorageException, GeneralSecurityException {
+    private Boolean attempt(final Integer times, final B2ApiCall action) throws StorageException {
         int attempt;
         for (attempt = 0; attempt < times; attempt++) {
             if (action.call()) {
