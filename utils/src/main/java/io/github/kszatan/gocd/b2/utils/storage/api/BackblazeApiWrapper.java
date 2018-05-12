@@ -349,12 +349,12 @@ public class BackblazeApiWrapper {
         return Optional.of(GsonService.fromJson(jsonResponse, ListFileNamesResponse.class));
     }
 
-    public Optional<StartLargeFileResponse> startLargeFile(AuthorizeResponse authorizeResponse, String relativeFilePath,
+    public Optional<StartLargeFileResponse> startLargeFile(AuthorizeResponse authorizeResponse, String fileName,
                                                            String bucketId) throws IOException {
         String apiUrl = authorizeResponse.apiUrl;
         String accountAuthorizationToken = authorizeResponse.authorizationToken;
         HttpURLConnection connection = null;
-        String postParams = "{\"bucketId\":\"" + bucketId + "\", \"fileName\":\"" + relativeFilePath + "\", \"contentType\":\"b2/x-auto\"}";
+        String postParams = "{\"bucketId\":\"" + bucketId + "\", \"fileName\":\"" + fileName + "\", \"contentType\":\"b2/x-auto\"}";
         String jsonResponse;
         byte postData[] = postParams.getBytes(StandardCharsets.UTF_8);
         try {
