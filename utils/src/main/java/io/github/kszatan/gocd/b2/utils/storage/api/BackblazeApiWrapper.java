@@ -108,9 +108,9 @@ public class BackblazeApiWrapper {
         return Optional.of(GsonService.fromJson(jsonResponse, AuthorizeResponse.class));
     }
 
-    public Optional<UploadFileResponse> uploadFile(Path workDir, String filePath, String destination, GetUploadUrlResponse getUploadUrlResponse)
+    public Optional<UploadFileResponse> uploadFile(Path workDir, String relativeFilePath, String destination, GetUploadUrlResponse getUploadUrlResponse)
             throws NoSuchAlgorithmException, IOException {
-        Path absoluteFilePath = workDir.resolve(filePath);
+        Path absoluteFilePath = workDir.resolve(relativeFilePath);
         String content_sha1 = fileHash.getHashValue(absoluteFilePath);
         HttpURLConnection connection = null;
         String jsonResponse;
@@ -119,7 +119,7 @@ public class BackblazeApiWrapper {
             connection = newHttpConnection(getUploadUrlResponse.uploadUrl, "", "POST");
             connection.setRequestProperty("Authorization", getUploadUrlResponse.authorizationToken);
             connection.setRequestProperty("Content-Type", "b2/x-auto");
-            connection.setRequestProperty("X-Bz-File-Name", Paths.get(destination, filePath).toString());
+            connection.setRequestProperty("X-Bz-File-Name", Paths.get(destination, relativeFilePath).toString());
             connection.setRequestProperty("X-Bz-Content-Sha1", content_sha1);
             BasicFileAttributes attrs = Files.readAttributes(absoluteFilePath, BasicFileAttributes.class);
             connection.setRequestProperty("X-Bz-Info-src_last_modified_millis",
