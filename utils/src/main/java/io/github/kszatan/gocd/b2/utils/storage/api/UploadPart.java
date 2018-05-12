@@ -6,7 +6,6 @@
 
 package io.github.kszatan.gocd.b2.utils.storage.api;
 
-import com.sun.istack.internal.NotNull;
 import io.github.kszatan.gocd.b2.utils.storage.*;
 import org.apache.http.HttpStatus;
 
@@ -23,7 +22,7 @@ public class UploadPart extends B2ApiCall {
     private UploadPartResponse uploadPartResponse;
 
     public UploadPart(BackblazeApiWrapper backblazeApiWrapper, byte[] filePart, Integer partLength, Integer partNumber,
-                      @NotNull  AuthorizeResponse authorizeResponse, @NotNull GetUploadPartUrlResponse getUploadPartUrlResponse) {
+                      AuthorizeResponse authorizeResponse, GetUploadPartUrlResponse getUploadPartUrlResponse) {
         super("upload part ", backblazeApiWrapper);
         this.filePart = filePart;
         this.partNumber = partNumber;
@@ -32,7 +31,7 @@ public class UploadPart extends B2ApiCall {
         this.authorizeResponse = authorizeResponse;
     }
 
-    Optional<UploadPartResponse> getResponse() {
+    public Optional<UploadPartResponse> getResponse() {
         return Optional.ofNullable(uploadPartResponse);
     }
 

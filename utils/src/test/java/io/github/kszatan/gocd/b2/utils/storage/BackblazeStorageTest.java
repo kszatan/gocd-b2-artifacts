@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -33,11 +34,13 @@ public class BackblazeStorageTest {
     public ExpectedException thrown = ExpectedException.none();
     private BackblazeStorage storage;
     private BackblazeApiWrapper backblazeApiWrapperMock;
+    private String testFilePath;
 
     @Before
     public void setUp() {
         backblazeApiWrapperMock = mock(BackblazeApiWrapper.class);
         storage = new BackblazeStorage(bucketName, backblazeApiWrapperMock);
+        testFilePath = this.getClass().getResource("UploadFileTest.txt").getPath();
     }
 
     @Test
@@ -59,10 +62,10 @@ public class BackblazeStorageTest {
         listFileNamesResponse.nextFileName = "next file";
         Optional<ListFileNamesResponse> maybeListFileNamesResponse = Optional.of(listFileNamesResponse);
         AuthorizeResponse authorizeResponse = new AuthorizeResponse();
+        authorize(authorizeResponse);
         doReturn(maybeListFileNamesResponse).when(backblazeApiWrapperMock).listFileNames(
                 eq(authorizeResponse), any(ListFileNamesParams.class));
 
-        authorize(authorizeResponse);
         Optional<ListFileNamesResponse> maybeResponse = storage.listFiles(params.startFileName, params.prefix, params.delimiter);
 
         assertThat(maybeResponse.isPresent(), equalTo(true));
@@ -89,14 +92,15 @@ public class BackblazeStorageTest {
         final String startFileName = "files/hello.txt";
         final String prefix = "files/";
         final String delimiter = "/";
+        
+        AuthorizeResponse authorizeResponse = new AuthorizeResponse();
+        authorize(authorizeResponse);
 
         doThrow(new IOException("read error"))
                 .when(backblazeApiWrapperMock).listFileNames(any(), any(ListFileNamesParams.class));
         thrown.expect(StorageException.class);
         thrown.expectCause(IsInstanceOf.instanceOf(IOException.class));
 
-        AuthorizeResponse authorizeResponse = new AuthorizeResponse();
-        authorize(authorizeResponse);
         storage.listFiles(startFileName, prefix, delimiter);
     }
 
@@ -314,6 +318,9 @@ public class BackblazeStorageTest {
 
     @Test
     public void uploadFileShouldThrowNoSuchAlgorithmExceptionWhenShaImplementationIsNotPresent() throws Exception {
+        AuthorizeResponse authorizeResponse = new AuthorizeResponse();
+        authorizeResponse.recommendedPartSize = 100000;
+        authorize(authorizeResponse);
         Optional<GetUploadUrlResponse> getUploadUrlResponse = Optional.of(new GetUploadUrlResponse());
         doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(any(), any());
         thrown.expect(StorageException.class);
@@ -323,7 +330,10 @@ public class BackblazeStorageTest {
     }
 
     @Test
-    public void uploadShouldReturnFalseAfterFiveUnsuccessfulUploadFileAttempts() throws Exception {
+    public void uploadShouldThrowAfterFiveUnsuccessfulUploadFileAttempts() throws Exception {
+        AuthorizeResponse authorizeResponse = new AuthorizeResponse();
+        authorizeResponse.recommendedPartSize = 100000;
+        authorize(authorizeResponse);
         Optional<GetUploadUrlResponse> getUploadUrlResponse = Optional.of(new GetUploadUrlResponse());
         doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(any(), any());
         ErrorResponse errorResponse = new ErrorResponse();
@@ -337,41 +347,26 @@ public class BackblazeStorageTest {
                 .doReturn(Optional.empty())
                 .when(backblazeApiWrapperMock).uploadFile(any(), any(), any(), any());
 
-        Boolean result = storage.upload(Paths.get(""), "relative/file", "dest");
-        assertThat(result, equalTo(false));
+        thrown.expect(StorageException.class);
+        storage.upload(Paths.get(""), testFilePath, "dest");
     }
 
     @Test
     public void uploadShouldFetchNewUploadUrlAfterReceivingRequestTimeout() throws Exception {
-        final String accountId = "account_id";
-        final String applicationKey = "application_key";
-        Optional<AuthorizeResponse> authorizeResponse = Optional.of(new AuthorizeResponse());
-        doReturn(authorizeResponse).when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
-        Bucket bucket = new Bucket();
-        bucket.accountId = accountId;
-        bucket.id = "bucket_id";
-        bucket.name = bucketName;
-        ListBucketsResponse bucketList = new ListBucketsResponse();
-        bucketList.buckets = new ArrayList<>();
-        bucketList.buckets.add(bucket);
-        Optional<ListBucketsResponse> listBucketResponse = Optional.of(bucketList);
-        doReturn(listBucketResponse).when(backblazeApiWrapperMock).listBuckets(authorizeResponse.get());
-        Optional<GetUploadUrlResponse> getUploadUrlResponse = Optional.of(new GetUploadUrlResponse());
-        doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(authorizeResponse.get(), bucket.id);
-        storage.authorize(accountId, applicationKey);
-        reset(backblazeApiWrapperMock);
-
-        doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(any(), any());
+        AuthorizeResponse authorizeResponse = new AuthorizeResponse();
+        authorizeResponse.recommendedPartSize = 100000;
+        authorize(authorizeResponse);
 
         ErrorResponse errorResponse = new ErrorResponse();
         errorResponse.status = HttpStatus.SC_REQUEST_TIMEOUT;
         errorResponse.message = "Request Timeout";
         doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
+        Optional<GetUploadUrlResponse> getUploadUrlResponse = Optional.of(new GetUploadUrlResponse());
+        doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(eq(authorizeResponse), any());
         doReturn(Optional.empty()).doReturn(Optional.of(new UploadFileResponse()))
                 .when(backblazeApiWrapperMock).uploadFile(any(), any(), any(), any());
 
-        Boolean result = storage.upload(Paths.get(""), "relative/file", "dest");
-        assertThat(result, equalTo(true));
+        storage.upload(Paths.get(""), testFilePath, "dest");
         verify(backblazeApiWrapperMock).getUploadUrl(any(), eq("bucket_id"));
     }
 
@@ -385,6 +380,143 @@ public class BackblazeStorageTest {
         thrown.expect(StorageException.class);
         thrown.expectCause(IsInstanceOf.instanceOf(IOException.class));
         storage.upload(Paths.get(""), "relative/file", "dest");
+    }
+
+    @Test
+    public void uploadShouldUseNormalUploadMethodIfFileSizeSmallerThanRecommendedPartSize() throws Exception {
+        AuthorizeResponse authorizeResponse = new AuthorizeResponse();
+        authorizeResponse.recommendedPartSize = 100000;
+        authorize(authorizeResponse);
+
+        doReturn(Optional.of(new UploadFileResponse()))
+                .when(backblazeApiWrapperMock).uploadFile(any(), any(), any(), any());
+
+        Path workDir = Paths.get("");
+        storage.upload(workDir, testFilePath, "dest");
+        verify(backblazeApiWrapperMock).uploadFile(eq(workDir), eq(testFilePath), eq("dest"), any());
+    }
+
+    @Test
+    public void uploadShouldUseUploadLargeFiledMethodIfFileSizeBiggerThanRecommendedPartSize() throws Exception {
+        AuthorizeResponse authorizeResponse = new AuthorizeResponse();
+        authorizeResponse.recommendedPartSize = 10;
+        authorize(authorizeResponse);
+
+        doReturn(Optional.of(new StartLargeFileResponse()))
+                .when(backblazeApiWrapperMock).startLargeFile(any(), any(), any());
+        doReturn(Optional.of(new GetUploadPartUrlResponse()))
+                .when(backblazeApiWrapperMock).getUploadPartUrl(any(), any());
+        doReturn(Optional.of(new UploadPartResponse()))
+                .when(backblazeApiWrapperMock).uploadPart(any(), any(), any(), any());
+        doReturn(Optional.of(new FinishLargeFileResponse()))
+                .when(backblazeApiWrapperMock).finishLargeFile(any(), any(), any());
+
+        Path workDir = Paths.get("");
+        storage.upload(workDir, testFilePath, "dest");
+        verify(backblazeApiWrapperMock).startLargeFile(any(), any(), any());
+        verify(backblazeApiWrapperMock).getUploadPartUrl(any(), any());
+        verify(backblazeApiWrapperMock, times(3)).uploadPart(any(), any(), any(), any());
+        verify(backblazeApiWrapperMock).finishLargeFile(any(), any(), any());
+    }
+
+    @Test
+    public void uploadLargeFileShouldThrowIfStartLargeFileFails() throws Exception {
+        AuthorizeResponse authorizeResponse = new AuthorizeResponse();
+        authorizeResponse.recommendedPartSize = 10;
+        authorize(authorizeResponse);
+        
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
+        errorResponse.message = "Internal Error";
+        doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
+
+        doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .when(backblazeApiWrapperMock).startLargeFile(any(), any(), any());
+
+        thrown.expect(StorageException.class);
+        storage.upload(Paths.get(""), testFilePath, "dest");
+    }
+
+    @Test
+    public void uploadLargeFileShouldThrowIfGetUploadPartUrlFails() throws Exception {
+        AuthorizeResponse authorizeResponse = new AuthorizeResponse();
+        authorizeResponse.recommendedPartSize = 10;
+        authorize(authorizeResponse);
+
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
+        errorResponse.message = "Internal Error";
+        doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
+
+        doReturn(Optional.of(new StartLargeFileResponse()))
+                .when(backblazeApiWrapperMock).startLargeFile(any(), any(), any());
+        doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .when(backblazeApiWrapperMock).getUploadPartUrl(any(), any());
+
+        thrown.expect(StorageException.class);
+        storage.upload(Paths.get(""), testFilePath, "dest");
+    }
+
+    @Test
+    public void uploadLargeFileShouldThrowIfUploadPartFails() throws Exception {
+        AuthorizeResponse authorizeResponse = new AuthorizeResponse();
+        authorizeResponse.recommendedPartSize = 10;
+        authorize(authorizeResponse);
+
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
+        errorResponse.message = "Internal Error";
+        doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
+
+        doReturn(Optional.of(new StartLargeFileResponse()))
+                .when(backblazeApiWrapperMock).startLargeFile(any(), any(), any());
+        doReturn(Optional.of(new GetUploadPartUrlResponse()))
+                .when(backblazeApiWrapperMock).getUploadPartUrl(any(), any());
+        doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .when(backblazeApiWrapperMock).uploadPart(any(), any(), any(), any());
+
+        thrown.expect(StorageException.class);
+        storage.upload(Paths.get(""), testFilePath, "dest");
+    }
+
+    @Test
+    public void uploadLargeFileShouldReturnFalseIfFinishLargeFileFails() throws Exception {
+        AuthorizeResponse authorizeResponse = new AuthorizeResponse();
+        authorizeResponse.recommendedPartSize = 10;
+        authorize(authorizeResponse);
+
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
+        errorResponse.message = "Internal Error";
+        doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
+
+        doReturn(Optional.of(new StartLargeFileResponse()))
+                .when(backblazeApiWrapperMock).startLargeFile(any(), any(), any());
+        doReturn(Optional.of(new GetUploadPartUrlResponse()))
+                .when(backblazeApiWrapperMock).getUploadPartUrl(any(), any());
+        doReturn(Optional.of(new UploadPartResponse()))
+                .when(backblazeApiWrapperMock).uploadPart(any(), any(), any(), any());
+        doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .when(backblazeApiWrapperMock).finishLargeFile(any(), any(), any());
+
+        thrown.expect(StorageException.class);
+        storage.upload(Paths.get(""), testFilePath, "dest");
     }
 
     @Test
@@ -433,5 +565,6 @@ public class BackblazeStorageTest {
 
         Boolean result = storage.authorize(accountId, applicationKey);
         assertThat(result, equalTo(true));
+        reset(backblazeApiWrapperMock);
     }
 }

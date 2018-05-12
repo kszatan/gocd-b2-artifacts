@@ -9,8 +9,12 @@ package io.github.kszatan.gocd.b2.utils.storage;
 import com.thoughtworks.go.plugin.api.logging.Logger;
 import io.github.kszatan.gocd.b2.utils.storage.api.*;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.List;
@@ -123,20 +127,109 @@ public class BackblazeStorage implements Storage {
     }
 
     @Override
-    public Boolean upload(Path workDir, String relativeFilePath, String destination)
+    public void upload(Path workDir, String relativeFilePath, String destination)
             throws StorageException {
         try {
-            Upload upload = new Upload(backblazeApiWrapper, bucketId, workDir, relativeFilePath, destination,
-                    authorizeResponse, getUploadUrlResponse);
-            if (!attempt(MAX_RETRY_ATTEMPTS, upload)) {
-                return false;
+            long fileSize = Files.size(workDir.resolve(relativeFilePath));
+            if (fileSize > authorizeResponse.recommendedPartSize) {
+                uploadLargeFile(workDir, relativeFilePath, destination);
+            } else {
+                uploadSmallFile(workDir, relativeFilePath, destination);
             }
         } catch (GeneralSecurityException | IOException e) {
             logger.info("upload error: " + e.getMessage());
             throw new StorageException("Failed to upload " + relativeFilePath + ": " + e.getMessage(), e);
         }
         notify("Successfully uploaded " + relativeFilePath + " to " + destination + ".");
-        return true;
+    }
+
+    private void uploadSmallFile(Path workDir, String relativeFilePath, String destination)
+            throws IOException, GeneralSecurityException, StorageException {
+        Upload upload = new Upload(backblazeApiWrapper, bucketId, workDir, relativeFilePath, destination,
+                authorizeResponse, getUploadUrlResponse);
+        if (!attempt(MAX_RETRY_ATTEMPTS, upload)) {
+            throw new StorageException("Upload operation failed");
+        }
+    }
+
+    private Optional<StartLargeFileResponse> startLargeFile(String fileName) throws StorageException, IOException, GeneralSecurityException {
+        StartLargeFile startLargeFile = new StartLargeFile(backblazeApiWrapper, authorizeResponse, fileName, bucketId);
+        if (!attempt(MAX_RETRY_ATTEMPTS, startLargeFile)) {
+            return Optional.empty();
+        }
+        return startLargeFile.getResponse();
+    }
+
+    private Optional<GetUploadPartUrlResponse> getUploadPartUrl(String fileId) throws StorageException, IOException, GeneralSecurityException {
+        GetUploadPartUrl getUploadPartUrl = new GetUploadPartUrl(backblazeApiWrapper, authorizeResponse, fileId);
+        if (!attempt(MAX_RETRY_ATTEMPTS, getUploadPartUrl)) {
+            return Optional.empty();
+        }
+        return getUploadPartUrl.getResponse();
+    }
+
+    private Optional<FinishLargeFileResponse> finishLargeFile(String fileId, List<String> partSha1Array) throws StorageException, IOException, GeneralSecurityException {
+        FinishLargeFile finishLargeFile = new FinishLargeFile(backblazeApiWrapper, authorizeResponse, fileId, partSha1Array);
+        if (!attempt(MAX_RETRY_ATTEMPTS, finishLargeFile)) {
+            return Optional.empty();
+        }
+        return finishLargeFile.getResponse();
+    }
+
+    private Optional<UploadPartResponse> uploadPart(GetUploadPartUrlResponse getUploadPartUrlResponse, int partLength,
+                                                    byte[] buf, int partNumber) throws IOException, StorageException, GeneralSecurityException {
+        UploadPart uploadPart = new UploadPart(backblazeApiWrapper, buf, partLength, partNumber,
+                authorizeResponse, getUploadPartUrlResponse);
+        if (!attempt(MAX_RETRY_ATTEMPTS, uploadPart)) {
+            return Optional.empty();
+        }
+        return uploadPart.getResponse();
+    }
+
+    private void uploadLargeFile(Path workDir, String relativeFilePath, String destination)
+            throws IOException, GeneralSecurityException, StorageException {
+        final String fileId = startLargeFile(Paths.get(destination, relativeFilePath).toString()).orElseThrow(
+                () -> new StorageException("Failed to start large file upload")
+        ).fileId;
+        GetUploadPartUrlResponse getUploadPartUrlResponse = getUploadPartUrl(fileId).orElseThrow(
+                () -> new StorageException("Failed to get upload part URL")
+        );
+        ArrayList<String> partSha1Array = doUpload(workDir, relativeFilePath, getUploadPartUrlResponse);
+        finishLargeFile(fileId, partSha1Array).orElseThrow(
+                () -> new StorageException("Failed to finish large file")
+        );
+    }
+
+    private ArrayList<String> doUpload(Path workDir, String relativeFilePath, GetUploadPartUrlResponse getUploadPartUrlResponse)
+            throws StorageException, IOException, GeneralSecurityException {
+        File file = new File(workDir.resolve(relativeFilePath).toString());
+        final long fileSize = file.length();
+        long totalBytesSent = 0;
+        long partLength = authorizeResponse.recommendedPartSize;
+        byte[] buf = new byte[(int)partLength];
+        ArrayList<String> partSha1Array = new ArrayList<>();
+        int partNumber = 1;
+        while (totalBytesSent < fileSize) {
+            if ((fileSize - totalBytesSent) < authorizeResponse.recommendedPartSize) {
+                partLength = (fileSize - totalBytesSent);
+            }
+            readFilePart(file, totalBytesSent, (int) partLength, buf);
+            String partSha1 = uploadPart(getUploadPartUrlResponse, (int) partLength, buf, partNumber).orElseThrow(
+                    () -> new StorageException("Failed to get upload part")
+            ).contentSha1;
+            notify("Successfully uploaded part " + partNumber + " of " + relativeFilePath + ".");
+            partSha1Array.add(partSha1);
+            totalBytesSent = totalBytesSent + partLength;
+            partNumber++;
+        }
+        return partSha1Array;
+    }
+
+    private void readFilePart(File file, long totalBytesSent, int partLength, byte[] buf) throws IOException {
+        FileInputStream fileInputStream = new FileInputStream(file);
+        fileInputStream.skip(totalBytesSent);
+        fileInputStream.read(buf, 0, partLength);
+        fileInputStream.close();
     }
 
     @Override

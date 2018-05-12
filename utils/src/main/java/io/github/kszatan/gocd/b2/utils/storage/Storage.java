@@ -24,7 +24,7 @@ public interface Storage {
 
     Optional<ListFileNamesResponse> listFiles(String startFileName, String prefix, String delimiter) throws StorageException;
 
-    Boolean upload(Path workDir, String relativeFilePath, String destination) throws StorageException, GeneralSecurityException;
+    void upload(Path workDir, String relativeFilePath, String destination) throws StorageException, GeneralSecurityException;
 
     Boolean download(String fileName, Path destination) throws StorageException;
 }
