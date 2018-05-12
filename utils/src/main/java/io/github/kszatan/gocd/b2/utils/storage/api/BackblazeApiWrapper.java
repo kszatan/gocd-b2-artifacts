@@ -31,6 +31,7 @@ import java.util.Properties;
 public class BackblazeApiWrapper {
     private static final String B2_API_URL = "https://api.backblazeb2.com";
     private static final String AUTHORIZE_ACCOUNT_CMD = "/b2api/v1/b2_authorize_account";
+    private static final String CANCEL_LARGE_FILE_CMD = "/b2api/v1/b2_cancel_large_file";
     private static final String FINISH_LARGE_FILE_CMD = "/b2api/v1/b2_finish_large_file";
     private static final String GET_UPLOAD_PART_URL_CMD = "/b2api/v1/b2_get_upload_part_url";
     private static final String GET_UPLOAD_URL_CMD = "/b2api/v1/b2_get_upload_url";
@@ -415,6 +416,39 @@ public class BackblazeApiWrapper {
             }
         }
         return Optional.of(GsonService.fromJson(jsonResponse, FinishLargeFileResponse.class));
+    }
+
+    public Optional<CancelLargeFileResponse> cancelLargeFile(AuthorizeResponse authorizeResponse, String fileId) throws IOException {
+        String apiUrl = authorizeResponse.apiUrl;
+        String accountAuthorizationToken = authorizeResponse.authorizationToken;
+        HttpURLConnection connection = null;
+        String postParams = "{\"fileId\":\"" + fileId + "\"}";
+        String jsonResponse;
+        byte postData[] = postParams.getBytes(StandardCharsets.UTF_8);
+        try {
+            connection = newHttpConnection(apiUrl, CANCEL_LARGE_FILE_CMD, "POST");
+            connection.setRequestProperty("Authorization", accountAuthorizationToken);
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setRequestProperty("Charset", "utf-8");
+            connection.setRequestProperty("Content-Length", Integer.toString(postData.length));
+            connection.setDoOutput(true);
+            DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
+            writer.write(postData);
+            if (connection.getResponseCode() == HttpStatus.SC_OK) {
+                jsonResponse = myStreamReader(connection.getInputStream());
+            } else {
+                parseErrorResponse(connection);
+                return Optional.empty();
+            }
+        } catch (SocketTimeoutException e) {
+            setRequestTimeoutError(e);
+            return Optional.empty();
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+        return Optional.of(GsonService.fromJson(jsonResponse, CancelLargeFileResponse.class));
     }
 
     static private String myStreamReader(InputStream in) throws IOException {

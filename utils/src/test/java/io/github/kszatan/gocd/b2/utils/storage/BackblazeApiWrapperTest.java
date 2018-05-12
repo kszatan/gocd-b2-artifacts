@@ -147,6 +147,12 @@ public class BackblazeApiWrapperTest {
             "  \"fileName\": \"bigfile.dat\",\n" +
             "  \"uploadTimestamp\": 1460162909000\n" +
             "}";
+    private final String cancelLargeFileResponseJson = "{\n" +
+            "  \"accountId\": \"d522aa47a10f\",\n" +
+            "  \"bucketId\": \"4a48fe8875c6214145260818\",\n" +
+            "  \"fileId\": \"4_za71f544e781e6891531b001a_f200ec353a2184825_d20160409_m004829_c000_v0001016_t0028\",\n" +
+            "  \"fileName\": \"bigfile.dat\"\n" +
+            "}";
     private String errorResponseJson = "{\n" +
             "    \"status\" : 400,\n" +
             "    \"code\" : \"invalid_bucket_name\",\n" +
@@ -1079,5 +1085,77 @@ public class BackblazeApiWrapperTest {
         assertThat(GsonService.toJson(response.fileInfo) , equalTo("{}"));
         assertThat(response.fileName , equalTo("bigfile.dat"));
         assertThat(response.uploadTimestamp , equalTo(1460162909000L));
+    }
+
+    @Test
+    public void exceptionDuringOpeningConnectionOnCancelLargeFileShouldCloseConnection() throws Exception {
+        doThrow(new IOException("Bad")).when(mockUrlCon).getInputStream();
+
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                return mockUrlCon;
+            }
+        };
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
+        AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
+        try {
+            wrapper.cancelLargeFile(authorizeResponse,"4_ze73ede9c9c8412db49f60715");
+        } catch (Exception e) {
+        }
+        verify(mockUrlCon).disconnect();
+    }
+
+    @Test
+    public void exceptionDuringOpeningConnectionOnCancelLargeFileShouldNotResultInAttemptToCloseConnection() throws Exception {
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                throw new IOException("Bad, bad connection");
+            }
+        };
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
+        AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
+        try {
+            wrapper.cancelLargeFile(authorizeResponse,"4_ze73ede9c9c8412db49f60715");
+        } catch (Exception e) {
+        }
+        verify(mockUrlCon, times(0)).disconnect();
+    }
+
+    @Test
+    public void requestTimeoutDuringConnectionOnCancelLargeFileShouldResultInCorrectlySetErrorAndEmptyReturn() throws Exception {
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                throw new SocketTimeoutException("Request timeout");
+            }
+        };
+
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
+
+        AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
+        Optional<CancelLargeFileResponse> response = wrapper.cancelLargeFile(authorizeResponse,"4_ze73ede9c9c8412db49f60715");
+        assertThat(response, equalTo(Optional.empty()));
+        ErrorResponse error = wrapper.getLastError().get();
+        assertThat(error.status, equalTo(HttpStatus.SC_REQUEST_TIMEOUT));
+        assertThat(error.message, equalTo("Request timeout"));
+        assertThat(error.code, equalTo("request_timeout"));
+        verify(mockUrlCon, times(0)).disconnect();
+    }
+
+    @Test
+    public void successfulCancelLargeFileCallShouldResultInCorrectlyPopulatedResponseFields() throws Exception {
+        ByteArrayInputStream is = new ByteArrayInputStream(cancelLargeFileResponseJson.getBytes("UTF-8"));
+        doReturn(is).when(mockUrlCon).getInputStream();
+        doReturn(mock(OutputStream.class)).when(mockUrlCon).getOutputStream();
+        doReturn(HttpStatus.SC_OK).when(mockUrlCon).getResponseCode();
+
+        CancelLargeFileResponse response = wrapper.cancelLargeFile(defAuthResponse,"4_ze73ede9c9c8412db49f60715").get();
+        verify(mockUrlCon).disconnect();
+        assertThat(response.accountId , equalTo("d522aa47a10f"));
+        assertThat(response.bucketId , equalTo("4a48fe8875c6214145260818"));
+        assertThat(response.fileId, equalTo("4_za71f544e781e6891531b001a_f200ec353a2184825_d20160409_m004829_c000_v0001016_t0028"));
+        assertThat(response.fileName , equalTo("bigfile.dat"));
     }
 }
