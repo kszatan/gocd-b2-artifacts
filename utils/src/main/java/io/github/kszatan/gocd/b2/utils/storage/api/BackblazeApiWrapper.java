@@ -282,7 +282,7 @@ public class BackblazeApiWrapper {
         String jsonResponse;
         byte postData[] = postParams.getBytes(StandardCharsets.UTF_8);
         try {
-            connection = newHttpConnection(apiUrl, GET_UPLOAD_URL_CMD, "POST");
+            connection = newHttpConnection(apiUrl, GET_UPLOAD_PART_URL_CMD, "POST");
             connection.setRequestProperty("Authorization", accountAuthorizationToken);
             connection.setRequestProperty("Content-Type", "application/json");
             connection.setRequestProperty("charset", "utf-8");
