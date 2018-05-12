@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018. Krzysztof Szatan <kszatan@gmail.com>
+ * Copyright (c) 2018 Krzysztof Szatan <kszatan@gmail.com>
  * This file is subject to the license terms in the LICENSE file found in the
  * top-level directory of this distribution.
  */
@@ -20,6 +20,7 @@ import java.net.URLStreamHandler;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Optional;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -133,6 +134,18 @@ public class BackblazeApiWrapperTest {
             "  \"fileInfo\": {},\n"+
             "  \"fileName\": \"bigfile.dat\",\n"+
             "  \"uploadTimestamp\": 1460162909000\n"+
+            "}";
+    private final String finishLargeFileResponseJson = "{\n" +
+            "  \"accountId\": \"d522aa47a10f\",\n" +
+            "  \"action\": \"upload\",\n" +
+            "  \"bucketId\": \"e73ede9c9c8412db49f60715\",\n" +
+            "  \"contentLength\": 208158542,\n" +
+            "  \"contentSha1\": \"none\",\n" +
+            "  \"contentType\": \"b2/x-auto\",\n" +
+            "  \"fileId\": \"4_ze73ede9c9c8412db49f60715_f100b4e93fbae6252_d20150824_m224353_c900_v8881000_t0001\",\n" +
+            "  \"fileInfo\": {},\n" +
+            "  \"fileName\": \"bigfile.dat\",\n" +
+            "  \"uploadTimestamp\": 1460162909000\n" +
             "}";
     private String errorResponseJson = "{\n" +
             "    \"status\" : 400,\n" +
@@ -988,5 +1001,83 @@ public class BackblazeApiWrapperTest {
         wrapper.uploadPart(new byte[10], 10, 1, uploadPartUrlResponse);
 
         verify(mockUrlCon).disconnect();
+    }
+
+    @Test
+    public void exceptionDuringOpeningConnectionOnFinishLargeFileShouldCloseConnection() throws Exception {
+        doThrow(new IOException("Bad")).when(mockUrlCon).getInputStream();
+
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                return mockUrlCon;
+            }
+        };
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
+        AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
+        try {
+            wrapper.finishLargeFile(authorizeResponse,"4_ze73ede9c9c8412db49f60715", new ArrayList<>());
+        } catch (Exception e) {
+        }
+        verify(mockUrlCon).disconnect();
+    }
+
+    @Test
+    public void exceptionDuringOpeningConnectionOnFinishLargeFileShouldNotResultInAttemptToCloseConnection() throws Exception {
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                throw new IOException("Bad, bad connection");
+            }
+        };
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
+        AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
+        try {
+            wrapper.finishLargeFile(authorizeResponse,"4_ze73ede9c9c8412db49f60715", new ArrayList<>());
+        } catch (Exception e) {
+        }
+        verify(mockUrlCon, times(0)).disconnect();
+    }
+
+    @Test
+    public void requestTimeoutDuringConnectionOnFinishLargeFileShouldResultInCorrectlySetErrorAndEmptyReturn() throws Exception {
+        stubUrlHandler = new URLStreamHandler() {
+            @Override
+            protected HttpURLConnection openConnection(URL u) throws IOException {
+                throw new SocketTimeoutException("Request timeout");
+            }
+        };
+
+        wrapper = new BackblazeApiWrapper(stubUrlHandler);
+
+        AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
+        Optional<FinishLargeFileResponse> response = wrapper.finishLargeFile(authorizeResponse,"4_ze73ede9c9c8412db49f60715", new ArrayList<>());
+        assertThat(response, equalTo(Optional.empty()));
+        ErrorResponse error = wrapper.getLastError().get();
+        assertThat(error.status, equalTo(HttpStatus.SC_REQUEST_TIMEOUT));
+        assertThat(error.message, equalTo("Request timeout"));
+        assertThat(error.code, equalTo("request_timeout"));
+        verify(mockUrlCon, times(0)).disconnect();
+    }
+
+    @Test
+    public void successfulFinishLargeFileCallShouldResultInCorrectlyPopulatedResponseFields() throws Exception {
+        ByteArrayInputStream is = new ByteArrayInputStream(finishLargeFileResponseJson.getBytes("UTF-8"));
+        doReturn(is).when(mockUrlCon).getInputStream();
+        doReturn(mock(OutputStream.class)).when(mockUrlCon).getOutputStream();
+        doReturn(HttpStatus.SC_OK).when(mockUrlCon).getResponseCode();
+
+        FinishLargeFileResponse response = wrapper.finishLargeFile(defAuthResponse,"4_ze73ede9c9c8412db49f60715", new ArrayList<>()).get();
+        verify(mockUrlCon).disconnect();
+        assertThat(response.accountId , equalTo("d522aa47a10f"));
+        assertThat(response.action, equalTo("upload"));
+        assertThat(response.bucketId , equalTo("e73ede9c9c8412db49f60715"));
+        assertThat(response.contentLength, equalTo(208158542));
+        assertThat(response.contentSha1, equalTo("none"));
+        assertThat(response.contentType , equalTo("b2/x-auto"));
+        assertThat(response.fileId, equalTo("4_ze73ede9c9c8412db49f60715_f100b4e93fbae6252_d20150824_m224353_c900_v8881000_t0001"));
+        assertThat(GsonService.toJson(response.fileInfo) , equalTo("{}"));
+        assertThat(response.fileName , equalTo("bigfile.dat"));
+        assertThat(response.uploadTimestamp , equalTo(1460162909000L));
     }
 }
