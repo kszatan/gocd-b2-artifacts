@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.ArgumentCaptor;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -32,13 +33,21 @@ public class BackblazeStorageTest {
     public ExpectedException thrown = ExpectedException.none();
     private BackblazeStorage storage;
     private BackblazeApiWrapper backblazeApiWrapperMock;
+    private CredentialsManager credentialsManagerMock;
     private String testFilePath;
 
     @Before
     public void setUp() {
         backblazeApiWrapperMock = mock(BackblazeApiWrapper.class);
-        storage = new BackblazeStorage(bucketName, backblazeApiWrapperMock);
+        credentialsManagerMock = mock(CredentialsManager.class);
+        storage = new BackblazeStorage(bucketName, backblazeApiWrapperMock, credentialsManagerMock);
         testFilePath = this.getClass().getResource("UploadFileTest.txt").getPath();
+        defaultCredentialManagerMockedCalls();
+    }
+
+    private void defaultCredentialManagerMockedCalls() {
+        doReturn(Optional.empty()).when(credentialsManagerMock).getAuthorizeResponse(any(), any());
+        doReturn(Optional.empty()).when(credentialsManagerMock).getBucketId(any(), any(), any());
     }
 
     @Test
@@ -61,6 +70,7 @@ public class BackblazeStorageTest {
         Optional<ListFileNamesResponse> maybeListFileNamesResponse = Optional.of(listFileNamesResponse);
         AuthorizeResponse authorizeResponse = new AuthorizeResponse();
         authorize(authorizeResponse);
+        mockListBucketsCall(Optional.of(authorizeResponse));
         doReturn(maybeListFileNamesResponse).when(backblazeApiWrapperMock).listFileNames(
                 eq(authorizeResponse), any(ListFileNamesParams.class));
 
@@ -72,6 +82,68 @@ public class BackblazeStorageTest {
         assertThat(response.fileNames.size(), equalTo(1));
         FileName firstFileName = response.fileNames.get(0);
         assertThat(firstFileName, equalTo(fileName));
+    }
+
+    @Test
+    public void listFilesShouldUseAuthorizeResponseAndBucketIdFromCredentialManagerIfProvided() throws Exception {
+        reset(credentialsManagerMock);
+        ListFileNamesResponse listFileNamesResponse = new ListFileNamesResponse();
+        FileName fileName = new FileName();
+        fileName.fileName = "files/world.txt";
+        fileName.fileId = "4_z27c88f1d182b150646ff0b16_f1004ba650fe24e6b_d20150809_m012853_c100_v0009990_t0000";
+        fileName.action = "upload";
+        fileName.uploadTimestamp = 1439083733000L;
+        fileName.contentLength = 6;
+        listFileNamesResponse.fileNames.add(fileName);
+        listFileNamesResponse.nextFileName = "next file";
+        Optional<ListFileNamesResponse> maybeListFileNamesResponse = Optional.of(listFileNamesResponse);
+
+        String accountId = "account_id";
+        String applicationKey = "application_key";
+        AuthorizeResponse authorizeResponse = new AuthorizeResponse();
+        doReturn(Optional.of(authorizeResponse)).when(credentialsManagerMock).getAuthorizeResponse(accountId, applicationKey);
+        authorize(accountId, applicationKey, authorizeResponse);
+        mockListBucketsCall(accountId, Optional.of(authorizeResponse));
+        doReturn(maybeListFileNamesResponse).when(backblazeApiWrapperMock).listFileNames(
+                eq(authorizeResponse), any(ListFileNamesParams.class));
+        String bucketId = "bukhet1234";
+        doReturn(Optional.of(bucketId)).when(credentialsManagerMock).getBucketId(accountId, applicationKey, bucketName);
+
+        storage.listFiles("files/hello.txt", "files/", "/");
+
+        ArgumentCaptor<ListFileNamesParams> params = ArgumentCaptor.forClass(ListFileNamesParams.class);
+        verify(backblazeApiWrapperMock).listFileNames(eq(authorizeResponse), params.capture());
+        assertThat(params.getValue().bucketId, equalTo(bucketId));
+    }
+
+    @Test
+    public void listFilesShouldStoreBucketIdInCredentialManagerForNextInvokation() throws Exception {
+        reset(credentialsManagerMock);
+        ListFileNamesResponse listFileNamesResponse = new ListFileNamesResponse();
+        FileName fileName = new FileName();
+        fileName.fileName = "files/world.txt";
+        fileName.fileId = "4_z27c88f1d182b150646ff0b16_f1004ba650fe24e6b_d20150809_m012853_c100_v0009990_t0000";
+        fileName.action = "upload";
+        fileName.uploadTimestamp = 1439083733000L;
+        fileName.contentLength = 6;
+        listFileNamesResponse.fileNames.add(fileName);
+        listFileNamesResponse.nextFileName = "next file";
+        Optional<ListFileNamesResponse> maybeListFileNamesResponse = Optional.of(listFileNamesResponse);
+
+        String accountId = "account_id";
+        String applicationKey = "application_key";
+        AuthorizeResponse authorizeResponse = new AuthorizeResponse();
+        doReturn(Optional.of(authorizeResponse)).when(credentialsManagerMock).getAuthorizeResponse(accountId, applicationKey);
+        authorize(accountId, applicationKey, authorizeResponse);
+        mockListBucketsCall(accountId, Optional.of(authorizeResponse));
+        doReturn(maybeListFileNamesResponse).when(backblazeApiWrapperMock).listFileNames(
+                eq(authorizeResponse), any(ListFileNamesParams.class));
+        String bucketId = "bukhet1234";
+        doReturn(Optional.empty()).when(credentialsManagerMock).getBucketId(accountId, applicationKey, bucketName);
+        mockListBucketsCall(accountId, bucketId, Optional.of(authorizeResponse));
+
+        storage.listFiles("files/hello.txt", "files/", "/");
+        verify(credentialsManagerMock).storeBucketId(accountId, applicationKey, bucketName, bucketId);
     }
 
     @Test
@@ -92,6 +164,7 @@ public class BackblazeStorageTest {
         
         AuthorizeResponse authorizeResponse = new AuthorizeResponse();
         authorize(authorizeResponse);
+        mockListBucketsCall(Optional.of(authorizeResponse));
 
         doThrow(new IOException("read error"))
                 .when(backblazeApiWrapperMock).listFileNames(any(), any(ListFileNamesParams.class));
@@ -188,24 +261,61 @@ public class BackblazeStorageTest {
     }
 
     @Test
+    public void authorizeShouldReturnTrueIfCredentialsFoundInCredentialsManager() throws Exception {
+        reset(credentialsManagerMock);
+        final String accountId = "account_id";
+        final String applicationKey = "application_key";
+        doReturn(Optional.of(new AuthorizeResponse())).when(credentialsManagerMock).getAuthorizeResponse(accountId, applicationKey);
+
+        storage.setCredentials(accountId, applicationKey);
+        Boolean result = storage.authorize();
+        assertThat(result, equalTo(true));
+    }
+
+    @Test
     public void authorizeShouldReturnTrueWhenAllApiOperationsSucceed() throws Exception {
         final String accountId = "account_id";
         final String applicationKey = "application_key";
         Optional<AuthorizeResponse> authorizeResponse = Optional.of(new AuthorizeResponse());
         doReturn(authorizeResponse).when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
+        mockListBucketsCall(accountId, authorizeResponse);
+
+        storage.setCredentials(accountId, applicationKey);
+        Boolean result = storage.authorize();
+        assertThat(result, equalTo(true));
+    }
+    
+    @Test
+    public void authorizeShouldStoreCredentialsWhenAllApiOperationsSucceed() throws Exception {
+        final String accountId = "account_id";
+        final String applicationKey = "application_key";
+        Optional<AuthorizeResponse> authorizeResponse = Optional.of(new AuthorizeResponse());
+        doReturn(authorizeResponse).when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
+        mockListBucketsCall(accountId, authorizeResponse);
+
+        storage.setCredentials(accountId, applicationKey);
+        storage.authorize();
+        verify(credentialsManagerMock).storeAuthorizeResponse(accountId, applicationKey, authorizeResponse.get());
+    }
+
+    private void mockListBucketsCall(Optional<AuthorizeResponse> authorizeResponse) throws IOException {
+        mockListBucketsCall("account_id", "bucket_id", authorizeResponse);
+    }
+
+    private void mockListBucketsCall(String accountId, Optional<AuthorizeResponse> authorizeResponse) throws IOException {
+        mockListBucketsCall(accountId, "bucket_id", authorizeResponse);
+    }
+
+    private void mockListBucketsCall(String accountId, String bucketId, Optional<AuthorizeResponse> authorizeResponse) throws IOException {
         Bucket bucket = new Bucket();
         bucket.accountId = accountId;
-        bucket.id = "bucket_id";
+        bucket.id = bucketId;
         bucket.name = bucketName;
         ListBucketsResponse bucketList = new ListBucketsResponse();
         bucketList.buckets = new ArrayList<>();
         bucketList.buckets.add(bucket);
         Optional<ListBucketsResponse> listBucketResponse = Optional.of(bucketList);
         doReturn(listBucketResponse).when(backblazeApiWrapperMock).listBuckets(authorizeResponse.get());
-
-        storage.setCredentials(accountId, applicationKey);
-        Boolean result = storage.authorize();
-        assertThat(result, equalTo(true));
     }
 
     @Test
@@ -222,15 +332,7 @@ public class BackblazeStorageTest {
                 .doReturn(Optional.empty())
                 .doReturn(Optional.empty())
                 .doReturn(authorizeResponse).when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
-        Bucket bucket = new Bucket();
-        bucket.accountId = accountId;
-        bucket.id = "bucket_id";
-        bucket.name = bucketName;
-        ListBucketsResponse bucketList = new ListBucketsResponse();
-        bucketList.buckets = new ArrayList<>();
-        bucketList.buckets.add(bucket);
-        Optional<ListBucketsResponse> listBucketResponse = Optional.of(bucketList);
-        doReturn(listBucketResponse).when(backblazeApiWrapperMock).listBuckets(authorizeResponse.get());
+        mockListBucketsCall(accountId, authorizeResponse);
 
         storage.setCredentials(accountId, applicationKey);
         Boolean result = storage.authorize();
@@ -251,28 +353,6 @@ public class BackblazeStorageTest {
                 .doReturn(Optional.empty())
                 .doReturn(Optional.empty())
                 .when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
-
-        storage.setCredentials(accountId, applicationKey);
-        Boolean result = storage.authorize();
-        assertThat(result, equalTo(false));
-    }
-
-    @Test
-    public void authorizeShouldReturnFalseAfterFiveUnsuccessfulListBucketsAttempts() throws Exception {
-        final String accountId = "account_id";
-        final String applicationKey = "application_key";
-        ErrorResponse errorResponse = new ErrorResponse();
-        errorResponse.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
-        errorResponse.message = "Too many requests";
-        doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
-        Optional<AuthorizeResponse> authorizeResponse = Optional.of(new AuthorizeResponse());
-        doReturn(authorizeResponse).when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
-        doReturn(Optional.empty())
-                .doReturn(Optional.empty())
-                .doReturn(Optional.empty())
-                .doReturn(Optional.empty())
-                .doReturn(Optional.empty())
-                .when(backblazeApiWrapperMock).listBuckets(authorizeResponse.get());
 
         storage.setCredentials(accountId, applicationKey);
         Boolean result = storage.authorize();
@@ -306,10 +386,64 @@ public class BackblazeStorageTest {
     }
 
     @Test
+    public void uploadSmallFileShouldUseBucketIdFromCredentialManagerIfProvided() throws Exception {
+        reset(credentialsManagerMock);
+        final String accountId = "account_id";
+        final String applicationKey = "application_key";
+        AuthorizeResponse authorizeResponse = new AuthorizeResponse();
+        authorizeResponse.recommendedPartSize = 100000;
+        doReturn(Optional.of(authorizeResponse)).when(credentialsManagerMock).getAuthorizeResponse(accountId, applicationKey);
+        authorize(accountId, applicationKey, authorizeResponse);
+        mockListBucketsCall(accountId, Optional.of(authorizeResponse));
+        GetUploadUrlResponse getUploadUrlResponse = new GetUploadUrlResponse();
+        doReturn(Optional.of(getUploadUrlResponse)).when(backblazeApiWrapperMock).getUploadUrl(any(), any());
+        String bucketId = "bukhet123";
+        doReturn(Optional.of(bucketId)).when(credentialsManagerMock).getBucketId(accountId, applicationKey, bucketName);
+        doReturn(Optional.of(new UploadFileResponse()))
+                .when(backblazeApiWrapperMock).uploadFile(any(), any(), any(), any());
+        Path workDir = Paths.get("");
+        String relativeFilePath = "";
+        String destination = "";
+        storage.upload(workDir, relativeFilePath, destination);
+        verify(backblazeApiWrapperMock).getUploadUrl(authorizeResponse, bucketId);
+        verify(backblazeApiWrapperMock).uploadFile(workDir, relativeFilePath, destination, getUploadUrlResponse);
+    }
+
+    @Test
+    public void uploadLargeFileShouldUseBucketIdFromCredentialManagerIfProvided() throws Exception {
+        reset(credentialsManagerMock);
+        final String accountId = "account_id";
+        final String applicationKey = "application_key";
+        AuthorizeResponse authorizeResponse = new AuthorizeResponse();
+        authorizeResponse.recommendedPartSize = 10;
+        doReturn(Optional.of(authorizeResponse)).when(credentialsManagerMock).getAuthorizeResponse(accountId, applicationKey);
+        authorize(accountId, applicationKey, authorizeResponse);
+        mockListBucketsCall(accountId, Optional.of(authorizeResponse));
+        doReturn(Optional.of(new StartLargeFileResponse()))
+                .when(backblazeApiWrapperMock).startLargeFile(any(), any(), any());
+        doReturn(Optional.of(new GetUploadPartUrlResponse()))
+                .when(backblazeApiWrapperMock).getUploadPartUrl(any(), any());
+        doReturn(Optional.of(new UploadPartResponse()))
+                .when(backblazeApiWrapperMock).uploadPart(any(), any(), any(), any());
+        doReturn(Optional.of(new FinishLargeFileResponse()))
+                .when(backblazeApiWrapperMock).finishLargeFile(any(), any(), any());
+        String bucketId = "bukhet123";
+        doReturn(Optional.of(bucketId)).when(credentialsManagerMock).getBucketId(accountId, applicationKey, bucketName);
+        doReturn(Optional.of(new UploadPartResponse()))
+                .when(backblazeApiWrapperMock).uploadPart(any(), any(), any(), any());
+        Path workDir = Paths.get("");
+        String destination = "";
+        storage.upload(workDir, testFilePath, destination);
+        verify(backblazeApiWrapperMock).startLargeFile(authorizeResponse, testFilePath, bucketId);
+        verify(backblazeApiWrapperMock, times(3)).uploadPart(any(), any(), any(), any());
+    }
+
+    @Test
     public void uploadFileShouldThrowIfItCannotGetUploadUrl() throws Exception {
         AuthorizeResponse authorizeResponse = new AuthorizeResponse();
         authorizeResponse.recommendedPartSize = 100000;
         authorize(authorizeResponse);
+        mockListBucketsCall(Optional.of(authorizeResponse));
         doReturn(Optional.empty())
                 .doReturn(Optional.empty())
                 .doReturn(Optional.empty())
@@ -329,6 +463,7 @@ public class BackblazeStorageTest {
         AuthorizeResponse authorizeResponse = new AuthorizeResponse();
         authorizeResponse.recommendedPartSize = 100000;
         authorize(authorizeResponse);
+        mockListBucketsCall(Optional.of(authorizeResponse));
         Optional<GetUploadUrlResponse> getUploadUrlResponse = Optional.of(new GetUploadUrlResponse());
         doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(any(), any());
         thrown.expect(StorageException.class);
@@ -342,6 +477,7 @@ public class BackblazeStorageTest {
         AuthorizeResponse authorizeResponse = new AuthorizeResponse();
         authorizeResponse.recommendedPartSize = 100000;
         authorize(authorizeResponse);
+        mockListBucketsCall(Optional.of(authorizeResponse));
         Optional<GetUploadUrlResponse> getUploadUrlResponse = Optional.of(new GetUploadUrlResponse());
         doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(any(), any());
         ErrorResponse errorResponse = new ErrorResponse();
@@ -364,6 +500,7 @@ public class BackblazeStorageTest {
         AuthorizeResponse authorizeResponse = new AuthorizeResponse();
         authorizeResponse.recommendedPartSize = 100000;
         authorize(authorizeResponse);
+        mockListBucketsCall(Optional.of(authorizeResponse));
 
         ErrorResponse errorResponse = new ErrorResponse();
         errorResponse.status = HttpStatus.SC_REQUEST_TIMEOUT;
@@ -396,6 +533,7 @@ public class BackblazeStorageTest {
         AuthorizeResponse authorizeResponse = new AuthorizeResponse();
         authorizeResponse.recommendedPartSize = 100000;
         authorize(authorizeResponse);
+        mockListBucketsCall(Optional.of(authorizeResponse));
         doReturn(Optional.of(new GetUploadUrlResponse()))
                 .when(backblazeApiWrapperMock).getUploadUrl(any(), any());
 
@@ -412,6 +550,7 @@ public class BackblazeStorageTest {
         AuthorizeResponse authorizeResponse = new AuthorizeResponse();
         authorizeResponse.recommendedPartSize = 10;
         authorize(authorizeResponse);
+        mockListBucketsCall(Optional.of(authorizeResponse));
 
         doReturn(Optional.of(new StartLargeFileResponse()))
                 .when(backblazeApiWrapperMock).startLargeFile(any(), any(), any());
@@ -435,6 +574,7 @@ public class BackblazeStorageTest {
         AuthorizeResponse authorizeResponse = new AuthorizeResponse();
         authorizeResponse.recommendedPartSize = 10;
         authorize(authorizeResponse);
+        mockListBucketsCall(Optional.of(authorizeResponse));
         
         ErrorResponse errorResponse = new ErrorResponse();
         errorResponse.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
@@ -457,6 +597,7 @@ public class BackblazeStorageTest {
         AuthorizeResponse authorizeResponse = new AuthorizeResponse();
         authorizeResponse.recommendedPartSize = 10;
         authorize(authorizeResponse);
+        mockListBucketsCall(Optional.of(authorizeResponse));
 
         ErrorResponse errorResponse = new ErrorResponse();
         errorResponse.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
@@ -487,6 +628,7 @@ public class BackblazeStorageTest {
         AuthorizeResponse authorizeResponse = new AuthorizeResponse();
         authorizeResponse.recommendedPartSize = 10;
         authorize(authorizeResponse);
+        mockListBucketsCall(Optional.of(authorizeResponse));
 
         ErrorResponse errorResponse = new ErrorResponse();
         errorResponse.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
@@ -519,6 +661,7 @@ public class BackblazeStorageTest {
         AuthorizeResponse authorizeResponse = new AuthorizeResponse();
         authorizeResponse.recommendedPartSize = 10;
         authorize(authorizeResponse);
+        mockListBucketsCall(Optional.of(authorizeResponse));
 
         ErrorResponse errorResponse = new ErrorResponse();
         errorResponse.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
@@ -564,6 +707,21 @@ public class BackblazeStorageTest {
 
         Boolean result = storage.download("dir1/fileName.txt", Paths.get(System.getProperty("java.io.tmpdir")));
         assertThat(result, equalTo(false));
+    }
+    
+    @Test
+    public void downloadShouldUseAuthorizeResponseFromCredentialManagerIfProvided() throws Exception {
+        reset(credentialsManagerMock);
+        AuthorizeResponse authorizeResponse = new AuthorizeResponse();
+        final String accountId = "account_id";
+        final String applicationKey = "application_key";
+        doReturn(Optional.of(authorizeResponse)).when(credentialsManagerMock).getAuthorizeResponse(accountId, applicationKey);
+        authorize(accountId, applicationKey, authorizeResponse);
+        doReturn(Optional.of(new DownloadFileResponse()))
+                .when(backblazeApiWrapperMock).downloadFileByName(any(), any(), any(), any());
+
+        storage.download("dir1/fileName.txt", Paths.get(System.getProperty("java.io.tmpdir")));
+        verify(backblazeApiWrapperMock).downloadFileByName(any(), any(), any(), eq(authorizeResponse));
     }
 
     @Test
@@ -613,11 +771,16 @@ public class BackblazeStorageTest {
         storage.setCredentials(accountId, applicationKey);
         storage.listFiles(startFileName, prefix, delimiter);
         verify(backblazeApiWrapperMock, times(5)).authorize(accountId, applicationKey);
+        verify(credentialsManagerMock, times(5)).forgetCredentials(accountId, applicationKey);
     }
 
     private void authorize(AuthorizeResponse authorizeResponse) throws Exception {
         final String accountId = "account_id";
         final String applicationKey = "application_key";
+        authorize(accountId, applicationKey, authorizeResponse);
+    }
+    
+    private void authorize(String accountId, String applicationKey, AuthorizeResponse authorizeResponse) throws Exception {
         Optional<AuthorizeResponse> maybeAuthorizeResponse = Optional.of(authorizeResponse);
         doReturn(maybeAuthorizeResponse).when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
         Bucket bucket = new Bucket();

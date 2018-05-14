@@ -17,7 +17,10 @@ import com.thoughtworks.go.plugin.api.response.GoPluginApiResponse;
 import io.github.kszatan.gocd.b2.material.handlers.DefaultRequestHandlerFactory;
 import io.github.kszatan.gocd.b2.material.handlers.RequestHandler;
 import io.github.kszatan.gocd.b2.material.handlers.RequestHandlerFactory;
+import io.github.kszatan.gocd.b2.utils.storage.BackblazeStorage;
+import io.github.kszatan.gocd.b2.utils.storage.CachingCredentialsManager;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
@@ -25,12 +28,17 @@ import java.util.List;
 public class B2MaterialPlugin extends AbstractGoPlugin {
     private static final String EXTENSION_NAME = "package-repository";
     private static final List<String> supportedExtensionVersions = Collections.singletonList("1.0");
-    private final RequestHandlerFactory requestHandlerFactory;
+    private RequestHandlerFactory requestHandlerFactory;
 
     private Logger logger = Logger.getLoggerFor(B2MaterialPlugin.class);
 
     public B2MaterialPlugin() {
-        requestHandlerFactory = new DefaultRequestHandlerFactory();
+        try {
+            requestHandlerFactory = new DefaultRequestHandlerFactory(
+                    new BackblazeStorage(new CachingCredentialsManager()));
+        } catch (IOException e) {
+            logger.error("Unable to create request handler: " + e.getMessage());
+        }
     }
 
     public B2MaterialPlugin(RequestHandlerFactory requestHandlerFactory) {

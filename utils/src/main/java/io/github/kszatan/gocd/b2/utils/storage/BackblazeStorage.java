@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -30,23 +29,31 @@ public class BackblazeStorage implements Storage {
     private String accountId;
     private String applicationKey;
     private BackblazeApiWrapper backblazeApiWrapper;
+    private CredentialsManager credentialsManager;
     private AuthorizeResponse authorizeResponse;
     private GetUploadUrlResponse getUploadUrlResponse;
-    private ListBucketsResponse listBucketsResponse;
     private List<ProgressObserver> progressObservers = new ArrayList<>();
 
     public BackblazeStorage() throws IOException {
-        this.backblazeApiWrapper = new BackblazeApiWrapper();
+        this(null, new BackblazeApiWrapper(), new DummyCredentialsManager());
+    }
+
+    public BackblazeStorage(CredentialsManager credentialsManager) throws IOException {
+        this(null, new BackblazeApiWrapper(), credentialsManager);
     }
 
     public BackblazeStorage(String bucketName) throws IOException {
-        this.bucketName = bucketName;
-        this.backblazeApiWrapper = new BackblazeApiWrapper();
+        this(bucketName, new BackblazeApiWrapper(), new DummyCredentialsManager());
     }
 
     public BackblazeStorage(String bucketName, BackblazeApiWrapper backblazeApiWrapper) {
+        this(bucketName, backblazeApiWrapper, new DummyCredentialsManager());
+    }
+
+    public BackblazeStorage(String bucketName, BackblazeApiWrapper backblazeApiWrapper, CredentialsManager credentialsManager) {
         this.bucketName = bucketName;
         this.backblazeApiWrapper = backblazeApiWrapper;
+        this.credentialsManager = credentialsManager;
     }
 
     @Override
@@ -55,7 +62,6 @@ public class BackblazeStorage implements Storage {
         this.bucketId = null;
         this.authorizeResponse = null;
         this.getUploadUrlResponse = null;
-        this.listBucketsResponse = null;
         notify("Changing bucket name to '" + bucketName + "'");
     }
 
@@ -88,7 +94,9 @@ public class BackblazeStorage implements Storage {
                 return false;
             }
             ListBucketsResponse listBucketsResponse = listBuckets.getResponse().get();
-            Optional<Bucket> maybeBucket = getBucketId(listBucketsResponse, bucketName);
+            listBucketsResponse.buckets.stream().forEach(
+                    b -> credentialsManager.storeBucketId(accountId, applicationKey, b.name, b.id));
+            Optional<Bucket> maybeBucket = getBucketByName(listBucketsResponse, bucketName);
             if (!maybeBucket.isPresent()) {
                 errorMessage = "Bucket '" + bucketName + "' not found";
                 return false;
@@ -104,22 +112,15 @@ public class BackblazeStorage implements Storage {
     @Override
     public Boolean authorize() throws StorageException {
         try {
-            final Authorize authorize = new Authorize(backblazeApiWrapper, accountId, applicationKey);
-            if (!attempt(MAX_RETRY_ATTEMPTS, authorize)) {
+            if (credentialsManager.getAuthorizeResponse(accountId, applicationKey).isPresent()) {
+                return true;
+            }
+            Optional<AuthorizeResponse> maybeAuthorizeResponse = doAuthorize(accountId, applicationKey);
+            if (!maybeAuthorizeResponse.isPresent()) {
                 return false;
             }
-            authorizeResponse = authorize.getResponse().get();
-            final ListBuckets listBuckets = new ListBuckets(backblazeApiWrapper, authorizeResponse);
-            if (!attempt(MAX_RETRY_ATTEMPTS, listBuckets)) {
-                return false;
-            }
-            listBucketsResponse = listBuckets.getResponse().get();
-            Optional<Bucket> maybeBucket = getBucketId(listBucketsResponse, bucketName);
-            if (!maybeBucket.isPresent()) {
-                errorMessage = "Bucket '" + bucketName + "' doesn't exist";
-                return false;
-            }
-            bucketId = maybeBucket.get().id;
+            credentialsManager.storeAuthorizeResponse(accountId, applicationKey, maybeAuthorizeResponse.get());
+            authorizeResponse = maybeAuthorizeResponse.get();
         } catch (StorageException  e) {
             authorizeResponse = null;
             logger.info("authorize error: " + e.getMessage());
@@ -129,9 +130,51 @@ public class BackblazeStorage implements Storage {
         return true;
     }
 
+    private String fetchBucketId(AuthorizeResponse authorizeResponse) throws StorageException {
+        ListBucketsResponse listBucketsResponse = listBuckets(authorizeResponse).orElseThrow(
+                () -> new StorageException("Failed to list buckets")
+        );
+        Bucket bucket = getBucket(listBucketsResponse).orElseThrow(
+                () -> new StorageException("Bucket '" + bucketName + "' not found")
+        );
+        credentialsManager.storeBucketId(accountId, applicationKey, bucketName, bucket.id);
+        this.bucketId = bucket.id;
+        return bucket.id;
+    }
+
+    private Optional<ListBucketsResponse> listBuckets(AuthorizeResponse authorizeResponse) throws StorageException {
+        if (authorizeResponse == null) {
+            throw new StorageException("Authorize not called");
+        }
+        final ListBuckets listBuckets = new ListBuckets(backblazeApiWrapper, authorizeResponse);
+        if (!attempt(MAX_RETRY_ATTEMPTS, listBuckets)) {
+            Optional.empty();
+        }
+        return listBuckets.getResponse();
+    }
+
+    private Optional<Bucket> getBucket(ListBucketsResponse listBucketsResponse) {
+        Optional<Bucket> maybeBucket = getBucketByName(listBucketsResponse, bucketName);
+        if (!maybeBucket.isPresent()) {
+            errorMessage = "Bucket '" + bucketName + "' doesn't exist";
+            return Optional.empty();
+        }
+        return maybeBucket;
+    }
+
+    private Optional<AuthorizeResponse> doAuthorize(String accountId, String applicationKey) throws StorageException {
+        final Authorize authorize = new Authorize(backblazeApiWrapper, accountId, applicationKey);
+        if (!attempt(MAX_RETRY_ATTEMPTS, authorize)) {
+            return Optional.empty();
+        }
+        return authorize.getResponse();
+    }
+
     @Override
     public void upload(Path workDir, String relativeFilePath, String destination)
             throws StorageException {
+        AuthorizeResponse authorizeResponse =
+                credentialsManager.getAuthorizeResponse(accountId, applicationKey).orElse(this.authorizeResponse);
         if (authorizeResponse == null) {
             throw new StorageException("Authorize not called");
         }
@@ -139,12 +182,12 @@ public class BackblazeStorage implements Storage {
             try {
                 long fileSize = Files.size(workDir.resolve(relativeFilePath));
                 if (fileSize > authorizeResponse.recommendedPartSize) {
-                    uploadLargeFile(workDir, relativeFilePath, destination);
+                    uploadLargeFile(workDir, relativeFilePath, destination, authorizeResponse);
                 } else {
-                    uploadSmallFile(workDir, relativeFilePath, destination);
+                    uploadSmallFile(workDir, relativeFilePath, destination, authorizeResponse);
                 }
             } catch (LargeFileUploadException e) {
-                cancelLargeFileUpload(e.getFileId());
+                cancelLargeFileUpload(e.getFileId(), authorizeResponse);
                 throw new StorageException(e.getCause());
             }
         } catch (IOException e) {
@@ -154,8 +197,12 @@ public class BackblazeStorage implements Storage {
         notify("Successfully uploaded " + relativeFilePath + " to " + destination + ".");
     }
 
-    private void uploadSmallFile(Path workDir, String relativeFilePath, String destination)
+    private void uploadSmallFile(Path workDir, String relativeFilePath, String destination, AuthorizeResponse authorizeResponse)
             throws StorageException {
+        String bucketId = credentialsManager.getBucketId(accountId, applicationKey, bucketName).orElse(this.bucketId);
+        if (bucketId == null) {
+            bucketId = fetchBucketId(authorizeResponse);
+        }
         if (getUploadUrlResponse == null) {
             getUploadUrlResponse = getUploadUrl(authorizeResponse, bucketId).orElseThrow(
                     () -> new StorageException("Get upload URL operation failed")
@@ -176,7 +223,11 @@ public class BackblazeStorage implements Storage {
         return getUploadUrl.getResponse();
     }
 
-    private Optional<StartLargeFileResponse> startLargeFile(String fileName) throws StorageException {
+    private Optional<StartLargeFileResponse> startLargeFile(String fileName, AuthorizeResponse authorizeResponse) throws StorageException {
+        String bucketId = credentialsManager.getBucketId(accountId, applicationKey, bucketName).orElse(this.bucketId);
+        if (bucketId == null) {
+            bucketId = fetchBucketId(authorizeResponse);
+        }
         StartLargeFile startLargeFile = new StartLargeFile(backblazeApiWrapper, authorizeResponse, fileName, bucketId);
         if (!attempt(MAX_RETRY_ATTEMPTS, startLargeFile)) {
             return Optional.empty();
@@ -184,7 +235,7 @@ public class BackblazeStorage implements Storage {
         return startLargeFile.getResponse();
     }
 
-    private Optional<GetUploadPartUrlResponse> getUploadPartUrl(String fileId) throws StorageException {
+    private Optional<GetUploadPartUrlResponse> getUploadPartUrl(String fileId, AuthorizeResponse authorizeResponse) throws StorageException {
         GetUploadPartUrl getUploadPartUrl = new GetUploadPartUrl(backblazeApiWrapper, authorizeResponse, fileId);
         if (!attempt(MAX_RETRY_ATTEMPTS, getUploadPartUrl)) {
             return Optional.empty();
@@ -192,7 +243,8 @@ public class BackblazeStorage implements Storage {
         return getUploadPartUrl.getResponse();
     }
 
-    private Optional<FinishLargeFileResponse> finishLargeFile(String fileId, List<String> partSha1Array) throws StorageException {
+    private Optional<FinishLargeFileResponse> finishLargeFile(String fileId, List<String> partSha1Array,
+                                                              AuthorizeResponse authorizeResponse) throws StorageException {
         FinishLargeFile finishLargeFile = new FinishLargeFile(backblazeApiWrapper, authorizeResponse, fileId, partSha1Array);
         if (!attempt(MAX_RETRY_ATTEMPTS, finishLargeFile)) {
             return Optional.empty();
@@ -201,7 +253,7 @@ public class BackblazeStorage implements Storage {
     }
 
     private Optional<UploadPartResponse> uploadPart(GetUploadPartUrlResponse getUploadPartUrlResponse, int partLength,
-                                                    byte[] buf, int partNumber) throws StorageException {
+                                                    byte[] buf, int partNumber, AuthorizeResponse authorizeResponse) throws StorageException {
         UploadPart uploadPart = new UploadPart(backblazeApiWrapper, buf, partLength, partNumber,
                 authorizeResponse, getUploadPartUrlResponse);
         if (!attempt(MAX_RETRY_ATTEMPTS, uploadPart)) {
@@ -210,17 +262,17 @@ public class BackblazeStorage implements Storage {
         return uploadPart.getResponse();
     }
 
-    private void uploadLargeFile(Path workDir, String relativeFilePath, String destination)
+    private void uploadLargeFile(Path workDir, String relativeFilePath, String destination, AuthorizeResponse authorizeResponse)
             throws StorageException, LargeFileUploadException {
-        final String fileId = startLargeFile(Paths.get(destination, relativeFilePath).toString()).orElseThrow(
+        final String fileId = startLargeFile(Paths.get(destination, relativeFilePath).toString(), authorizeResponse).orElseThrow(
                 () -> new StorageException("Failed to start large file upload")
         ).fileId;
         try {
-            GetUploadPartUrlResponse getUploadPartUrlResponse = getUploadPartUrl(fileId).orElseThrow(
+            GetUploadPartUrlResponse getUploadPartUrlResponse = getUploadPartUrl(fileId, authorizeResponse).orElseThrow(
                     () -> new StorageException("Failed to get upload part URL")
             );
-            ArrayList<String> partSha1Array = doUpload(workDir, relativeFilePath, getUploadPartUrlResponse);
-            finishLargeFile(fileId, partSha1Array).orElseThrow(
+            ArrayList<String> partSha1Array = doUpload(workDir, relativeFilePath, authorizeResponse, getUploadPartUrlResponse);
+            finishLargeFile(fileId, partSha1Array, authorizeResponse).orElseThrow(
                     () -> new StorageException("Failed to finish large file")
             );
         } catch (IOException | StorageException e) {
@@ -228,8 +280,8 @@ public class BackblazeStorage implements Storage {
         }
     }
 
-    private ArrayList<String> doUpload(Path workDir, String relativeFilePath, GetUploadPartUrlResponse getUploadPartUrlResponse)
-            throws StorageException, IOException {
+    private ArrayList<String> doUpload(Path workDir, String relativeFilePath, AuthorizeResponse authorizeResponse,
+                                       GetUploadPartUrlResponse getUploadPartUrlResponse) throws StorageException, IOException {
         File file = new File(workDir.resolve(relativeFilePath).toString());
         final long fileSize = file.length();
         long totalBytesSent = 0;
@@ -242,7 +294,7 @@ public class BackblazeStorage implements Storage {
                 partLength = (fileSize - totalBytesSent);
             }
             readFilePart(file, totalBytesSent, (int) partLength, buf);
-            String partSha1 = uploadPart(getUploadPartUrlResponse, (int) partLength, buf, partNumber).orElseThrow(
+            String partSha1 = uploadPart(getUploadPartUrlResponse, (int) partLength, buf, partNumber, authorizeResponse).orElseThrow(
                     () -> new StorageException("Failed to get upload part")
             ).contentSha1;
             notify("Successfully uploaded part " + partNumber + " of " + relativeFilePath + ".");
@@ -260,7 +312,7 @@ public class BackblazeStorage implements Storage {
         fileInputStream.close();
     }
 
-    private Optional<CancelLargeFileResponse> cancelLargeFileUpload(String fileId) throws StorageException {
+    private Optional<CancelLargeFileResponse> cancelLargeFileUpload(String fileId, AuthorizeResponse authorizeResponse) throws StorageException {
         CancelLargeFile cancelLargeFile = new CancelLargeFile(backblazeApiWrapper, authorizeResponse, fileId);
         if (!attempt(MAX_RETRY_ATTEMPTS, cancelLargeFile)) {
             return Optional.empty();
@@ -270,11 +322,17 @@ public class BackblazeStorage implements Storage {
 
     @Override
     public Optional<ListFileNamesResponse> listFiles(String startFileName, String prefix, String delimiter) throws StorageException {
+        AuthorizeResponse authorizeResponse =
+                credentialsManager.getAuthorizeResponse(accountId, applicationKey).orElse(this.authorizeResponse);
         if (authorizeResponse == null) {
             throw new StorageException("Authorize not called");
         }
         Optional<ListFileNamesResponse> response;
         try {
+            String bucketId = credentialsManager.getBucketId(accountId, applicationKey, bucketName).orElse(this.bucketId);
+            if (bucketId == null) {
+                bucketId = fetchBucketId(authorizeResponse);
+            }
             ListFileNames listFileNames = new ListFileNames(backblazeApiWrapper, authorizeResponse, bucketId, startFileName, prefix, delimiter);
             if (!attempt(MAX_RETRY_ATTEMPTS, listFileNames)) {
                 response = Optional.empty();
@@ -290,6 +348,8 @@ public class BackblazeStorage implements Storage {
 
     @Override
     public Boolean download(String fileName, Path destination) throws StorageException {
+        AuthorizeResponse authorizeResponse =
+                credentialsManager.getAuthorizeResponse(accountId, applicationKey).orElse(this.authorizeResponse);
         if (authorizeResponse == null) {
             throw new StorageException("Authorize not called");
         }
@@ -317,6 +377,7 @@ public class BackblazeStorage implements Storage {
             try {
                 action.handleErrors(errorResponse);
             } catch (UnauthorizedCallException e) {
+                credentialsManager.forgetCredentials(accountId, applicationKey);
                 authorize();
             }
             notify("Failed to " + action.getName() + ": (" + errorResponse.status + ") " + errorResponse.message);
@@ -329,7 +390,7 @@ public class BackblazeStorage implements Storage {
         return success;
     }
 
-    private Optional<Bucket> getBucketId(ListBucketsResponse listBucketsResponse, String bucketName) {
+    private Optional<Bucket> getBucketByName(ListBucketsResponse listBucketsResponse, String bucketName) {
         return listBucketsResponse.buckets.stream().filter(b -> b.name.equals(bucketName)).findFirst();
     }
 

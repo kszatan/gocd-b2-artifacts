@@ -6,19 +6,21 @@
 
 package io.github.kszatan.gocd.b2.material.handlers;
 
+import io.github.kszatan.gocd.b2.utils.storage.Storage;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.internal.matchers.InstanceOf;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
 
 public class DefaultRequestHandlerFactoryTest {
     private RequestHandlerFactory requestHandlerFactory;
 
     @Before
     public void setUp() {
-        requestHandlerFactory = new DefaultRequestHandlerFactory();
+        requestHandlerFactory = new DefaultRequestHandlerFactory(mock(Storage.class));
     }
 
     @Test

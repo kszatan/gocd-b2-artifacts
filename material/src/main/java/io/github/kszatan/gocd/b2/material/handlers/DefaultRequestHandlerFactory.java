@@ -7,24 +7,30 @@
 package io.github.kszatan.gocd.b2.material.handlers;
 
 import com.thoughtworks.go.plugin.api.exceptions.UnhandledRequestTypeException;
+import io.github.kszatan.gocd.b2.utils.storage.Storage;
 
 import java.io.IOException;
 
-public class DefaultRequestHandlerFactory implements  RequestHandlerFactory {
-    public RequestHandler create(String requestType) throws UnhandledRequestTypeException, IOException {
+public class DefaultRequestHandlerFactory implements RequestHandlerFactory {
+    private Storage storage;
+    public DefaultRequestHandlerFactory(Storage storage) {
+        this.storage = storage;
+    }
+
+    public RequestHandler create(String requestType) throws UnhandledRequestTypeException {
         RequestHandler handler;
         switch (requestType) {
             case CHECK_PACKAGE_CONNECTION:
-                handler = new CheckPackageConnectionRequestHandler();
+                handler = new CheckPackageConnectionRequestHandler(storage);
                 break;
             case CHECK_REPOSITORY_CONNECTION:
-                handler = new CheckRepositoryConnectionRequestHandler();
+                handler = new CheckRepositoryConnectionRequestHandler(storage);
                 break;
             case LATEST_REVISION:
-                handler = new LatestRevisionRequestHandler();
+                handler = new LatestRevisionRequestHandler(storage);
                 break;
             case LATEST_REVISION_SINCE:
-                handler = new LatestRevisionSinceRequestHandler();
+                handler = new LatestRevisionSinceRequestHandler(storage);
                 break;
             case PACKAGE_CONFIGURATION:
                 handler = new PackageConfigurationRequestHandler();

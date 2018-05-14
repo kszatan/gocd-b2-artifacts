@@ -16,14 +16,10 @@ import io.github.kszatan.gocd.b2.utils.json.InvalidJson;
 import io.github.kszatan.gocd.b2.utils.storage.*;
 
 import java.io.IOException;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class LatestRevisionRequestHandler implements RequestHandler {
     private Storage storage;
