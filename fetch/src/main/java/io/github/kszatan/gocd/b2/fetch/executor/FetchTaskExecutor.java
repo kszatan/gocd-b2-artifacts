@@ -66,7 +66,8 @@ public class FetchTaskExecutor implements TaskExecutor, ProgressObserver {
     private void authorize(TaskContext context, String repositoryName, String packageName) throws StorageException {
         String accountId = context.getAccountId(repositoryName, packageName);
         String applicationKey = context.getApplicationKey(repositoryName, packageName);
-        if (!storage.authorize(accountId, applicationKey)) {
+        storage.setCredentials(accountId, applicationKey);
+        if (!storage.authorize()) {
             throw new StorageException("Failed to authorize: " + storage.getLastErrorMessage());
         }
     }

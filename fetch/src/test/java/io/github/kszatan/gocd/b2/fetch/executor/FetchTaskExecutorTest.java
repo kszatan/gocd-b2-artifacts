@@ -138,12 +138,12 @@ public class FetchTaskExecutorTest {
         context.environmentVariables.put("GO_REPO_LEPO_PAKEDZ_ACCOUNTID", accountId);
         context.environmentVariables.put("GO_REPO_LEPO_PAKEDZ_APPLICATIONKEY", applicationKey);
         executor.execute(configuration, context);
-        verify(storage).authorize(accountId, applicationKey);
+        verify(storage).authorize();
     }
 
     @Test
     public void executeShouldFetchFileListForCorrectPrefix() throws Exception {
-        doReturn(true).when(storage).authorize(any(), any());
+        doReturn(true).when(storage).authorize();
         TaskConfiguration configuration = getDefaultTaskConfiguration();
         TaskContext context = getDefaultTaskContext();
         executor.execute(configuration, context);
@@ -153,7 +153,7 @@ public class FetchTaskExecutorTest {
 
     @Test
     public void executeShouldFetchFileListSecondTimeIfNextFileNamePresent() throws Exception {
-        doReturn(true).when(storage).authorize(any(), any());
+        doReturn(true).when(storage).authorize();
         ListFileNamesResponse listFileNamesResponse = new ListFileNamesResponse();
         listFileNamesResponse.nextFileName = "nextFile";
         doReturn(Optional.of(listFileNamesResponse))
@@ -169,7 +169,7 @@ public class FetchTaskExecutorTest {
 
     @Test
     public void executorShouldReturnErrorWhenFileListEmpty() throws StorageException {
-        doReturn(true).when(storage).authorize(any(), any());
+        doReturn(true).when(storage).authorize();
         doReturn(Optional.of(new ListFileNamesResponse())).when(storage).listFiles(any(), any(), any());
         TaskConfiguration configuration = getDefaultTaskConfiguration();
         TaskContext context = getDefaultTaskContext();
@@ -180,7 +180,7 @@ public class FetchTaskExecutorTest {
 
     @Test
     public void executorShouldDownloadFilesToAppropriateDestinations() throws Exception {
-        doReturn(true).when(storage).authorize(any(), any());
+        doReturn(true).when(storage).authorize();
         ListFileNamesResponse listFileNamesResponse = new ListFileNamesResponse();
         List<String> fileNames = Arrays.asList("a/file1", "b/file2", "file3", "c/d/e/f/file4.txt");
         listFileNamesResponse.fileNames = fileNames.stream().map(name -> {

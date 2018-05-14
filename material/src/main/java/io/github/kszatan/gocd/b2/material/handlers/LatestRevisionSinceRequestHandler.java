@@ -39,9 +39,10 @@ public class LatestRevisionSinceRequestHandler implements RequestHandler {
             LatestRevisionSinceRequest latestRevisionSinceRequest =
                     new LatestRevisionSinceRequest(request.requestBody());
             RepositoryConfiguration repositoryConfiguration = latestRevisionSinceRequest.getRepositoryConfiguration();
+            storage.setCredentials(repositoryConfiguration.getAccountId(), repositoryConfiguration.getApplicationKey());
             storage.setBucketName(repositoryConfiguration.getBucketName());
             Optional<LatestRevisionSinceResponse> maybeLatestRevision;
-            if (!storage.authorize(repositoryConfiguration.getAccountId(), repositoryConfiguration.getApplicationKey())) {
+            if (!storage.authorize()) {
                 throw new StorageException(storage.getLastErrorMessage());
             } else {
                 PackageConfiguration packageConfiguration = latestRevisionSinceRequest.getPackageConfiguration();

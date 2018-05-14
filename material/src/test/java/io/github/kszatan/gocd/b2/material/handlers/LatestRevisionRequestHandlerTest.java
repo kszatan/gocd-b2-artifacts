@@ -91,7 +91,7 @@ public class LatestRevisionRequestHandlerTest {
     @Test
     public void handleShouldReturnErrorResponseWithLastStorageErrorMessageWhenAuthorizeFails() throws Exception {
         request.setRequestBody(defaultRequestJson);
-        doReturn(false).when(storage).authorize(any(), any());
+        doReturn(false).when(storage).authorize();
         doReturn("Unauthorized").when(storage).getLastErrorMessage();
         GoPluginApiResponse response = handler.handle(request);
         assertThat(response.responseCode(), equalTo(DefaultGoPluginApiResponse.INTERNAL_ERROR));
@@ -101,7 +101,7 @@ public class LatestRevisionRequestHandlerTest {
     @Test
     public void handleShouldReturnEmptySuccessResponseWhenNoPackageFound() throws Exception {
         request.setRequestBody(defaultRequestJson);
-        doReturn(true).when(storage).authorize(any(), any());
+        doReturn(true).when(storage).authorize();
         doReturn(Optional.of(new ListFileNamesResponse())).when(storage).listFiles(any(), any(), any());
         GoPluginApiResponse response = handler.handle(request);
         assertThat(response.responseCode(), equalTo(DefaultGoPluginApiResponse.SUCCESS_RESPONSE_CODE));
@@ -127,7 +127,7 @@ public class LatestRevisionRequestHandlerTest {
                 1525540976000L,
                 2525590976000L);
         request.setRequestBody(defaultRequestJson);
-        doReturn(true).when(storage).authorize(any(), any());
+        doReturn(true).when(storage).authorize();
         ListFileNamesResponse firstListFileNamesResponse = new ListFileNamesResponse();
         firstListFileNamesResponse.fileNames = fileNames.stream().map(name -> {
             FileName fileName = new FileName();

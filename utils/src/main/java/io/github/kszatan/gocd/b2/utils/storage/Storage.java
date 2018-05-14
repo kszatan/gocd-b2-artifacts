@@ -13,18 +13,12 @@ import java.util.Optional;
 
 public interface Storage {
     void setBucketName(String bucketName);
-
+    void setCredentials(String accountId, String applicationKey);
     String getLastErrorMessage();
-    
     void addProgressObserver(ProgressObserver observer);
-
     Boolean checkConnection(String accountId, String applicationKey) throws StorageException;
-
-    Boolean authorize(String accountId, String applicationKey) throws StorageException;
-
+    Boolean authorize() throws StorageException;
     Optional<ListFileNamesResponse> listFiles(String startFileName, String prefix, String delimiter) throws StorageException;
-
     void upload(Path workDir, String relativeFilePath, String destination) throws StorageException, GeneralSecurityException;
-
     Boolean download(String fileName, Path destination) throws StorageException;
 }

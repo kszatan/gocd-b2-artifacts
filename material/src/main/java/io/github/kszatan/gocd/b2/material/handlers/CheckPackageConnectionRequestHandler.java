@@ -43,9 +43,10 @@ public class CheckPackageConnectionRequestHandler implements RequestHandler {
             CheckPackageConnectionRequest checkRepositoryConnectionRequest =
                     new CheckPackageConnectionRequest(request.requestBody());
             RepositoryConfiguration repositoryConfiguration = checkRepositoryConnectionRequest.getRepositoryConfiguration();
+            storage.setCredentials(repositoryConfiguration.getAccountId(), repositoryConfiguration.getApplicationKey());
             storage.setBucketName(repositoryConfiguration.getBucketName());
             StatusMessagesResponse statusMessagesResponse;
-            if (!storage.authorize(repositoryConfiguration.getAccountId(), repositoryConfiguration.getApplicationKey())) {
+            if (!storage.authorize()) {
                 statusMessagesResponse =
                         StatusMessagesResponse.failure(Arrays.asList(storage.getLastErrorMessage()));
             } else {

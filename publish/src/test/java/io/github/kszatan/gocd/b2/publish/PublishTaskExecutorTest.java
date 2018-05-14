@@ -104,12 +104,12 @@ public class PublishTaskExecutorTest {
         context.environmentVariables.put("B2_ACCOUNT_ID", accountId);
         context.environmentVariables.put("B2_APPLICATION_KEY", applicationKey);
         executor.execute(configuration, context);
-        verify(storage).authorize(accountId, applicationKey);
+        verify(storage).authorize();
     }
 
     @Test
     public void executeShouldUploadPrefixedFilesReturnedFromScanner() throws Exception {
-        when(storage.authorize(any(), any())).thenReturn(true);
+        when(storage.authorize()).thenReturn(true);
         when(scanner.getIncludedFiles()).thenReturn(Arrays.asList("a/file1", "file2", "b/c/file3"));
         TaskConfiguration configuration = new TaskConfiguration();
         configuration.setSourceDestinations("[{\"source\": \"**\", \"destination\": \"desti/nation\"}]");
@@ -124,7 +124,7 @@ public class PublishTaskExecutorTest {
 
     @Test
     public void executorShouldPassAllSourcesToScanner() throws StorageException {
-        when(storage.authorize(any(), any())).thenReturn(true);
+        when(storage.authorize()).thenReturn(true);
         when(scanner.getIncludedFiles()).thenReturn(Arrays.asList("a/file1", "file2", "b/c/file3"));
         TaskConfiguration configuration = new TaskConfiguration();
         configuration.setSourceDestinations("[{\"source\": \"source1/*\", \"destination\": \"\"},{\"source\": \"source2/*\", \"destination\": \"\"}]");
@@ -137,7 +137,7 @@ public class PublishTaskExecutorTest {
 
     @Test
     public void executorShouldUploadFilesToAppropriateDestinations() throws Exception {
-        when(storage.authorize(any(), any())).thenReturn(true);
+        when(storage.authorize()).thenReturn(true);
         when(scanner.getIncludedFiles()).thenReturn(Arrays.asList("file1", "file2"));
         TaskConfiguration configuration = new TaskConfiguration();
         configuration.setSourceDestinations("[{\"source\": \"**\", \"destination\": \"dest1\"},{\"source\": \"**\", \"destination\": \"dest2\"}]");
@@ -153,7 +153,7 @@ public class PublishTaskExecutorTest {
 
     @Test
     public void scannerShouldGetWorkDirPassedInContext() throws StorageException {
-        when(storage.authorize(any(), any())).thenReturn(true);
+        when(storage.authorize()).thenReturn(true);
         String workDir = "base/dir";
         TaskConfiguration configuration = new TaskConfiguration();
         TaskContext context = getDefaultTaskContext();
@@ -165,7 +165,7 @@ public class PublishTaskExecutorTest {
 
     @Test
     public void executorShouldUploadFilesToPredefinedPathWhenDestinationPrefixIsEmpty() throws Exception {
-        when(storage.authorize(any(), any())).thenReturn(true);
+        when(storage.authorize()).thenReturn(true);
         when(scanner.getIncludedFiles()).thenReturn(Arrays.asList("file1", "file2"));
         TaskConfiguration configuration = new TaskConfiguration();
         configuration.setSourceDestinations("[{\"source\": \"**\", \"destination\": \"\"}]");
@@ -180,7 +180,7 @@ public class PublishTaskExecutorTest {
 
     @Test
     public void executorShouldUploadFilesToDestinationPrefixIfNotEmpty() throws Exception {
-        when(storage.authorize(any(), any())).thenReturn(true);
+        when(storage.authorize()).thenReturn(true);
         when(scanner.getIncludedFiles()).thenReturn(Arrays.asList("file1", "file2"));
         TaskConfiguration configuration = new TaskConfiguration();
         configuration.setDestinationPrefix("destination/prefix");

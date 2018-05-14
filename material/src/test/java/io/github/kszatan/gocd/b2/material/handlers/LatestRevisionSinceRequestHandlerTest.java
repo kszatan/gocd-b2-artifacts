@@ -94,7 +94,7 @@ public class LatestRevisionSinceRequestHandlerTest {
     @Test
     public void handleShouldReturnErrorResponseWithLastStorageErrorMessageWhenAuthorizeFails() throws Exception {
         request.setRequestBody(defaultRequestJson);
-        doReturn(false).when(storage).authorize(any(), any());
+        doReturn(false).when(storage).authorize();
         doReturn("Unauthorized").when(storage).getLastErrorMessage();
         GoPluginApiResponse response = handler.handle(request);
         assertThat(response.responseCode(), equalTo(DefaultGoPluginApiResponse.INTERNAL_ERROR));
@@ -104,7 +104,7 @@ public class LatestRevisionSinceRequestHandlerTest {
     @Test
     public void handleShouldReturnEmptySuccessResponseWhenNoPackageFound() throws Exception {
         request.setRequestBody(defaultRequestJson);
-        doReturn(true).when(storage).authorize(any(), any());
+        doReturn(true).when(storage).authorize();
         doReturn(Optional.of(new ListFileNamesResponse())).when(storage).listFiles(any(), any(), any());
         GoPluginApiResponse response = handler.handle(request);
         assertThat(response.responseCode(), equalTo(DefaultGoPluginApiResponse.SUCCESS_RESPONSE_CODE));
@@ -130,7 +130,7 @@ public class LatestRevisionSinceRequestHandlerTest {
                 1525540976000L,
                 2525590976000L);
         request.setRequestBody(defaultRequestJson);
-        doReturn(true).when(storage).authorize(any(), any());
+        doReturn(true).when(storage).authorize();
         ListFileNamesResponse firstListFileNamesResponse = new ListFileNamesResponse();
         firstListFileNamesResponse.fileNames = fileNames.stream().map(name -> {
             FileName fileName = new FileName();
@@ -164,7 +164,7 @@ public class LatestRevisionSinceRequestHandlerTest {
                 "up42/up42_stage/up42_job/49.1/",
                 "up42/up42_stage/up42_job/50.1/");
         request.setRequestBody(defaultRequestJson);
-        doReturn(true).when(storage).authorize(any(), any());
+        doReturn(true).when(storage).authorize();
         ListFileNamesResponse listFileNamesResponse = new ListFileNamesResponse();
         listFileNamesResponse.fileNames = fileNames.stream().map(name -> {
             FileName fileName = new FileName();

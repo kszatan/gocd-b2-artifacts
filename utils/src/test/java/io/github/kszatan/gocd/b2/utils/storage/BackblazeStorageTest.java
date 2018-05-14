@@ -22,8 +22,6 @@ import java.util.ArrayList;
 import java.util.Optional;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
@@ -77,14 +75,13 @@ public class BackblazeStorageTest {
     }
 
     @Test
-    public void listFilesShouldReturnEmptyResponseAndSetErrorWhenUnauthorized() throws Exception {
+    public void listFilesShouldThrowExceptionWhenUnauthorized() throws Exception {
         final String startFileName = "files/hello.txt";
         final String prefix = "files/";
         final String delimiter = "/";
 
+        thrown.expect(StorageException.class);
         Optional<ListFileNamesResponse> maybeResponse = storage.listFiles(startFileName, prefix, delimiter);
-        assertThat(maybeResponse.isPresent(), equalTo(false));
-        assertThat(storage.getLastErrorMessage(), is(notNullValue()));
     }
 
     @Test
@@ -171,6 +168,26 @@ public class BackblazeStorageTest {
     }
 
     @Test
+    public void authorizeShouldUsePreviouslySetCredentials() throws Exception {
+        final String accountId = "account_id";
+        final String applicationKey = "application_key";
+        doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
+        errorResponse.message = "Too many requests";
+        doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
+
+        storage.setCredentials(accountId, applicationKey);
+        storage.authorize();
+        verify(backblazeApiWrapperMock, times(5)).authorize(accountId, applicationKey);
+    }
+
+    @Test
     public void authorizeShouldReturnTrueWhenAllApiOperationsSucceed() throws Exception {
         final String accountId = "account_id";
         final String applicationKey = "application_key";
@@ -185,10 +202,9 @@ public class BackblazeStorageTest {
         bucketList.buckets.add(bucket);
         Optional<ListBucketsResponse> listBucketResponse = Optional.of(bucketList);
         doReturn(listBucketResponse).when(backblazeApiWrapperMock).listBuckets(authorizeResponse.get());
-        Optional<GetUploadUrlResponse> getUploadUrlResponse = Optional.of(new GetUploadUrlResponse());
-        doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(authorizeResponse.get(), bucket.id);
 
-        Boolean result = storage.authorize(accountId, applicationKey);
+        storage.setCredentials(accountId, applicationKey);
+        Boolean result = storage.authorize();
         assertThat(result, equalTo(true));
     }
 
@@ -215,10 +231,9 @@ public class BackblazeStorageTest {
         bucketList.buckets.add(bucket);
         Optional<ListBucketsResponse> listBucketResponse = Optional.of(bucketList);
         doReturn(listBucketResponse).when(backblazeApiWrapperMock).listBuckets(authorizeResponse.get());
-        Optional<GetUploadUrlResponse> getUploadUrlResponse = Optional.of(new GetUploadUrlResponse());
-        doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(authorizeResponse.get(), bucket.id);
 
-        Boolean result = storage.authorize(accountId, applicationKey);
+        storage.setCredentials(accountId, applicationKey);
+        Boolean result = storage.authorize();
         assertThat(result, equalTo(true));
     }
 
@@ -237,42 +252,13 @@ public class BackblazeStorageTest {
                 .doReturn(Optional.empty())
                 .when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
 
-        Boolean result = storage.authorize(accountId, applicationKey);
+        storage.setCredentials(accountId, applicationKey);
+        Boolean result = storage.authorize();
         assertThat(result, equalTo(false));
     }
 
     @Test
     public void authorizeShouldReturnFalseAfterFiveUnsuccessfulListBucketsAttempts() throws Exception {
-        final String accountId = "account_id";
-        final String applicationKey = "application_key";
-        ErrorResponse errorResponse = new ErrorResponse();
-        errorResponse.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
-        errorResponse.message = "Too many requests";
-        doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
-        Optional<AuthorizeResponse> authorizeResponse = Optional.of(new AuthorizeResponse());
-        doReturn(authorizeResponse).when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
-        Bucket bucket = new Bucket();
-        bucket.accountId = accountId;
-        bucket.id = "bucket_id";
-        bucket.name = bucketName;
-        ListBucketsResponse bucketList = new ListBucketsResponse();
-        bucketList.buckets = new ArrayList<>();
-        bucketList.buckets.add(bucket);
-        Optional<ListBucketsResponse> listBucketResponse = Optional.of(bucketList);
-        doReturn(listBucketResponse).when(backblazeApiWrapperMock).listBuckets(authorizeResponse.get());
-        doReturn(Optional.empty())
-                .doReturn(Optional.empty())
-                .doReturn(Optional.empty())
-                .doReturn(Optional.empty())
-                .doReturn(Optional.empty())
-                .when(backblazeApiWrapperMock).getUploadUrl(authorizeResponse.get(), bucket.id);
-
-        Boolean result = storage.authorize(accountId, applicationKey);
-        assertThat(result, equalTo(false));
-    }
-
-    @Test
-    public void authorizeShouldReturnFalseAfterFiveUnsuccessfulGetUploadUrlAttempts() throws Exception {
         final String accountId = "account_id";
         final String applicationKey = "application_key";
         ErrorResponse errorResponse = new ErrorResponse();
@@ -288,7 +274,8 @@ public class BackblazeStorageTest {
                 .doReturn(Optional.empty())
                 .when(backblazeApiWrapperMock).listBuckets(authorizeResponse.get());
 
-        Boolean result = storage.authorize(accountId, applicationKey);
+        storage.setCredentials(accountId, applicationKey);
+        Boolean result = storage.authorize();
         assertThat(result, equalTo(false));
     }
 
@@ -301,7 +288,8 @@ public class BackblazeStorageTest {
                 .when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
 
         thrown.expect(StorageException.class);
-        storage.authorize(accountId, applicationKey);
+        storage.setCredentials(accountId, applicationKey);
+        storage.authorize();
     }
 
     @Test
@@ -313,7 +301,27 @@ public class BackblazeStorageTest {
 
         thrown.expect(StorageException.class);
         thrown.expectCause(IsInstanceOf.instanceOf(IOException.class));
-        storage.authorize(accountId, applicationKey);
+        storage.setCredentials(accountId, applicationKey);
+        storage.authorize();
+    }
+
+    @Test
+    public void uploadFileShouldThrowIfItCannotGetUploadUrl() throws Exception {
+        AuthorizeResponse authorizeResponse = new AuthorizeResponse();
+        authorizeResponse.recommendedPartSize = 100000;
+        authorize(authorizeResponse);
+        doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .when(backblazeApiWrapperMock).getUploadUrl(any(), any());
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
+        errorResponse.message = "Too many requests";
+        doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
+        thrown.expect(StorageException.class);
+        storage.upload(Paths.get(""), "", "");
     }
 
     @Test
@@ -367,11 +375,12 @@ public class BackblazeStorageTest {
                 .when(backblazeApiWrapperMock).uploadFile(any(), any(), any(), any());
 
         storage.upload(Paths.get(""), testFilePath, "dest");
-        verify(backblazeApiWrapperMock).getUploadUrl(any(), eq("bucket_id"));
+        verify(backblazeApiWrapperMock, times(2)).getUploadUrl(any(), eq("bucket_id"));
     }
 
     @Test
     public void uploadShouldThrowStorageExceptionWhenUploadFileCallThrowsIoException() throws Exception {
+        authorize(new AuthorizeResponse());
         Optional<GetUploadUrlResponse> getUploadUrlResponse = Optional.of(new GetUploadUrlResponse());
         doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(any(), any());
         doThrow(new IOException("read error"))
@@ -387,6 +396,8 @@ public class BackblazeStorageTest {
         AuthorizeResponse authorizeResponse = new AuthorizeResponse();
         authorizeResponse.recommendedPartSize = 100000;
         authorize(authorizeResponse);
+        doReturn(Optional.of(new GetUploadUrlResponse()))
+                .when(backblazeApiWrapperMock).getUploadUrl(any(), any());
 
         doReturn(Optional.of(new UploadFileResponse()))
                 .when(backblazeApiWrapperMock).uploadFile(any(), any(), any(), any());
@@ -539,6 +550,7 @@ public class BackblazeStorageTest {
 
     @Test
     public void downloadShouldReturnFalseAfterFiveUnsuccessfulUploadFileAttempts() throws Exception {
+        authorize(new AuthorizeResponse());
         ErrorResponse errorResponse = new ErrorResponse();
         errorResponse.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
         errorResponse.message = "Internal Error";
@@ -556,6 +568,7 @@ public class BackblazeStorageTest {
 
     @Test
     public void downloadShouldThrowStorageExceptionWhenUploadFileCallThrowsIoException() throws Exception {
+        authorize(new AuthorizeResponse());
         doThrow(new IOException("read error"))
                 .when(backblazeApiWrapperMock).downloadFileByName(any(), any(), any(), any());
 
@@ -581,7 +594,8 @@ public class BackblazeStorageTest {
         Optional<GetUploadUrlResponse> getUploadUrlResponse = Optional.of(new GetUploadUrlResponse());
         doReturn(getUploadUrlResponse).when(backblazeApiWrapperMock).getUploadUrl(maybeAuthorizeResponse.get(), bucket.id);
 
-        Boolean result = storage.authorize(accountId, applicationKey);
+        storage.setCredentials(accountId, applicationKey);
+        Boolean result = storage.authorize();
         assertThat(result, equalTo(true));
         reset(backblazeApiWrapperMock);
     }

@@ -54,9 +54,10 @@ public class PublishTaskExecutor implements TaskExecutor, ProgressObserver {
                 Path absoluteWorkDir = Paths.get(context.workingDirectory).toAbsolutePath();
                 final int maxAttempts = 5;
                 int nthTry = 0;
+                storage.setCredentials(context.getAccountId(), context.getApplicationKey());
                 while (true) {
                     try {
-                        if (!storage.authorize(context.getAccountId(), context.getApplicationKey())) {
+                        if (!storage.authorize()) {
                             return ExecuteResponse.failure("Failed to authorize: " + storage.getLastErrorMessage());
                         }
                         while (!scannedSourcesQueue.isEmpty()) {
