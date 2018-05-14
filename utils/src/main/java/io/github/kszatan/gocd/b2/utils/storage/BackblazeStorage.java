@@ -314,7 +314,11 @@ public class BackblazeStorage implements Storage {
             }
             ErrorResponse errorResponse = backblazeApiWrapper.getLastError().orElseThrow(
                     () -> new StorageException("Unknown error from B2 storage layer"));
-            action.handleErrors(errorResponse);
+            try {
+                action.handleErrors(errorResponse);
+            } catch (UnauthorizedCallException e) {
+                authorize();
+            }
             notify("Failed to " + action.getName() + ": (" + errorResponse.status + ") " + errorResponse.message);
             notify("Retrying...");
         }

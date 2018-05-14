@@ -577,6 +577,44 @@ public class BackblazeStorageTest {
         storage.download("dir1/fileName.txt", Paths.get(System.getProperty("java.io.tmpdir")));
     }
 
+    @Test
+    public void storageShouldTryToAuthorizeWhenApiCallThrowsUnauthorized() throws Exception {
+        final String startFileName = "files/hello.txt";
+        final String prefix = "files/";
+        final String delimiter = "/";
+
+        AuthorizeResponse authorizeResponse = new AuthorizeResponse();
+        authorize(authorizeResponse);
+
+        doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .doReturn(Optional.empty())
+                .when(backblazeApiWrapperMock).listFileNames(any(), any(ListFileNamesParams.class));
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.status = HttpStatus.SC_UNAUTHORIZED;
+        errorResponse.message = "Unauthorized";
+        doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
+
+        final String accountId = "account_id";
+        final String applicationKey = "application_key";
+        doReturn(Optional.of(authorizeResponse)).when(backblazeApiWrapperMock).authorize(accountId, applicationKey);
+        Bucket bucket = new Bucket();
+        bucket.accountId = accountId;
+        bucket.id = "bucket_id";
+        bucket.name = bucketName;
+        ListBucketsResponse bucketList = new ListBucketsResponse();
+        bucketList.buckets = new ArrayList<>();
+        bucketList.buckets.add(bucket);
+        Optional<ListBucketsResponse> listBucketResponse = Optional.of(bucketList);
+        doReturn(listBucketResponse).when(backblazeApiWrapperMock).listBuckets(authorizeResponse);
+
+        storage.setCredentials(accountId, applicationKey);
+        storage.listFiles(startFileName, prefix, delimiter);
+        verify(backblazeApiWrapperMock, times(5)).authorize(accountId, applicationKey);
+    }
+
     private void authorize(AuthorizeResponse authorizeResponse) throws Exception {
         final String accountId = "account_id";
         final String applicationKey = "application_key";
