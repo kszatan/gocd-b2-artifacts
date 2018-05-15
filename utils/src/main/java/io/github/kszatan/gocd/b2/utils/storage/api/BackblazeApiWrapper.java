@@ -6,6 +6,7 @@
 
 package io.github.kszatan.gocd.b2.utils.storage.api;
 
+import com.thoughtworks.go.plugin.api.logging.Logger;
 import io.github.kszatan.gocd.b2.utils.json.GsonService;
 import io.github.kszatan.gocd.b2.utils.storage.*;
 import org.apache.http.HttpStatus;
@@ -51,6 +52,8 @@ public class BackblazeApiWrapper {
     private Properties properties;
     private FileOutputStreamFactory fosFactory;
 
+    private Logger logger = Logger.getLoggerFor(BackblazeApiWrapper.class);
+
     public BackblazeApiWrapper() throws IOException {
         this.urlStreamHandler = null;
         this.fileHash = new Sha1FileHash();
@@ -87,6 +90,7 @@ public class BackblazeApiWrapper {
     }
 
     public Optional<AuthorizeResponse> authorize(String accountId, String applicationKey) throws IOException {
+        logger.debug("Authorize API call - accountId: " + accountId + ", applicationKey: " + applicationKey);
         HttpURLConnection connection = null;
         String headerForAuthorizeAccount = "Basic " +
                 Base64.getEncoder().encodeToString((accountId + ":" + applicationKey).getBytes());
@@ -113,6 +117,7 @@ public class BackblazeApiWrapper {
 
     public Optional<UploadFileResponse> uploadFile(Path workDir, String relativeFilePath, String destination, GetUploadUrlResponse getUploadUrlResponse)
             throws NoSuchAlgorithmException, IOException {
+        logger.debug("UploadFile API call - workDir: " + workDir + ", filePath: " + relativeFilePath + ", destination: " + destination);
         Path absoluteFilePath = workDir.resolve(relativeFilePath);
         String content_sha1 = fileHash.getHashValue(absoluteFilePath);
         HttpURLConnection connection = null;
@@ -149,6 +154,7 @@ public class BackblazeApiWrapper {
 
     public Optional<UploadPartResponse> uploadPart(byte[] filePart, Integer partLength, Integer partNumber, GetUploadPartUrlResponse getUploadPartUrlResponse)
             throws NoSuchAlgorithmException, IOException {
+        logger.debug("UploadPart API call - partLength: " + partLength + ", partNumber: " + partNumber);
         String content_sha1 = fileHash.getHashValue(filePart, partLength);
         HttpURLConnection connection = null;
         String jsonResponse;
@@ -181,6 +187,7 @@ public class BackblazeApiWrapper {
 
     public Optional<DownloadFileResponse> downloadFileByName(String bucketName, String fileName, Path destination,
                                                              AuthorizeResponse authorizeResponse) throws IOException {
+        logger.debug("DownloadFile API call - bucketName: " + bucketName + ", fileName: " + fileName + ", destination: " + destination);
         HttpURLConnection connection = null;
         DownloadFileResponse response = new DownloadFileResponse();
         final String downloadUrl = authorizeResponse.downloadUrl + "/file/" + bucketName + "/" + fileName;
@@ -211,6 +218,7 @@ public class BackblazeApiWrapper {
     }
 
     public Optional<ListBucketsResponse> listBuckets(AuthorizeResponse authorizeResponse) throws IOException {
+        logger.debug("ListBuckets API call - accountId: " + authorizeResponse.accountId);
         String apiUrl = authorizeResponse.apiUrl;
         String accountId = authorizeResponse.accountId;
         String accountAuthorizationToken = authorizeResponse.authorizationToken;
@@ -245,6 +253,7 @@ public class BackblazeApiWrapper {
     }
 
     public Optional<GetUploadUrlResponse> getUploadUrl(AuthorizeResponse authorizeResponse, String bucketId) throws IOException {
+        logger.debug("GetUploadUrl API call - bucketID: " + bucketId);
         String apiUrl = authorizeResponse.apiUrl;
         String accountAuthorizationToken = authorizeResponse.authorizationToken;
         HttpURLConnection connection = null;
@@ -278,6 +287,7 @@ public class BackblazeApiWrapper {
     }
 
     public Optional<GetUploadPartUrlResponse> getUploadPartUrl(AuthorizeResponse authorizeResponse, String fileId) throws IOException {
+        logger.debug("GetUploadPartUrl API call - fileId: " + fileId);
         String apiUrl = authorizeResponse.apiUrl;
         String accountAuthorizationToken = authorizeResponse.authorizationToken;
         HttpURLConnection connection = null;
@@ -319,6 +329,8 @@ public class BackblazeApiWrapper {
     }
 
     public Optional<ListFileNamesResponse> listFileNames(AuthorizeResponse authorizeResponse, ListFileNamesParams params) throws IOException {
+        logger.debug("ListFileNames API call - bucketId: " + params.bucketId + ", startFileName: " + params.startFileName
+                + ", prefix: " + params.prefix + ", delimiter: " + params.delimiter + ", maxFileCount: " + params.maxFileCount);
         String apiUrl = authorizeResponse.apiUrl;
         String accountAuthorizationToken = authorizeResponse.authorizationToken;
         HttpURLConnection connection = null;
@@ -352,6 +364,7 @@ public class BackblazeApiWrapper {
 
     public Optional<StartLargeFileResponse> startLargeFile(AuthorizeResponse authorizeResponse, String fileName,
                                                            String bucketId) throws IOException {
+        logger.debug("StartLargeFile API call - bucketId: " + bucketId + ", fileName: " + fileName);
         String apiUrl = authorizeResponse.apiUrl;
         String accountAuthorizationToken = authorizeResponse.authorizationToken;
         HttpURLConnection connection = null;
@@ -386,6 +399,7 @@ public class BackblazeApiWrapper {
 
     public Optional<FinishLargeFileResponse> finishLargeFile(AuthorizeResponse authorizeResponse, String fileId,
                                                              List<String> partSha1Array) throws IOException {
+        logger.debug("FinishLargeFile API call - fileId: " + fileId + ", partSha1Array: " + partSha1Array);
         String apiUrl = authorizeResponse.apiUrl;
         String accountAuthorizationToken = authorizeResponse.authorizationToken;
         HttpURLConnection connection = null;
@@ -419,6 +433,7 @@ public class BackblazeApiWrapper {
     }
 
     public Optional<CancelLargeFileResponse> cancelLargeFile(AuthorizeResponse authorizeResponse, String fileId) throws IOException {
+        logger.debug("CancelLargeFile API call - fileId: " + fileId);
         String apiUrl = authorizeResponse.apiUrl;
         String accountAuthorizationToken = authorizeResponse.authorizationToken;
         HttpURLConnection connection = null;
@@ -477,6 +492,7 @@ public class BackblazeApiWrapper {
     }
 
     private void setRequestTimeoutError(SocketTimeoutException e) {
+        logger.debug("Socket timeout: " + e.getMessage());
         lastError = new ErrorResponse();
         lastError.status = HttpStatus.SC_REQUEST_TIMEOUT;
         lastError.message = e.getMessage();
@@ -487,6 +503,7 @@ public class BackblazeApiWrapper {
         String responseBody;
         try {
             responseBody = myStreamReader(connection.getErrorStream());
+            logger.debug("API Call error: " + responseBody);
             lastError = GsonService.fromJson(responseBody, ErrorResponse.class);
             if (connection.getResponseCode() == HttpStatus.SC_SERVICE_UNAVAILABLE) {
                 String retryAfter = connection.getHeaderField("Retry-After");
