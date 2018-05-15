@@ -25,14 +25,14 @@ import java.util.Collections;
 import java.util.List;
 
 @Extension
-public class B2MaterialPlugin extends AbstractGoPlugin {
+public class MaterialPlugin extends AbstractGoPlugin {
     private static final String EXTENSION_NAME = "package-repository";
     private static final List<String> supportedExtensionVersions = Collections.singletonList("1.0");
     private RequestHandlerFactory requestHandlerFactory;
 
-    private Logger logger = Logger.getLoggerFor(B2MaterialPlugin.class);
+    private Logger logger = Logger.getLoggerFor(MaterialPlugin.class);
 
-    public B2MaterialPlugin() {
+    public MaterialPlugin() {
         try {
             requestHandlerFactory = new DefaultRequestHandlerFactory(
                     new BackblazeStorage(new CachingCredentialsManager()));
@@ -41,7 +41,7 @@ public class B2MaterialPlugin extends AbstractGoPlugin {
         }
     }
 
-    public B2MaterialPlugin(RequestHandlerFactory requestHandlerFactory) {
+    public MaterialPlugin(RequestHandlerFactory requestHandlerFactory) {
         this.requestHandlerFactory = requestHandlerFactory;
     }
 

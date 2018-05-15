@@ -24,15 +24,15 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class B2MaterialPluginTest {
-    private B2MaterialPlugin plugin;
+public class MaterialPluginTest {
+    private MaterialPlugin plugin;
     private RequestHandlerFactory requestHandlerFactory;
     private RequestHandler requestHandler;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         requestHandlerFactory = mock(RequestHandlerFactory.class);
-        plugin = new B2MaterialPlugin(requestHandlerFactory);
+        plugin = new MaterialPlugin(requestHandlerFactory);
         requestHandler = mock(RequestHandler.class);
     }
 
@@ -70,7 +70,7 @@ public class B2MaterialPluginTest {
 
     @Test
     public void pluginIdentifierShouldReturnCorrectPluginInfo() {
-        B2MaterialPlugin plugin = new B2MaterialPlugin();
+        MaterialPlugin plugin = new MaterialPlugin();
         GoPluginIdentifier identifier = plugin.pluginIdentifier();
         assertNotNull(identifier);
         assertEquals("invalid type of extension", "package-repository", identifier.getExtension());
