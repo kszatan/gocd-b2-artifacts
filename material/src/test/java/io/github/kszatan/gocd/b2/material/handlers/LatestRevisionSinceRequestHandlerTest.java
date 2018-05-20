@@ -9,6 +9,7 @@ package io.github.kszatan.gocd.b2.material.handlers;
 import com.thoughtworks.go.plugin.api.request.DefaultGoPluginApiRequest;
 import com.thoughtworks.go.plugin.api.response.DefaultGoPluginApiResponse;
 import com.thoughtworks.go.plugin.api.response.GoPluginApiResponse;
+import io.github.kszatan.gocd.b2.utils.json.GsonService;
 import io.github.kszatan.gocd.b2.utils.storage.FileName;
 import io.github.kszatan.gocd.b2.utils.storage.ListFileNamesResponse;
 import io.github.kszatan.gocd.b2.utils.storage.Storage;
@@ -16,6 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -148,8 +150,11 @@ public class LatestRevisionSinceRequestHandlerTest {
                 .doReturn(Optional.of(secondListFileNamesResponse))
                 .when(storage).listFiles(any(), any(), any());
         GoPluginApiResponse response = handler.handle(request);
+        Date timestamp = new Date();
+        timestamp.setTime(2525590976000L);
+        String timestampString = GsonService.toJson(timestamp);
         assertThat(response.responseCode(), equalTo(DefaultGoPluginApiResponse.SUCCESS_RESPONSE_CODE));
-        assertThat(response.responseBody(), equalTo("{\"revision\":\"57.2\",\"timestamp\":\"2050-01-12T10:02:56.000Z\",\"data\":{\"pipelineName\":\"up42\",\"stageName\":\"up42_stage\",\"jobName\":\"up42_job\",\"label\":\"57.2\"}}"));
+        assertThat(response.responseBody(), equalTo("{\"revision\":\"57.2\",\"timestamp\":" + timestampString + ",\"data\":{\"pipelineName\":\"up42\",\"stageName\":\"up42_stage\",\"jobName\":\"up42_job\",\"label\":\"57.2\"}}"));
     }
 
     @Test
