@@ -62,7 +62,7 @@ public class PublishTaskExecutor implements TaskExecutor, ProgressObserver {
                         }
                         while (!scannedSourcesQueue.isEmpty()) {
                             SourceDestination sd = scannedSourcesQueue.peek();
-                            storage.upload(absoluteWorkDir, sd.source, sd.destination);
+                            storage.upload(absoluteWorkDir, Paths.get(sd.source), sd.destination);
                             scannedSourcesQueue.remove();
                         }
                         break;

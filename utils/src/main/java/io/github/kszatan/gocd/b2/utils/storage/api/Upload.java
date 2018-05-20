@@ -18,13 +18,13 @@ import java.util.Optional;
 public class Upload extends B2ApiCall {
     private final String bucketId;
     private final Path workDir;
-    private final String relativeFilePath;
+    private final Path relativeFilePath;
     private final String destination;
     private final AuthorizeResponse authorizeResponse;
     private GetUploadUrlResponse getUploadUrlResponse;
     private UploadFileResponse uploadFileResponse;
 
-    public Upload(BackblazeApiWrapper backblazeApiWrapper, String bucketId, Path workDir, String relativeFilePath,
+    public Upload(BackblazeApiWrapper backblazeApiWrapper, String bucketId, Path workDir, Path relativeFilePath,
                   String destination, AuthorizeResponse authorizeResponse, GetUploadUrlResponse getUploadUrlResponse) {
         super("upload " + relativeFilePath, backblazeApiWrapper);
         this.bucketId = bucketId;

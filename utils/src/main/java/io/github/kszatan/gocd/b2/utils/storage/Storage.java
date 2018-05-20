@@ -19,6 +19,6 @@ public interface Storage {
     Boolean checkConnection(String accountId, String applicationKey) throws StorageException;
     Boolean authorize() throws StorageException;
     Optional<ListFileNamesResponse> listFiles(String startFileName, String prefix, String delimiter) throws StorageException;
-    void upload(Path workDir, String relativeFilePath, String destination) throws StorageException, GeneralSecurityException;
-    Boolean download(String fileName, Path destination) throws StorageException;
+    void upload(Path workDir, Path relativeFilePath, String destination) throws StorageException, GeneralSecurityException;
+    Boolean download(String backblazeFileName, Path destination) throws StorageException;
 }

@@ -9,6 +9,8 @@ package io.github.kszatan.gocd.b2.utils.storage.api;
 import com.thoughtworks.go.plugin.api.logging.Logger;
 import io.github.kszatan.gocd.b2.utils.json.GsonService;
 import io.github.kszatan.gocd.b2.utils.storage.*;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpStatus;
 
 import java.io.*;
@@ -16,8 +18,6 @@ import java.net.HttpURLConnection;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.URLStreamHandler;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,14 +43,14 @@ public class BackblazeApiWrapper {
     private static final Integer READ_TIMEOUT_MS = 120 * 1000;
 
     public interface FileOutputStreamFactory {
-        FileOutputStream create(String path) throws FileNotFoundException;
+        OutputStream create(Path path) throws IOException;
     }
 
     private ErrorResponse lastError;
     private URLStreamHandler urlStreamHandler;
     private FileHash fileHash;
     private Properties properties;
-    private FileOutputStreamFactory fosFactory;
+    private FileOutputStreamFactory osFactory;
 
     private Logger logger = Logger.getLoggerFor(BackblazeApiWrapper.class);
 
@@ -58,7 +58,7 @@ public class BackblazeApiWrapper {
         this.urlStreamHandler = null;
         this.fileHash = new Sha1FileHash();
         this.properties = new Properties();
-        this.fosFactory = path -> new FileOutputStream(path);
+        this.osFactory = path -> Files.newOutputStream(path);
         InputStream in = this.getClass().getResourceAsStream("/version.properties");
         properties.load(in);
         in.close();
@@ -70,17 +70,17 @@ public class BackblazeApiWrapper {
     }
 
     public BackblazeApiWrapper(URLStreamHandler urlStreamHandler, FileHash fileHash) {
-        this(urlStreamHandler, fileHash, path -> new FileOutputStream(path));
+        this(urlStreamHandler, fileHash, path -> Files.newOutputStream(path));
     }
 
-    public BackblazeApiWrapper(URLStreamHandler urlStreamHandler, FileOutputStreamFactory fosFactory) {
-        this(urlStreamHandler, new Sha1FileHash(), fosFactory);
+    public BackblazeApiWrapper(URLStreamHandler urlStreamHandler, FileOutputStreamFactory osFactory) {
+        this(urlStreamHandler, new Sha1FileHash(), osFactory);
     }
 
-    public BackblazeApiWrapper(URLStreamHandler urlStreamHandler, FileHash fileHash, FileOutputStreamFactory fosFactory) {
+    public BackblazeApiWrapper(URLStreamHandler urlStreamHandler, FileHash fileHash, FileOutputStreamFactory osFactory) {
         this.urlStreamHandler = urlStreamHandler;
         this.fileHash = fileHash;
-        this.fosFactory = fosFactory;
+        this.osFactory = osFactory;
         properties = new Properties();
         properties.setProperty("version", "0.314");
     }
@@ -115,7 +115,7 @@ public class BackblazeApiWrapper {
         return Optional.of(GsonService.fromJson(jsonResponse, AuthorizeResponse.class));
     }
 
-    public Optional<UploadFileResponse> uploadFile(Path workDir, String relativeFilePath, String destination, GetUploadUrlResponse getUploadUrlResponse)
+    public Optional<UploadFileResponse> uploadFile(Path workDir, Path relativeFilePath, String destination, GetUploadUrlResponse getUploadUrlResponse)
             throws NoSuchAlgorithmException, IOException {
         logger.debug("UploadFile API call - workDir: " + workDir + ", filePath: " + relativeFilePath + ", destination: " + destination);
         Path absoluteFilePath = workDir.resolve(relativeFilePath);
@@ -123,11 +123,12 @@ public class BackblazeApiWrapper {
         HttpURLConnection connection = null;
         String jsonResponse;
         destination = destination == null ? "" : destination;
+        String fileNameWithUnixSeparator = FilenameUtils.normalize(Paths.get(destination).resolve(relativeFilePath).toString(), true);
         try {
             connection = newHttpConnection(getUploadUrlResponse.uploadUrl, "", "POST");
             connection.setRequestProperty("Authorization", getUploadUrlResponse.authorizationToken);
             connection.setRequestProperty("Content-Type", "b2/x-auto");
-            connection.setRequestProperty("X-Bz-File-Name", Paths.get(destination, relativeFilePath).toString());
+            connection.setRequestProperty("X-Bz-File-Name", fileNameWithUnixSeparator);
             connection.setRequestProperty("X-Bz-Content-Sha1", content_sha1);
             BasicFileAttributes attrs = Files.readAttributes(absoluteFilePath, BasicFileAttributes.class);
             connection.setRequestProperty("X-Bz-Info-src_last_modified_millis",
@@ -185,12 +186,12 @@ public class BackblazeApiWrapper {
         return Optional.of(GsonService.fromJson(jsonResponse, UploadPartResponse.class));
     }
 
-    public Optional<DownloadFileResponse> downloadFileByName(String bucketName, String fileName, Path destination,
+    public Optional<DownloadFileResponse> downloadFileByName(String bucketName, String backblazeFileName, Path destination,
                                                              AuthorizeResponse authorizeResponse) throws IOException {
-        logger.debug("DownloadFile API call - bucketName: " + bucketName + ", fileName: " + fileName + ", destination: " + destination);
+        logger.debug("DownloadFile API call - bucketName: " + bucketName + ", fileName: " + backblazeFileName + ", destination: " + destination);
         HttpURLConnection connection = null;
         DownloadFileResponse response = new DownloadFileResponse();
-        final String downloadUrl = authorizeResponse.downloadUrl + "/file/" + bucketName + "/" + fileName;
+        final String downloadUrl = authorizeResponse.downloadUrl + "/file/" + bucketName + "/" + backblazeFileName;
         try {
             connection = newHttpConnection(downloadUrl, "", "GET");
             connection.setRequestProperty("Authorization", authorizeResponse.authorizationToken);
@@ -198,10 +199,12 @@ public class BackblazeApiWrapper {
                 response.fileId = connection.getHeaderField("X-Bz-File-Id");
                 response.fileName = connection.getHeaderField("X-Bz-File-Name");
                 response.contentSha1 = connection.getHeaderField("X-Bz-Content-Sha1");
-                ReadableByteChannel rbc = Channels.newChannel(connection.getInputStream());
-                FileOutputStream fos = fosFactory.create(destination.resolve(fileName).toString());
-                fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
-                fos.close();
+                Path relativeFilePath = destination.resolve(backblazeFileNameToFilePath(backblazeFileName));
+                try (InputStream is = connection.getInputStream();
+                     OutputStream os = osFactory.create(relativeFilePath);
+                ) {
+                    IOUtils.copy(is, os);
+                }
             } else {
                 parseErrorResponse(connection);
                 return Optional.empty();
@@ -215,6 +218,10 @@ public class BackblazeApiWrapper {
             }
         }
         return Optional.of(response);
+    }
+
+    private Path backblazeFileNameToFilePath(String backblazeFileName) {
+        return Paths.get("", backblazeFileName.split("/"));
     }
 
     public Optional<ListBucketsResponse> listBuckets(AuthorizeResponse authorizeResponse) throws IOException {
@@ -362,13 +369,13 @@ public class BackblazeApiWrapper {
         return Optional.of(GsonService.fromJson(jsonResponse, ListFileNamesResponse.class));
     }
 
-    public Optional<StartLargeFileResponse> startLargeFile(AuthorizeResponse authorizeResponse, String fileName,
+    public Optional<StartLargeFileResponse> startLargeFile(AuthorizeResponse authorizeResponse, String backblazeFileName,
                                                            String bucketId) throws IOException {
-        logger.debug("StartLargeFile API call - bucketId: " + bucketId + ", fileName: " + fileName);
+        logger.debug("StartLargeFile API call - bucketId: " + bucketId + ", fileName: " + backblazeFileName);
         String apiUrl = authorizeResponse.apiUrl;
         String accountAuthorizationToken = authorizeResponse.authorizationToken;
         HttpURLConnection connection = null;
-        String postParams = "{\"bucketId\":\"" + bucketId + "\", \"fileName\":\"" + fileName + "\", \"contentType\":\"b2/x-auto\"}";
+        String postParams = "{\"bucketId\":\"" + bucketId + "\", \"fileName\":\"" + backblazeFileName + "\", \"contentType\":\"b2/x-auto\"}";
         String jsonResponse;
         byte postData[] = postParams.getBytes(StandardCharsets.UTF_8);
         try {

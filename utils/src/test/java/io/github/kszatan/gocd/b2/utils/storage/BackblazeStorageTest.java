@@ -7,6 +7,7 @@
 package io.github.kszatan.gocd.b2.utils.storage;
 
 import io.github.kszatan.gocd.b2.utils.storage.api.BackblazeApiWrapper;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.http.HttpStatus;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Before;
@@ -34,14 +35,14 @@ public class BackblazeStorageTest {
     private BackblazeStorage storage;
     private BackblazeApiWrapper backblazeApiWrapperMock;
     private CredentialsManager credentialsManagerMock;
-    private String testFilePath;
+    private Path testFilePath;
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         backblazeApiWrapperMock = mock(BackblazeApiWrapper.class);
         credentialsManagerMock = mock(CredentialsManager.class);
         storage = new BackblazeStorage(bucketName, backblazeApiWrapperMock, credentialsManagerMock);
-        testFilePath = this.getClass().getResource("UploadFileTest.txt").getPath();
+        testFilePath = Paths.get(this.getClass().getResource("UploadFileTest.txt").toURI());
         defaultCredentialManagerMockedCalls();
     }
 
@@ -402,7 +403,7 @@ public class BackblazeStorageTest {
         doReturn(Optional.of(new UploadFileResponse()))
                 .when(backblazeApiWrapperMock).uploadFile(any(), any(), any(), any());
         Path workDir = Paths.get("");
-        String relativeFilePath = "";
+        Path relativeFilePath = Paths.get("");
         String destination = "";
         storage.upload(workDir, relativeFilePath, destination);
         verify(backblazeApiWrapperMock).getUploadUrl(authorizeResponse, bucketId);
@@ -433,8 +434,10 @@ public class BackblazeStorageTest {
                 .when(backblazeApiWrapperMock).uploadPart(any(), any(), any(), any());
         Path workDir = Paths.get("");
         String destination = "";
-        storage.upload(workDir, testFilePath, destination);
-        verify(backblazeApiWrapperMock).startLargeFile(authorizeResponse, testFilePath, bucketId);
+        Path relativeTestFilePath = Paths.get("").toAbsolutePath().relativize(testFilePath);
+        storage.upload(workDir, relativeTestFilePath, destination);
+        String uploadedFileName = FilenameUtils.normalize(relativeTestFilePath.toString(), true);
+        verify(backblazeApiWrapperMock).startLargeFile(authorizeResponse, uploadedFileName, bucketId);
         verify(backblazeApiWrapperMock, times(3)).uploadPart(any(), any(), any(), any());
     }
 
@@ -455,7 +458,7 @@ public class BackblazeStorageTest {
         errorResponse.message = "Too many requests";
         doReturn(Optional.of(errorResponse)).when(backblazeApiWrapperMock).getLastError();
         thrown.expect(StorageException.class);
-        storage.upload(Paths.get(""), "", "");
+        storage.upload(Paths.get(""), Paths.get(""), "");
     }
 
     @Test
@@ -469,7 +472,7 @@ public class BackblazeStorageTest {
         thrown.expect(StorageException.class);
         thrown.expectCause(IsInstanceOf.instanceOf(NoSuchAlgorithmException.class));
         doThrow(NoSuchAlgorithmException.class).when(backblazeApiWrapperMock).uploadFile(any(), any(), any(), any());
-        storage.upload(Paths.get(""), "", "");
+        storage.upload(Paths.get(""), Paths.get(""), "");
     }
 
     @Test
@@ -525,7 +528,7 @@ public class BackblazeStorageTest {
 
         thrown.expect(StorageException.class);
         thrown.expectCause(IsInstanceOf.instanceOf(IOException.class));
-        storage.upload(Paths.get(""), "relative/file", "dest");
+        storage.upload(Paths.get(""), Paths.get("relative", "file"), "dest");
     }
 
     @Test

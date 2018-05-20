@@ -8,6 +8,7 @@ package io.github.kszatan.gocd.b2.utils.storage;
 
 import com.thoughtworks.go.plugin.api.logging.Logger;
 import io.github.kszatan.gocd.b2.utils.storage.api.*;
+import org.apache.commons.io.FilenameUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -171,7 +172,7 @@ public class BackblazeStorage implements Storage {
     }
 
     @Override
-    public void upload(Path workDir, String relativeFilePath, String destination)
+    public void upload(Path workDir, Path relativeFilePath, String destination)
             throws StorageException {
         AuthorizeResponse authorizeResponse =
                 credentialsManager.getAuthorizeResponse(accountId, applicationKey).orElse(this.authorizeResponse);
@@ -197,7 +198,7 @@ public class BackblazeStorage implements Storage {
         notify("Successfully uploaded " + relativeFilePath + " to " + destination + ".");
     }
 
-    private void uploadSmallFile(Path workDir, String relativeFilePath, String destination, AuthorizeResponse authorizeResponse)
+    private void uploadSmallFile(Path workDir, Path relativeFilePath, String destination, AuthorizeResponse authorizeResponse)
             throws StorageException {
         String bucketId = credentialsManager.getBucketId(accountId, applicationKey, bucketName).orElse(this.bucketId);
         if (bucketId == null) {
@@ -262,9 +263,10 @@ public class BackblazeStorage implements Storage {
         return uploadPart.getResponse();
     }
 
-    private void uploadLargeFile(Path workDir, String relativeFilePath, String destination, AuthorizeResponse authorizeResponse)
+    private void uploadLargeFile(Path workDir, Path relativeFilePath, String destination, AuthorizeResponse authorizeResponse)
             throws StorageException, LargeFileUploadException {
-        final String fileId = startLargeFile(Paths.get(destination, relativeFilePath).toString(), authorizeResponse).orElseThrow(
+        final String backblazeFileName = FilenameUtils.normalize(Paths.get(destination).resolve(relativeFilePath).toString(), true);
+        final String fileId = startLargeFile(backblazeFileName, authorizeResponse).orElseThrow(
                 () -> new StorageException("Failed to start large file upload")
         ).fileId;
         try {
@@ -280,7 +282,7 @@ public class BackblazeStorage implements Storage {
         }
     }
 
-    private ArrayList<String> doUpload(Path workDir, String relativeFilePath, AuthorizeResponse authorizeResponse,
+    private ArrayList<String> doUpload(Path workDir, Path relativeFilePath, AuthorizeResponse authorizeResponse,
                                        GetUploadPartUrlResponse getUploadPartUrlResponse) throws StorageException, IOException {
         File file = new File(workDir.resolve(relativeFilePath).toString());
         final long fileSize = file.length();
@@ -347,22 +349,22 @@ public class BackblazeStorage implements Storage {
     }
 
     @Override
-    public Boolean download(String fileName, Path destination) throws StorageException {
+    public Boolean download(String backblazeFileName, Path destination) throws StorageException {
         AuthorizeResponse authorizeResponse =
                 credentialsManager.getAuthorizeResponse(accountId, applicationKey).orElse(this.authorizeResponse);
         if (authorizeResponse == null) {
             throw new StorageException("Authorize not called");
         }
         try {
-            Download download = new Download(backblazeApiWrapper, bucketName, fileName, destination, authorizeResponse);
+            Download download = new Download(backblazeApiWrapper, bucketName, backblazeFileName, destination, authorizeResponse);
             if (!attempt(MAX_RETRY_ATTEMPTS, download)) {
                 return false;
             }
         } catch (StorageException  e) {
             logger.info("download error: " + e.getMessage());
-            throw new StorageException("Failed to download " + fileName + ": " + e.getMessage(), e.getCause());
+            throw new StorageException("Failed to download " + backblazeFileName + ": " + e.getMessage(), e.getCause());
         }
-        notify("Successfully downloaded " + fileName + " to " + destination + ".");
+        notify("Successfully downloaded " + backblazeFileName + " to " + destination + ".");
         return true;
     }
 

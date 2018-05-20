@@ -7,6 +7,7 @@
 package io.github.kszatan.gocd.b2.publish;
 
 import com.thoughtworks.go.plugin.api.task.JobConsoleLogger;
+import io.github.kszatan.gocd.b2.publish.executor.DefaultDirectoryScanner;
 import io.github.kszatan.gocd.b2.publish.executor.DirectoryScanner;
 import io.github.kszatan.gocd.b2.publish.executor.PublishTaskExecutor;
 import io.github.kszatan.gocd.b2.publish.handlers.bodies.ExecuteResponse;
@@ -114,12 +115,13 @@ public class PublishTaskExecutorTest {
         TaskConfiguration configuration = new TaskConfiguration();
         configuration.setSourceDestinations("[{\"source\": \"**\", \"destination\": \"desti/nation\"}]");
         TaskContext context = getDefaultTaskContext();
+        context.workingDirectory = Paths.get("").toAbsolutePath().toString();
         executor.execute(configuration, context);
         final Path workDirPath = Paths.get(context.workingDirectory).toAbsolutePath();
 
-        verify(storage).upload(workDirPath, "a/file1", "pipe/stag/jobjob/10.5/desti/nation");
-        verify(storage).upload(workDirPath, "file2", "pipe/stag/jobjob/10.5/desti/nation");
-        verify(storage).upload(workDirPath, "b/c/file3", "pipe/stag/jobjob/10.5/desti/nation");
+        verify(storage).upload(workDirPath, unixPathStringToPath("a/file1"), "pipe/stag/jobjob/10.5/desti/nation");
+        verify(storage).upload(workDirPath, Paths.get("file2"), "pipe/stag/jobjob/10.5/desti/nation");
+        verify(storage).upload(workDirPath, unixPathStringToPath("b/c/file3"), "pipe/stag/jobjob/10.5/desti/nation");
     }
 
     @Test
@@ -145,10 +147,10 @@ public class PublishTaskExecutorTest {
         executor.execute(configuration, context);
         final Path workDirPath = Paths.get(context.workingDirectory).toAbsolutePath();
 
-        verify(storage).upload(workDirPath, "file1", "pipe/stag/jobjob/10.5/dest1");
-        verify(storage).upload(workDirPath, "file2", "pipe/stag/jobjob/10.5/dest1");
-        verify(storage).upload(workDirPath, "file1", "pipe/stag/jobjob/10.5/dest2");
-        verify(storage).upload(workDirPath, "file2", "pipe/stag/jobjob/10.5/dest2");
+        verify(storage).upload(workDirPath, Paths.get("file1"), "pipe/stag/jobjob/10.5/dest1");
+        verify(storage).upload(workDirPath, Paths.get("file2"), "pipe/stag/jobjob/10.5/dest1");
+        verify(storage).upload(workDirPath, Paths.get("file1"), "pipe/stag/jobjob/10.5/dest2");
+        verify(storage).upload(workDirPath, Paths.get("file2"), "pipe/stag/jobjob/10.5/dest2");
     }
 
     @Test
@@ -174,8 +176,8 @@ public class PublishTaskExecutorTest {
         executor.execute(configuration, context);
         final Path workDirPath = Paths.get(context.workingDirectory).toAbsolutePath();
 
-        verify(storage).upload(workDirPath, "file1", "pipe/stag/jobjob/10.5");
-        verify(storage).upload(workDirPath, "file2", "pipe/stag/jobjob/10.5");
+        verify(storage).upload(workDirPath, Paths.get("file1"), "pipe/stag/jobjob/10.5");
+        verify(storage).upload(workDirPath, Paths.get("file2"), "pipe/stag/jobjob/10.5");
     }
 
     @Test
@@ -190,7 +192,11 @@ public class PublishTaskExecutorTest {
         executor.execute(configuration, context);
         final Path workDirPath = Paths.get(context.workingDirectory).toAbsolutePath();
 
-        verify(storage).upload(workDirPath, "file1", "destination/prefix/dest");
-        verify(storage).upload(workDirPath, "file2", "destination/prefix/dest");
+        verify(storage).upload(workDirPath, Paths.get("file1"), "destination/prefix/dest");
+        verify(storage).upload(workDirPath, Paths.get("file2"), "destination/prefix/dest");
+    }
+
+    private Path unixPathStringToPath(String unixPath) {
+        return Paths.get("", unixPath.split("/"));
     }
 }

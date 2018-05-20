@@ -23,17 +23,15 @@ import java.util.Optional;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 public class DownloadTest {
     private Download download;
     private BackblazeApiWrapper mockApiWrapper;
     private AuthorizeResponse authorizeResponse;
     private final String bucketName = "bukhet";
-    private final String fileName = "dir1/dir2/fileName.txt";
-    private final Path destination = Paths.get("/path/to/dest");
+    private final String backblazeFileName = "dir1/dir2/fileName.txt";
+    private final Path destination = Paths.get("path", "to", "dest");
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -48,18 +46,17 @@ public class DownloadTest {
         authorizeResponse.authorizationToken = "token_fristajlo";
         authorizeResponse.downloadUrl = "https://f001.backblazeb2.com";
         authorizeResponse.recommendedPartSize = 100000000;
-        download = new Download(mockApiWrapper, bucketName, fileName, destination, authorizeResponse);
+        download = new Download(mockApiWrapper, bucketName, backblazeFileName, destination, authorizeResponse);
     }
 
     @Test
     public void callShouldReturnTrueOnSuccess() throws Exception {
         Download.MkdirsProvider mkdirsProviderMock = mock(Download.MkdirsProvider.class);
         download.setMkdirsProvider(mkdirsProviderMock);
-        doReturn(true).when(mkdirsProviderMock).mkdirs(any());
         DownloadFileResponse response = new DownloadFileResponse();
-        doReturn(Optional.of(response)).when(mockApiWrapper).downloadFileByName(bucketName, fileName, destination, authorizeResponse);
+        doReturn(Optional.of(response)).when(mockApiWrapper).downloadFileByName(bucketName, backblazeFileName, destination, authorizeResponse);
         Boolean result = download.call();
-        verify(mkdirsProviderMock).mkdirs("/path/to/dest/dir1/dir2");
+        verify(mkdirsProviderMock).mkdirs(Paths.get("path", "to", "dest", "dir1", "dir2"));
         assertThat(result, equalTo(true));
     }
 
@@ -67,7 +64,7 @@ public class DownloadTest {
     public void callShouldThrowExceptionWhenMkdirsFails() throws Exception {
         Download.MkdirsProvider mkdirsProviderMock = mock(Download.MkdirsProvider.class);
         download.setMkdirsProvider(mkdirsProviderMock);
-        doReturn(false).when(mkdirsProviderMock).mkdirs(any());
+        doThrow(new IOException("Cannot create directory")).when(mkdirsProviderMock).mkdirs(any());
         thrown.expect(StorageException.class);
         thrown.expectCause(IsInstanceOf.instanceOf(IOException.class));
         download.call();
@@ -77,8 +74,7 @@ public class DownloadTest {
     public void callShouldReturnFalseOnFailure() throws Exception {
         Download.MkdirsProvider mkdirsProviderMock = mock(Download.MkdirsProvider.class);
         download.setMkdirsProvider(mkdirsProviderMock);
-        doReturn(true).when(mkdirsProviderMock).mkdirs(any());
-        doReturn(Optional.empty()).when(mockApiWrapper).downloadFileByName(bucketName, fileName, destination, authorizeResponse);
+        doReturn(Optional.empty()).when(mockApiWrapper).downloadFileByName(bucketName, backblazeFileName, destination, authorizeResponse);
         Boolean result = download.call();
         assertThat(result, equalTo(false));
     }

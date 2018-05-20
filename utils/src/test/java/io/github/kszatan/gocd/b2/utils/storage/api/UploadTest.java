@@ -30,9 +30,9 @@ public class UploadTest {
     private AuthorizeResponse authorizeResponse;
     private GetUploadUrlResponse getUploadUrlResponse;
     private String bucketId;
-    private Path workDir = Paths.get("workdir");
-    private String relativeFilePath = "path/to/file.txt";
-    private String destination = "dest";
+    private Path workDir;
+    private Path relativeFilePath;
+    private String destination;
 
     @Before
     public void setUp() {
@@ -50,7 +50,7 @@ public class UploadTest {
         getUploadUrlResponse.uploadUrl = "https://api001.backblazeb2.com";
         getUploadUrlResponse.authorizationToken = "token_fristajlo";
         workDir = Paths.get("workdir");
-        relativeFilePath = "path/to/file.txt";
+        relativeFilePath = Paths.get("path", "to", "file.txt");
         destination = "dest";
         upload = new Upload(mockApiWrapper, bucketId, workDir, relativeFilePath, destination, authorizeResponse, getUploadUrlResponse);
     }

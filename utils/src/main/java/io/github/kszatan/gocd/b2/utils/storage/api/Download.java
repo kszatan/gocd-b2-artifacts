@@ -6,10 +6,12 @@
 
 package io.github.kszatan.gocd.b2.utils.storage.api;
 
-import io.github.kszatan.gocd.b2.utils.storage.*;
+import io.github.kszatan.gocd.b2.utils.storage.AuthorizeResponse;
+import io.github.kszatan.gocd.b2.utils.storage.DownloadFileResponse;
+import io.github.kszatan.gocd.b2.utils.storage.ErrorResponse;
+import io.github.kszatan.gocd.b2.utils.storage.StorageException;
 import org.apache.http.HttpStatus;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,7 +19,7 @@ import java.util.Optional;
 
 public class Download extends B2ApiCall {
     private final String bucketName;
-    private final String fileName;
+    private final String backblazeFileName;
     private final Path destination;
     private final AuthorizeResponse authorizeResponse;
     private DownloadFileResponse downloadFileResponse;
@@ -26,19 +28,18 @@ public class Download extends B2ApiCall {
     // for test
     @FunctionalInterface
     public interface MkdirsProvider {
-        Boolean mkdirs(String path);
+        void mkdirs(Path path) throws IOException;
     }
 
-    public Download(BackblazeApiWrapper backblazeApiWrapper, String bucketName, String fileName,
+    public Download(BackblazeApiWrapper backblazeApiWrapper, String bucketName, String backblazeFileName,
                     Path destination, AuthorizeResponse authorizeResponse) {
-        super("download " + fileName, backblazeApiWrapper);
+        super("download " + backblazeFileName, backblazeApiWrapper);
         this.bucketName = bucketName;
-        this.fileName = fileName;
+        this.backblazeFileName = backblazeFileName;
         this.destination = destination;
         this.authorizeResponse = authorizeResponse;
         this.mkdirsProvider = path -> {
-            File file = new File(path);
-            return file.mkdirs();
+            Files.createDirectories(path);
         };
     }
 
@@ -53,12 +54,10 @@ public class Download extends B2ApiCall {
     @Override
     public Boolean call() throws StorageException {
         try {
-            final Path absoluteDestFilePath = destination.resolve(fileName).getParent();
-            if (Files.notExists(absoluteDestFilePath) && !mkdirsProvider.mkdirs(absoluteDestFilePath.toString())) {
-                throw new IOException("Unable to create directories on path " + absoluteDestFilePath);
-            }
+            final Path absoluteDestFilePath = destination.resolve(backblazeFileName).getParent();
+            mkdirsProvider.mkdirs(absoluteDestFilePath);
             downloadFileResponse = backblazeApiWrapper.downloadFileByName(
-                    bucketName, fileName, destination, authorizeResponse).orElse(null);
+                    bucketName, backblazeFileName, destination, authorizeResponse).orElse(null);
         } catch(IOException e) {
             throw new StorageException("Exception while downloading file: " + e.getMessage(), e);
         }

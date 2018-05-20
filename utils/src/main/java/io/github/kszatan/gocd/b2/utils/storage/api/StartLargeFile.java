@@ -6,7 +6,10 @@
 
 package io.github.kszatan.gocd.b2.utils.storage.api;
 
-import io.github.kszatan.gocd.b2.utils.storage.*;
+import io.github.kszatan.gocd.b2.utils.storage.AuthorizeResponse;
+import io.github.kszatan.gocd.b2.utils.storage.ErrorResponse;
+import io.github.kszatan.gocd.b2.utils.storage.StartLargeFileResponse;
+import io.github.kszatan.gocd.b2.utils.storage.StorageException;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -14,14 +17,14 @@ import java.util.Optional;
 public class StartLargeFile extends B2ApiCall {
     private final AuthorizeResponse authorizeResponse;
     private StartLargeFileResponse response;
-    private String relativeFilePath;
+    private String backblazeFileName;
     private String bucketId;
 
     public StartLargeFile(BackblazeApiWrapper backblazeApiWrapper, AuthorizeResponse authorizeResponse,
-                          String relativeFilePath, String bucketId) {
+                          String backblazeFileName, String bucketId) {
         super("start large file", backblazeApiWrapper);
         this.authorizeResponse = authorizeResponse;
-        this.relativeFilePath = relativeFilePath;
+        this.backblazeFileName = backblazeFileName;
         this.bucketId = bucketId;
     }
 
@@ -32,7 +35,7 @@ public class StartLargeFile extends B2ApiCall {
     @Override
     public Boolean call() throws StorageException {
         try {
-            response = backblazeApiWrapper.startLargeFile(authorizeResponse, relativeFilePath, bucketId).orElse(null);
+            response = backblazeApiWrapper.startLargeFile(authorizeResponse, backblazeFileName, bucketId).orElse(null);
         } catch (IOException e) {
             throw new StorageException(e);
         }

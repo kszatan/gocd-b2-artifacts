@@ -22,7 +22,7 @@ public class StartLargeFileTest {
     private StartLargeFile startLargeFile;
     private BackblazeApiWrapper mockApiWrapper;
     private AuthorizeResponse authorizeResponse;
-    private String relativeFilePath;
+    private String backblazeFilename;
     private String bucketId;
 
     @Before
@@ -35,22 +35,22 @@ public class StartLargeFileTest {
         authorizeResponse.authorizationToken = "token_fristajlo";
         authorizeResponse.downloadUrl = "https://f001.backblazeb2.com";
         authorizeResponse.recommendedPartSize = 100000000;
-        relativeFilePath = "path/to/file.txt";
+        backblazeFilename = "path/to/file.txt";
         bucketId = "bukhet";
-        startLargeFile = new StartLargeFile(mockApiWrapper, authorizeResponse, relativeFilePath, bucketId);
+        startLargeFile = new StartLargeFile(mockApiWrapper, authorizeResponse, backblazeFilename, bucketId);
     }
 
     @Test
     public void callShouldReturnTrueOnSuccess() throws Exception {
         StartLargeFileResponse response = new StartLargeFileResponse();
-        doReturn(Optional.of(response)).when(mockApiWrapper).startLargeFile(authorizeResponse, relativeFilePath, bucketId);
+        doReturn(Optional.of(response)).when(mockApiWrapper).startLargeFile(authorizeResponse, backblazeFilename, bucketId);
         Boolean result = startLargeFile.call();
         assertThat(result, equalTo(true));
     }
 
     @Test
     public void callShouldReturnFalseOnFailure() throws Exception {
-        doReturn(Optional.empty()).when(mockApiWrapper).startLargeFile(authorizeResponse, relativeFilePath, bucketId);
+        doReturn(Optional.empty()).when(mockApiWrapper).startLargeFile(authorizeResponse, backblazeFilename, bucketId);
         Boolean result = startLargeFile.call();
         assertThat(result, equalTo(false));
     }
