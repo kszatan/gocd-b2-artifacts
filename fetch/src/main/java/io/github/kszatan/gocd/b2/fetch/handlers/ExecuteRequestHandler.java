@@ -38,7 +38,8 @@ public class ExecuteRequestHandler implements RequestHandler {
                 if (bucketName.isEmpty()) {
                        throw new StorageException("Failed to obtain bucket name for '"
                                + configuration.getRepositoryName() + "' repository and '"
-                               + configuration.getPackageName() + "' package.");
+                               + configuration.getPackageName() + "' package. "
+                               + "Material plugin for this package has to be used in this pipeline.");
                 }
                 setExecutor(new FetchTaskExecutor(new BackblazeStorage(bucketName)));
             }
