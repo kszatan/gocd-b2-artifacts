@@ -46,8 +46,13 @@ public class FetchTaskExecutor implements TaskExecutor, ProgressObserver {
                     if (fileNames.isEmpty()) {
                         throw new StorageException("No files found under '" + packagePrefix + "' path.");
                     }
-                    Path downloadPath = getDownloadPath(context, configuration);
-                    downloadFiles(fileNames, downloadPath);
+                    Path destination = getDestination(context, configuration);
+                    notify(String.format("Downloading files for pipeline '%s', stage '%s', job '%s', label %s",
+                            context.getPipelineName(repositoryName, packageName),
+                            context.getStageName(repositoryName, packageName),
+                            context.getJobName(repositoryName, packageName),
+                            context.getLabel(repositoryName, packageName)));
+                    downloadFiles(fileNames, destination, packagePrefix);
                     break;
                 } catch (UnauthorizedCallException e) {
                     notify(e.getMessage());
@@ -79,6 +84,9 @@ public class FetchTaskExecutor implements TaskExecutor, ProgressObserver {
             Optional<ListFileNamesResponse> maybeResponse = storage.listFiles(nextFileName, prefix, "*");
             if (maybeResponse.isPresent()) {
                 ListFileNamesResponse response = maybeResponse.get();
+                response.fileNames
+                        .stream()
+                        .forEach(fn -> fn.fileName = fn.fileName.replaceFirst("^" + prefix, ""));
                 fileNames.addAll(response.fileNames);
                 nextFileName = response.nextFileName;
             }
@@ -86,11 +94,10 @@ public class FetchTaskExecutor implements TaskExecutor, ProgressObserver {
         return fileNames;
     }
 
-    private void downloadFiles(Queue<FileName> fileNames, Path downloadPath) throws StorageException {
+    private void downloadFiles(Queue<FileName> fileNames, Path destination, String packagePrefix) throws StorageException {
         while (!fileNames.isEmpty()) {
             FileName fileName = fileNames.peek();
-            storage.download(fileName.fileName, downloadPath);
-            notify("Successfully downloaded " + fileName.fileName + " to " + downloadPath + ".");
+            storage.download(fileName.fileName, destination, packagePrefix);
             fileNames.remove();
         }
     }
@@ -125,7 +132,7 @@ public class FetchTaskExecutor implements TaskExecutor, ProgressObserver {
                 + context.getLabel(repositoryName, packageName) + "/";
     }
 
-    private Path getDownloadPath(TaskContext context, TaskConfiguration configuration) {
+    private Path getDestination(TaskContext context, TaskConfiguration configuration) {
         return Paths.get(context.workingDirectory, configuration.getDestination()).toAbsolutePath();
     }
 }

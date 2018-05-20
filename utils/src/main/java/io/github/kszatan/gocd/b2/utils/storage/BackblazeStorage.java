@@ -349,22 +349,22 @@ public class BackblazeStorage implements Storage {
     }
 
     @Override
-    public Boolean download(String backblazeFileName, Path destination) throws StorageException {
+    public Boolean download(String fileName, Path destination, String fileNamePrefix) throws StorageException {
         AuthorizeResponse authorizeResponse =
                 credentialsManager.getAuthorizeResponse(accountId, applicationKey).orElse(this.authorizeResponse);
         if (authorizeResponse == null) {
             throw new StorageException("Authorize not called");
         }
         try {
-            Download download = new Download(backblazeApiWrapper, bucketName, backblazeFileName, destination, authorizeResponse);
+            Download download = new Download(backblazeApiWrapper, bucketName, fileName, destination, fileNamePrefix, authorizeResponse);
             if (!attempt(MAX_RETRY_ATTEMPTS, download)) {
                 return false;
             }
         } catch (StorageException  e) {
             logger.info("download error: " + e.getMessage());
-            throw new StorageException("Failed to download " + backblazeFileName + ": " + e.getMessage(), e.getCause());
+            throw new StorageException("Failed to download " + fileName + ": " + e.getMessage(), e.getCause());
         }
-        notify("Successfully downloaded " + backblazeFileName + " to " + destination + ".");
+        notify("Successfully downloaded " + fileName + " to " + destination + ".");
         return true;
     }
 

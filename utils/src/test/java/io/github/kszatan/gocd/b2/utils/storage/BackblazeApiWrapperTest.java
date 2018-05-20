@@ -14,7 +14,6 @@ import org.junit.Test;
 
 import java.io.*;
 import java.net.*;
-import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -658,7 +657,7 @@ public class BackblazeApiWrapperTest {
         wrapper = new BackblazeApiWrapper(stubUrlHandler);
         AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
         try {
-            wrapper.downloadFileByName("bukhet", "file", Paths.get(""), authorizeResponse);
+            wrapper.downloadFileByName("bukhet", "file", Paths.get(""), "", authorizeResponse);
         } catch (Exception e) {
         }
         verify(mockUrlCon).disconnect();
@@ -675,7 +674,7 @@ public class BackblazeApiWrapperTest {
         wrapper = new BackblazeApiWrapper(stubUrlHandler);
         AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
         try {
-            wrapper.downloadFileByName("bukhet", "file", Paths.get(""), authorizeResponse);
+            wrapper.downloadFileByName("bukhet", "file", Paths.get(""), "",authorizeResponse);
         } catch (Exception e) {
         }
         verify(mockUrlCon, times(0)).disconnect();
@@ -693,7 +692,7 @@ public class BackblazeApiWrapperTest {
         wrapper = new BackblazeApiWrapper(stubUrlHandler);
 
         AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
-        Optional<DownloadFileResponse> response = wrapper.downloadFileByName("bukhet", "file", Paths.get(""), authorizeResponse);
+        Optional<DownloadFileResponse> response = wrapper.downloadFileByName("bukhet", "file", Paths.get(""), "", authorizeResponse);
         assertThat(response, equalTo(Optional.empty()));
         ErrorResponse error = wrapper.getLastError().get();
         assertThat(error.status, equalTo(HttpStatus.SC_REQUEST_TIMEOUT));
@@ -711,30 +710,30 @@ public class BackblazeApiWrapperTest {
         doReturn(HttpStatus.SC_OK).when(mockUrlCon).getResponseCode();
         final String fileId = "4_h4a48fe8875c6214145260818_f000000000000472a_d20140104_m032022_c001_v0000123_t0104";
         doReturn(fileId).when(mockUrlCon).getHeaderField("X-Bz-File-Id");
-        String fileName = "dir1/dir2/filename.txt";
-        doReturn(fileName).when(mockUrlCon).getHeaderField("X-Bz-File-Name");
+        String responseFileName = "up42/up42_stage/up42_job/63.1/dir1/dir2/filename.txt";
+        doReturn(responseFileName).when(mockUrlCon).getHeaderField("X-Bz-File-Name");
         final String contentSha1 = "bae5ed658ab3546aee12f23f36392f35dba1ebdd";
         doReturn(contentSha1).when(mockUrlCon).getHeaderField("X-Bz-Content-Sha1");
 
-        FileOutputStream mockFos = mock(FileOutputStream.class);
-        doReturn(mock(FileChannel.class)).when(mockFos).getChannel();
-        BackblazeApiWrapper.FileOutputStreamFactory mockFosFactory = mock(BackblazeApiWrapper.FileOutputStreamFactory.class);
-        doReturn(mockFos).when(mockFosFactory).create(any());
-        wrapper = new BackblazeApiWrapper(stubUrlHandler, mockFosFactory);
+        OutputStream mockFos = mock(OutputStream.class);
+        BackblazeApiWrapper.OutputStreamFactory mockOsFactory = mock(BackblazeApiWrapper.OutputStreamFactory.class);
+        doReturn(mockFos).when(mockOsFactory).create(any());
+        wrapper = new BackblazeApiWrapper(stubUrlHandler, mockOsFactory);
 
         AuthorizeResponse authorizeResponse = GsonService.fromJson(authorizeResponseJson, AuthorizeResponse.class);
         final String bucketName = "bukhet";
-        final String backblazeFilename = "dir1/dir2/fileName.txt";
+        final String fileName = "dir1/dir2/fileName.txt";
+        final String fileNamePrefix = "up42/up42_stage/up42_job/63.1/";
         final Path destination = Paths.get("path", "to", "dest");
         Optional<DownloadFileResponse> maybeResponse =
-                wrapper.downloadFileByName(bucketName, backblazeFilename, destination, authorizeResponse);
+                wrapper.downloadFileByName(bucketName, fileName, destination, fileNamePrefix, authorizeResponse);
 
-        verify(mockFosFactory).create(Paths.get("path", "to", "dest", "dir1", "dir2", "fileName.txt"));
+        verify(mockOsFactory).create(Paths.get("path", "to", "dest", "dir1", "dir2", "fileName.txt"));
         verify(mockFos).close();
         assertThat(maybeResponse.isPresent(), equalTo(true));
         DownloadFileResponse response = maybeResponse.get();
         assertThat(response.fileId, equalTo(fileId));
-        assertThat(response.fileName, equalTo(fileName));
+        assertThat(response.fileName, equalTo(responseFileName));
         assertThat(response.contentSha1, equalTo(contentSha1));
     }
 

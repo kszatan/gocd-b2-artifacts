@@ -30,7 +30,8 @@ public class DownloadTest {
     private BackblazeApiWrapper mockApiWrapper;
     private AuthorizeResponse authorizeResponse;
     private final String bucketName = "bukhet";
-    private final String backblazeFileName = "dir1/dir2/fileName.txt";
+    private final String fileName = "dir1/dir2/fileName.txt";
+    private final String fileNamePrefix = "up42/up42_stage/up42_job/63.1/";
     private final Path destination = Paths.get("path", "to", "dest");
 
     @Rule
@@ -46,7 +47,7 @@ public class DownloadTest {
         authorizeResponse.authorizationToken = "token_fristajlo";
         authorizeResponse.downloadUrl = "https://f001.backblazeb2.com";
         authorizeResponse.recommendedPartSize = 100000000;
-        download = new Download(mockApiWrapper, bucketName, backblazeFileName, destination, authorizeResponse);
+        download = new Download(mockApiWrapper, bucketName, fileName, destination, fileNamePrefix, authorizeResponse);
     }
 
     @Test
@@ -54,7 +55,7 @@ public class DownloadTest {
         Download.MkdirsProvider mkdirsProviderMock = mock(Download.MkdirsProvider.class);
         download.setMkdirsProvider(mkdirsProviderMock);
         DownloadFileResponse response = new DownloadFileResponse();
-        doReturn(Optional.of(response)).when(mockApiWrapper).downloadFileByName(bucketName, backblazeFileName, destination, authorizeResponse);
+        doReturn(Optional.of(response)).when(mockApiWrapper).downloadFileByName(bucketName, fileName, destination, fileNamePrefix, authorizeResponse);
         Boolean result = download.call();
         verify(mkdirsProviderMock).mkdirs(Paths.get("path", "to", "dest", "dir1", "dir2"));
         assertThat(result, equalTo(true));
@@ -74,7 +75,7 @@ public class DownloadTest {
     public void callShouldReturnFalseOnFailure() throws Exception {
         Download.MkdirsProvider mkdirsProviderMock = mock(Download.MkdirsProvider.class);
         download.setMkdirsProvider(mkdirsProviderMock);
-        doReturn(Optional.empty()).when(mockApiWrapper).downloadFileByName(bucketName, backblazeFileName, destination, authorizeResponse);
+        doReturn(Optional.empty()).when(mockApiWrapper).downloadFileByName(bucketName, fileName, destination, fileNamePrefix, authorizeResponse);
         Boolean result = download.call();
         assertThat(result, equalTo(false));
     }

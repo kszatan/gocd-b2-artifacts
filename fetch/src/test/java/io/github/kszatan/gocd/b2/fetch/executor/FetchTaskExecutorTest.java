@@ -182,7 +182,10 @@ public class FetchTaskExecutorTest {
     public void executorShouldDownloadFilesToAppropriateDestinations() throws Exception {
         doReturn(true).when(storage).authorize();
         ListFileNamesResponse listFileNamesResponse = new ListFileNamesResponse();
-        List<String> fileNames = Arrays.asList("a/file1", "b/file2", "file3", "c/d/e/f/file4.txt");
+        List<String> fileNames = Arrays.asList("up42/up42_stage/up42_job/63.1/a/file1",
+                "up42/up42_stage/up42_job/63.1/b/file2",
+                "up42/up42_stage/up42_job/63.1/file3",
+                "up42/up42_stage/up42_job/63.1/c/d/e/f/file4.txt");
         listFileNamesResponse.fileNames = fileNames.stream().map(name -> {
             FileName fileName = new FileName();
             fileName.fileName = name;
@@ -194,9 +197,9 @@ public class FetchTaskExecutorTest {
         ExecuteResponse response = executor.execute(configuration, context);
         assertThat(response.success, equalTo(true));
         Path destination = Paths.get("pipelines/pajplajn/path/to/dest").toAbsolutePath();
-        verify(storage).download("a/file1", destination);
-        verify(storage).download("b/file2", destination);
-        verify(storage).download("file3", destination);
-        verify(storage).download("c/d/e/f/file4.txt", destination);
+        verify(storage).download("a/file1", destination, "up42/up42_stage/up42_job/63.1/");
+        verify(storage).download("b/file2", destination, "up42/up42_stage/up42_job/63.1/");
+        verify(storage).download("file3", destination, "up42/up42_stage/up42_job/63.1/");
+        verify(storage).download("c/d/e/f/file4.txt", destination, "up42/up42_stage/up42_job/63.1/");
     }
 }

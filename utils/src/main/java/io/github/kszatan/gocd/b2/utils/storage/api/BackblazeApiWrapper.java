@@ -42,7 +42,7 @@ public class BackblazeApiWrapper {
     private static final Integer CONNECTION_TIMEOUT_MS = 60 * 1000;
     private static final Integer READ_TIMEOUT_MS = 120 * 1000;
 
-    public interface FileOutputStreamFactory {
+    public interface OutputStreamFactory {
         OutputStream create(Path path) throws IOException;
     }
 
@@ -50,7 +50,7 @@ public class BackblazeApiWrapper {
     private URLStreamHandler urlStreamHandler;
     private FileHash fileHash;
     private Properties properties;
-    private FileOutputStreamFactory osFactory;
+    private OutputStreamFactory osFactory;
 
     private Logger logger = Logger.getLoggerFor(BackblazeApiWrapper.class);
 
@@ -73,11 +73,11 @@ public class BackblazeApiWrapper {
         this(urlStreamHandler, fileHash, path -> Files.newOutputStream(path));
     }
 
-    public BackblazeApiWrapper(URLStreamHandler urlStreamHandler, FileOutputStreamFactory osFactory) {
+    public BackblazeApiWrapper(URLStreamHandler urlStreamHandler, OutputStreamFactory osFactory) {
         this(urlStreamHandler, new Sha1FileHash(), osFactory);
     }
 
-    public BackblazeApiWrapper(URLStreamHandler urlStreamHandler, FileHash fileHash, FileOutputStreamFactory osFactory) {
+    public BackblazeApiWrapper(URLStreamHandler urlStreamHandler, FileHash fileHash, OutputStreamFactory osFactory) {
         this.urlStreamHandler = urlStreamHandler;
         this.fileHash = fileHash;
         this.osFactory = osFactory;
@@ -186,11 +186,13 @@ public class BackblazeApiWrapper {
         return Optional.of(GsonService.fromJson(jsonResponse, UploadPartResponse.class));
     }
 
-    public Optional<DownloadFileResponse> downloadFileByName(String bucketName, String backblazeFileName, Path destination,
-                                                             AuthorizeResponse authorizeResponse) throws IOException {
-        logger.debug("DownloadFile API call - bucketName: " + bucketName + ", fileName: " + backblazeFileName + ", destination: " + destination);
+    public Optional<DownloadFileResponse> downloadFileByName(String bucketName, String fileName, Path destination,
+                                                             String fileNamePrefix, AuthorizeResponse authorizeResponse) throws IOException {
+        logger.debug("DownloadFile API call - bucketName: " + bucketName + ", fileName: " + fileName + ", fileNamePrefix: "
+                + fileNamePrefix + ", destination: " + destination);
         HttpURLConnection connection = null;
         DownloadFileResponse response = new DownloadFileResponse();
+        final String backblazeFileName = fileNamePrefix + fileName;
         final String downloadUrl = authorizeResponse.downloadUrl + "/file/" + bucketName + "/" + backblazeFileName;
         try {
             connection = newHttpConnection(downloadUrl, "", "GET");
@@ -199,9 +201,9 @@ public class BackblazeApiWrapper {
                 response.fileId = connection.getHeaderField("X-Bz-File-Id");
                 response.fileName = connection.getHeaderField("X-Bz-File-Name");
                 response.contentSha1 = connection.getHeaderField("X-Bz-Content-Sha1");
-                Path relativeFilePath = destination.resolve(backblazeFileNameToFilePath(backblazeFileName));
+                Path relativeFilePath = destination.resolve(fileNameToFilePath(fileName));
                 try (InputStream is = connection.getInputStream();
-                     OutputStream os = osFactory.create(relativeFilePath);
+                     OutputStream os = osFactory.create(relativeFilePath)
                 ) {
                     IOUtils.copy(is, os);
                 }
@@ -220,7 +222,7 @@ public class BackblazeApiWrapper {
         return Optional.of(response);
     }
 
-    private Path backblazeFileNameToFilePath(String backblazeFileName) {
+    private Path fileNameToFilePath(String backblazeFileName) {
         return Paths.get("", backblazeFileName.split("/"));
     }
 

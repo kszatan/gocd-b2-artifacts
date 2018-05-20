@@ -706,9 +706,9 @@ public class BackblazeStorageTest {
                 .doReturn(Optional.empty())
                 .doReturn(Optional.empty())
                 .doReturn(Optional.empty())
-                .when(backblazeApiWrapperMock).downloadFileByName(any(), any(), any(), any());
+                .when(backblazeApiWrapperMock).downloadFileByName(any(), any(), any(), any(), any());
 
-        Boolean result = storage.download("dir1/fileName.txt", Paths.get(System.getProperty("java.io.tmpdir")));
+        Boolean result = storage.download("dir1/fileName.txt", Paths.get(System.getProperty("java.io.tmpdir")), "up42/up42_stage/up42_job/63.1/");
         assertThat(result, equalTo(false));
     }
     
@@ -721,21 +721,22 @@ public class BackblazeStorageTest {
         doReturn(Optional.of(authorizeResponse)).when(credentialsManagerMock).getAuthorizeResponse(accountId, applicationKey);
         authorize(accountId, applicationKey, authorizeResponse);
         doReturn(Optional.of(new DownloadFileResponse()))
-                .when(backblazeApiWrapperMock).downloadFileByName(any(), any(), any(), any());
+                .when(backblazeApiWrapperMock).downloadFileByName(any(), any(), any(), any(), any());
 
-        storage.download("dir1/fileName.txt", Paths.get(System.getProperty("java.io.tmpdir")));
-        verify(backblazeApiWrapperMock).downloadFileByName(any(), any(), any(), eq(authorizeResponse));
+        String fileNamePrefix = "up42/up42_stage/up42_job/63.1/";
+        storage.download("dir1/fileName.txt", Paths.get(System.getProperty("java.io.tmpdir")), fileNamePrefix);
+        verify(backblazeApiWrapperMock).downloadFileByName(any(), any(), any(), eq(fileNamePrefix), eq(authorizeResponse));
     }
 
     @Test
     public void downloadShouldThrowStorageExceptionWhenUploadFileCallThrowsIoException() throws Exception {
         authorize(new AuthorizeResponse());
         doThrow(new IOException("read error"))
-                .when(backblazeApiWrapperMock).downloadFileByName(any(), any(), any(), any());
+                .when(backblazeApiWrapperMock).downloadFileByName(any(), any(), any(), any(), any());
 
         thrown.expect(StorageException.class);
         thrown.expectCause(IsInstanceOf.instanceOf(IOException.class));
-        storage.download("dir1/fileName.txt", Paths.get(System.getProperty("java.io.tmpdir")));
+        storage.download("dir1/fileName.txt", Paths.get(System.getProperty("java.io.tmpdir")), "up42/up42_stage/up42_job/63.1/");
     }
 
     @Test

@@ -21,6 +21,7 @@ public class Download extends B2ApiCall {
     private final String bucketName;
     private final String backblazeFileName;
     private final Path destination;
+    private final String fileNamePrefix;
     private final AuthorizeResponse authorizeResponse;
     private DownloadFileResponse downloadFileResponse;
     private MkdirsProvider mkdirsProvider;
@@ -32,11 +33,12 @@ public class Download extends B2ApiCall {
     }
 
     public Download(BackblazeApiWrapper backblazeApiWrapper, String bucketName, String backblazeFileName,
-                    Path destination, AuthorizeResponse authorizeResponse) {
+                    Path destination, String filenNamePrefix, AuthorizeResponse authorizeResponse) {
         super("download " + backblazeFileName, backblazeApiWrapper);
         this.bucketName = bucketName;
         this.backblazeFileName = backblazeFileName;
         this.destination = destination;
+        this.fileNamePrefix = filenNamePrefix;
         this.authorizeResponse = authorizeResponse;
         this.mkdirsProvider = path -> {
             Files.createDirectories(path);
@@ -57,7 +59,7 @@ public class Download extends B2ApiCall {
             final Path absoluteDestFilePath = destination.resolve(backblazeFileName).getParent();
             mkdirsProvider.mkdirs(absoluteDestFilePath);
             downloadFileResponse = backblazeApiWrapper.downloadFileByName(
-                    bucketName, backblazeFileName, destination, authorizeResponse).orElse(null);
+                    bucketName, backblazeFileName, destination, fileNamePrefix, authorizeResponse).orElse(null);
         } catch(IOException e) {
             throw new StorageException("Exception while downloading file: " + e.getMessage(), e);
         }
