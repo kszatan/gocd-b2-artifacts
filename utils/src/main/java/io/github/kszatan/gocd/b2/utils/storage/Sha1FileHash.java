@@ -18,10 +18,11 @@ public class Sha1FileHash implements FileHash {
     @Override
     public String getHashValue(Path filePath) throws NoSuchAlgorithmException, IOException {
         final MessageDigest digest = MessageDigest.getInstance("SHA-1");
-        InputStream fis = Files.newInputStream(filePath);
-        byte[] buffer = new byte[8192];
-        for (int read = 0; (read = fis.read(buffer)) != -1; ) {
-            digest.update(buffer, 0, read);
+        try (InputStream fis = Files.newInputStream(filePath)) {
+            byte[] buffer = new byte[8192];
+            for (int read; (read = fis.read(buffer)) != -1; ) {
+                digest.update(buffer, 0, read);
+            }
         }
 
         try (Formatter formatter = new Formatter()) {
